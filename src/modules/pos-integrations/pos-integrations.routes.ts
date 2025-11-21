@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import posIntegrationsController from './pos-integrations.controller';
-import { authenticate, authorize } from '../../middleware/auth.middleware';
+import { authenticateToken } from '../../middleware/auth.middleware';
 
 const router = Router();
 
@@ -8,61 +8,30 @@ const router = Router();
 router.get('/providers', posIntegrationsController.getSupportedProviders);
 
 // Protected routes
-router.use(authenticate);
+router.use(authenticateToken);
 
 // Configure POS for tenant
-router.post(
-  '/tenants/:tenantId/configure',
-  authorize('admin', 'owner'),
-  posIntegrationsController.configurePOS
-);
+router.post('/tenants/:tenantId/configure', posIntegrationsController.configurePOS);
 
 // Get POS configuration
-router.get(
-  '/tenants/:tenantId/config',
-  authorize('admin', 'owner'),
-  posIntegrationsController.getPOSConfig
-);
+router.get('/tenants/:tenantId/config', posIntegrationsController.getPOSConfig);
 
 // Test POS connection
-router.post(
-  '/tenants/:tenantId/test',
-  authorize('admin', 'owner'),
-  posIntegrationsController.testConnection
-);
+router.post('/tenants/:tenantId/test', posIntegrationsController.testConnection);
 
 // Push order to POS
-router.post(
-  '/tenants/:tenantId/orders/:orderId/push',
-  authorize('admin', 'owner', 'staff'),
-  posIntegrationsController.pushOrder
-);
+router.post('/tenants/:tenantId/orders/:orderId/push', posIntegrationsController.pushOrder);
 
 // Push appointment to POS
-router.post(
-  '/tenants/:tenantId/bookings/:bookingId/push',
-  authorize('admin', 'owner', 'staff'),
-  posIntegrationsController.pushAppointment
-);
+router.post('/tenants/:tenantId/bookings/:bookingId/push', posIntegrationsController.pushAppointment);
 
 // Sync menu from POS
-router.post(
-  '/tenants/:tenantId/sync-menu',
-  authorize('admin', 'owner'),
-  posIntegrationsController.syncMenu
-);
+router.post('/tenants/:tenantId/sync-menu', posIntegrationsController.syncMenu);
 
 // Get availability from POS
-router.get(
-  '/tenants/:tenantId/availability',
-  posIntegrationsController.getAvailability
-);
+router.get('/tenants/:tenantId/availability', posIntegrationsController.getAvailability);
 
 // Cancel order in POS
-router.post(
-  '/tenants/:tenantId/orders/:orderId/cancel',
-  authorize('admin', 'owner', 'staff'),
-  posIntegrationsController.cancelOrder
-);
+router.post('/tenants/:tenantId/orders/:orderId/cancel', posIntegrationsController.cancelOrder);
 
 export default router;
