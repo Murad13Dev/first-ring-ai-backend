@@ -604,6 +604,46 @@ model FollowUpJob {
 }
 
 // ==========================================
+// BUSINESS TYPES (Dynamic)
+// ==========================================
+model BusinessType {
+  id          String   @id @default(uuid())
+  slug        String   @unique // e.g., "restaurant", "hotel", "medical"
+  name        String   // Display name
+  description String?
+  icon        String?  // Icon name or URL
+
+  // AI Configuration
+  promptTemplate String? @db.Text // System prompt template
+
+  // Available functions for this business type
+  functions   BusinessTypeFunction[]
+
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("business_types")
+}
+
+model BusinessTypeFunction {
+  id             String   @id @default(uuid())
+  businessTypeId String
+  businessType   BusinessType @relation(fields: [businessTypeId], references: [id], onDelete: Cascade)
+
+  name           String   // Function name (e.g., "check_availability")
+  description    String   // Human-readable description
+  parameters     Json?    // JSON schema for function parameters
+
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  @@unique([businessTypeId, name])
+  @@index([businessTypeId])
+  @@map("business_type_functions")
+}
+
+// ==========================================
 // CALL LOGS (for Retell AI)
 // ==========================================
 model CallLog {
