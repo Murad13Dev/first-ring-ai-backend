@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../../config/database';
-import { AppError } from '../../middleware/errorHandler';
+import { AppError } from '../../middleware/error.middleware';
 
 const router = Router();
 
