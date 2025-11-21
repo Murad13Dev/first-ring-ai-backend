@@ -362,6 +362,7 @@ export class ServicesService {
         data: {
           ...serviceData,
           name: `${original.name} (Copy)`,
+          modifiers: serviceData.modifiers ?? undefined,
         },
       });
 
