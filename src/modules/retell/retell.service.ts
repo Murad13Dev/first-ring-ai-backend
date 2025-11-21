@@ -1,6 +1,6 @@
 import prisma from '../../config/database';
 import logger from '../../config/logger';
-import { AppError } from '../../middleware/errorHandler';
+import { AppError } from '../../middleware/error.middleware';
 
 /**
  * Retell AI Service
@@ -197,13 +197,15 @@ export const retellService = {
     };
   },
 
-  async createLead(args: { name: string; email: string; phone: string; businessType: string; message?: string }) {
+  async createLead(args: { name: string; email: string; phone: string; businessType: string; businessName?: string; message?: string }) {
     const lead = await prisma.lead.create({
       data: {
         contactName: args.name,
         email: args.email,
         phone: args.phone,
+        businessName: args.businessName || 'Unknown',
         businessType: args.businessType,
+        selectedPlan: 'starter',
         source: 'retell_ai',
         aiNotes: args.message,
         status: 'new',
@@ -224,6 +226,9 @@ export const retellService = {
         contactName: args.name,
         email: args.email,
         phone: args.phone,
+        businessName: 'Demo Request',
+        businessType: 'unknown',
+        selectedPlan: 'starter',
         source: 'retell_ai_demo',
         status: 'demo_scheduled',
         aiNotes: `Demo requested for ${args.preferredDate} at ${args.preferredTime}`,
@@ -295,7 +300,7 @@ export const retellService = {
     const bookings = await prisma.booking.findMany({
       where: {
         tenantId,
-        date: new Date(args.date),
+        dateTime: { gte: new Date(args.date), lt: new Date(new Date(args.date).getTime() + 86400000) },
         status: { not: 'cancelled' },
       },
     });
@@ -323,18 +328,18 @@ export const retellService = {
     partySize: number;
     notes?: string;
   }) {
+    const dateTime = new Date(`${args.date} ${args.time}`);
     const booking = await prisma.booking.create({
       data: {
         tenantId,
         customerName: args.name,
         customerPhone: args.phone,
         customerEmail: args.email,
-        date: new Date(args.date),
-        time: args.time,
+        serviceName: 'Table Reservation',
+        dateTime,
         partySize: args.partySize,
         notes: args.notes,
         status: 'confirmed',
-        source: 'retell_ai',
       },
     });
 
@@ -355,7 +360,7 @@ export const retellService = {
     } else if (args.phone) {
       booking = await prisma.booking.findFirst({
         where: { customerPhone: args.phone, tenantId, status: 'confirmed' },
-        orderBy: { date: 'desc' },
+        orderBy: { dateTime: 'desc' },
       });
     }
 
@@ -401,7 +406,7 @@ export const retellService = {
   async createFoodOrder(tenantId: string, args: {
     customerName: string;
     customerPhone: string;
-    items: Array<{ itemId: string; quantity: number }>;
+    items: Array<{ itemId: string; quantity: number; name?: string; price?: number }>;
     type: 'pickup' | 'delivery';
     address?: string;
     notes?: string;
@@ -411,17 +416,13 @@ export const retellService = {
         tenantId,
         customerName: args.customerName,
         customerPhone: args.customerPhone,
-        type: args.type,
+        items: args.items,
+        subtotal: 0,
+        total: 0,
+        deliveryType: args.type,
         deliveryAddress: args.address,
         notes: args.notes,
         status: 'pending',
-        source: 'retell_ai',
-        items: {
-          create: args.items.map((item) => ({
-            menuItemId: item.itemId,
-            quantity: item.quantity,
-          })),
-        },
       },
     });
 
@@ -560,10 +561,12 @@ export const retellService = {
         customerName: args.customerName,
         customerPhone: args.customerPhone,
         customerEmail: args.customerEmail,
-        type: args.type,
+        items: args.items,
+        subtotal: 0,
+        total: 0,
+        deliveryType: args.type,
         deliveryAddress: args.address,
         status: 'pending',
-        source: 'retell_ai',
       },
     });
 
@@ -707,14 +710,14 @@ export const retellService = {
     const bookings = await prisma.booking.findMany({
       where: {
         tenantId,
-        date: new Date(args.date),
+        dateTime: { gte: new Date(args.date), lt: new Date(new Date(args.date).getTime() + 86400000) },
         status: { not: 'cancelled' },
       },
     });
 
     // Available time slots
     const allSlots = ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'];
-    const bookedTimes = bookings.map(b => b.time);
+    const bookedTimes = bookings.map(b => b.dateTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
     const availableSlots = allSlots.filter(slot => !bookedTimes.includes(slot));
 
     return {
@@ -736,18 +739,17 @@ export const retellService = {
     doctorId?: string;
     notes?: string;
   }) {
+    const dateTime = new Date(`${args.date} ${args.time}`);
     const booking = await prisma.booking.create({
       data: {
         tenantId,
         customerName: args.patientName,
         customerPhone: args.phone,
         customerEmail: args.email,
-        date: new Date(args.date),
-        time: args.time,
-        serviceType: args.serviceType,
+        serviceName: args.serviceType,
+        dateTime,
         notes: args.notes,
         status: 'confirmed',
-        source: 'retell_ai',
       },
     });
 
@@ -767,7 +769,7 @@ export const retellService = {
     } else if (args.phone) {
       booking = await prisma.booking.findFirst({
         where: { customerPhone: args.phone, tenantId, status: 'confirmed' },
-        orderBy: { date: 'asc' },
+        orderBy: { dateTime: 'asc' },
       });
     }
 
@@ -788,7 +790,7 @@ export const retellService = {
 
   async getMedicalServices(tenantId: string) {
     const services = await prisma.service.findMany({
-      where: { tenantId, isActive: true },
+      where: { tenantId },
     });
 
     return {
@@ -885,18 +887,18 @@ export const retellService = {
     guests: number;
     specialRequests?: string;
   }) {
+    const dateTime = new Date(`${args.checkIn} 15:00`);
     const booking = await prisma.booking.create({
       data: {
         tenantId,
         customerName: args.guestName,
         customerPhone: args.phone,
         customerEmail: args.email,
-        date: new Date(args.checkIn),
-        time: 'Check-in: 3:00 PM',
+        serviceName: `${args.roomType} Room`,
+        dateTime,
         partySize: args.guests,
-        notes: `Room: ${args.roomType}, Check-out: ${args.checkOut}. ${args.specialRequests || ''}`,
+        notes: `Check-out: ${args.checkOut}. ${args.specialRequests || ''}`,
         status: 'confirmed',
-        source: 'retell_ai',
       },
     });
 
@@ -916,7 +918,7 @@ export const retellService = {
     } else if (args.phone) {
       booking = await prisma.booking.findFirst({
         where: { customerPhone: args.phone, tenantId, status: 'confirmed' },
-        orderBy: { date: 'desc' },
+        orderBy: { dateTime: 'desc' },
       });
     }
 
@@ -1005,13 +1007,13 @@ export const retellService = {
     const bookings = await prisma.booking.findMany({
       where: {
         tenantId,
-        date: new Date(args.date),
+        dateTime: { gte: new Date(args.date), lt: new Date(new Date(args.date).getTime() + 86400000) },
         status: { not: 'cancelled' },
       },
     });
 
     const allSlots = ['9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'];
-    const bookedTimes = bookings.map(b => b.time);
+    const bookedTimes = bookings.map(b => b.dateTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
     const availableSlots = allSlots.filter(slot => !bookedTimes.includes(slot));
 
     return {
@@ -1033,18 +1035,17 @@ export const retellService = {
     stylistId?: string;
     notes?: string;
   }) {
+    const dateTime = new Date(`${args.date} ${args.time}`);
     const booking = await prisma.booking.create({
       data: {
         tenantId,
         customerName: args.clientName,
         customerPhone: args.phone,
         customerEmail: args.email,
-        date: new Date(args.date),
-        time: args.time,
-        serviceType: args.service,
+        serviceName: args.service,
+        dateTime,
         notes: args.notes,
         status: 'confirmed',
-        source: 'retell_ai',
       },
     });
 
@@ -1057,7 +1058,7 @@ export const retellService = {
 
   async getSalonServices(tenantId: string) {
     const services = await prisma.service.findMany({
-      where: { tenantId, isActive: true },
+      where: { tenantId },
     });
 
     return {
@@ -1133,17 +1134,17 @@ export const retellService = {
     preferredDate: string;
     preferredTime: string;
   }) {
+    const dateTime = new Date(`${args.preferredDate} ${args.preferredTime}`);
     const booking = await prisma.booking.create({
       data: {
         tenantId,
         customerName: args.clientName,
         customerPhone: args.phone,
         customerEmail: args.email,
-        date: new Date(args.preferredDate),
-        time: args.preferredTime,
-        notes: `Property viewing: ${args.propertyId}`,
+        serviceName: 'Property Viewing',
+        dateTime,
+        notes: `Property ID: ${args.propertyId}`,
         status: 'confirmed',
-        source: 'retell_ai',
       },
     });
 
