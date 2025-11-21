@@ -383,7 +383,7 @@ export class BookingsService {
         throw new AppError('Business hours not configured', 400);
       }
 
-      const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'lowercase' });
+      const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
       const hours = (tenant.businessHours as any)[dayOfWeek];
 
       if (!hours || !hours.open || !hours.close) {
