@@ -95,7 +95,7 @@ const analyticsService = {
     startDate.setDate(startDate.getDate() - days);
 
     const [events, tenantCount, callCount] = await Promise.all([
-      prisma.analyticsEvent.groupBy({
+      (prisma.analyticsEvent.groupBy as any)({
         by: ['eventType'],
         where: { createdAt: { gte: startDate } },
         _count: true,
