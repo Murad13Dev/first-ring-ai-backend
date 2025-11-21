@@ -314,7 +314,7 @@ export class TenantsService {
         recentCalls,
       ] = await Promise.all([
         prisma.service.count({ where: { tenantId } }),
-        prisma.faq.count({ where: { tenantId } }),
+        prisma.fAQ.count({ where: { tenantId } }),
         prisma.booking.count({ where: { tenantId } }),
         prisma.order.count({ where: { tenantId } }),
         prisma.call.count({ where: { tenantId } }),
