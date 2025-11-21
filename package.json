@@ -44,7 +44,7 @@
     "nodemailer": "^6.9.7",
     "twilio": "^4.19.0",
     "axios": "^1.6.2",
-    "stripe": "^14.7.0",
+    "square": "^37.1.1",
     "googleapis": "^129.0.0",
     "redis": "^4.6.11",
     "morgan": "^1.10.0"

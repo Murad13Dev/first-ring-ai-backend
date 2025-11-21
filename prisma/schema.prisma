@@ -31,14 +31,14 @@ model Tenant {
   businessHours   Json?    // { "monday": { "open": "09:00", "close": "22:00" }, ... }
   
   // Integrations
-  stripeAccountId String?
+  squareLocationId String?
   googleCalendarId String?
   googleSheetId   String?
-  
+
   // Subscription
   plan            String   @default("free") // "free" | "basic" | "pro" | "enterprise"
   subscriptionStatus String @default("trial") // "trial" | "active" | "cancelled" | "suspended"
-  subscriptionId  String?  // Stripe subscription ID
+  subscriptionId  String?  // Square subscription ID
   trialEndsAt     DateTime?
   currentPeriodEnd DateTime?
   
@@ -308,8 +308,8 @@ model Order {
   paymentStatus String   @default("pending") 
   // "pending" | "paid" | "failed" | "refunded" | "partially_refunded"
   
-  paymentMethod String?  // "stripe" | "square" | "cash" | "card"
-  stripePaymentIntentId String?
+  paymentMethod String?  // "square" | "cash" | "card"
+  squarePaymentId String?
   checkoutUrl   String?
   
   // Delivery
