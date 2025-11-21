@@ -22,6 +22,7 @@ import integrationsRoutes from './modules/integrations/integrations.routes';
 import posIntegrationsRoutes from './modules/pos-integrations/pos-integrations.routes';
 import channelsRoutes from './modules/channels/channels.routes';
 import followUpsRoutes from './modules/follow-ups/follow-ups.routes';
+import retellRoutes from './modules/retell/retell.routes';
 
 // Load environment variables
 dotenv.config();
@@ -102,6 +103,7 @@ app.use('/api/integrations', integrationsRoutes);
 app.use('/api/pos', posIntegrationsRoutes);
 app.use('/api/channels', channelsRoutes);
 app.use('/api/follow-ups', followUpsRoutes);
+app.use('/api/retell', retellRoutes);
 
 // ==========================================
 // ERROR HANDLING

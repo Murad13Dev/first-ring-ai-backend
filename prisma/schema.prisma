@@ -602,3 +602,138 @@ model FollowUpJob {
   @@index([scheduledFor])
   @@map("follow_up_jobs")
 }
+
+// ==========================================
+// CALL LOGS (for Retell AI)
+// ==========================================
+model CallLog {
+  id          String    @id @default(uuid())
+  callId      String    @unique
+  tenantId    String?
+
+  fromNumber  String
+  toNumber    String
+  status      String
+  duration    Int?
+
+  transcript  String?
+  summary     String?
+  sentiment   String?
+
+  startedAt   DateTime?
+  endedAt     DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([callId])
+  @@map("call_logs")
+}
+
+// ==========================================
+// MESSAGES
+// ==========================================
+model Message {
+  id          String   @id @default(uuid())
+  tenantId    String
+
+  senderName  String
+  senderPhone String
+  content     String
+  source      String   @default("phone")
+  isRead      Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId])
+  @@map("messages")
+}
+
+// ==========================================
+// CALLBACKS
+// ==========================================
+model Callback {
+  id            String   @id @default(uuid())
+  tenantId      String
+
+  customerName  String
+  customerPhone String
+  preferredTime String?
+  status        String   @default("pending")
+  notes         String?
+
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([status])
+  @@map("callbacks")
+}
+
+// ==========================================
+// PRODUCTS (for Retail)
+// ==========================================
+model Product {
+  id          String   @id @default(uuid())
+  tenantId    String
+
+  name        String
+  description String?
+  sku         String?
+  price       Float
+  quantity    Int      @default(0)
+  category    String?
+
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([sku])
+  @@map("products")
+}
+
+// ==========================================
+// MENU ITEMS (for Restaurant)
+// ==========================================
+model MenuItem {
+  id          String   @id @default(uuid())
+  tenantId    String
+
+  name        String
+  description String?
+  price       Float
+  category    String?
+
+  isAvailable Boolean  @default(true)
+  isSpecial   Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([category])
+  @@map("menu_items")
+}
+
+// ==========================================
+// PROMOTIONS
+// ==========================================
+model Promotion {
+  id          String    @id @default(uuid())
+  tenantId    String
+
+  name        String
+  description String?
+  discount    Float?
+  code        String?
+
+  isActive    Boolean   @default(true)
+  startDate   DateTime?
+  endDate     DateTime?
+
+  createdAt   DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([isActive])
+  @@map("promotions")
+}
