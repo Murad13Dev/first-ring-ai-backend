@@ -9,10 +9,22 @@ import ordersService from '../orders/orders.service';
 import leadsService from '../leads/leads.service';
 import i18nService from '../../services/i18n.service';
 
-const twilioClient = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
+// Lazy-load Twilio client
+let twilioClient: ReturnType<typeof twilio> | null = null;
+
+const getTwilioClient = () => {
+  if (!twilioClient) {
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+    if (!accountSid || !authToken || !accountSid.startsWith('AC')) {
+      throw new AppError('Twilio credentials not configured properly', 500);
+    }
+
+    twilioClient = twilio(accountSid, authToken);
+  }
+  return twilioClient;
+};
 
 interface AIAgentContext {
   tenantId: string;
@@ -531,7 +543,7 @@ Respond with JSON:
         throw new AppError('Tenant or Twilio number not found', 404);
       }
 
-      const call = await twilioClient.calls.create({
+      const call = await getTwilioClient().calls.create({
         to: toNumber,
         from: tenant.twilioNumber,
         url: `${process.env.API_URL}/api/ai-agent/outbound-twiml?tenantId=${tenantId}`,
