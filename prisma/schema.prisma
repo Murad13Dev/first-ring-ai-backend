@@ -34,6 +34,7 @@ model Tenant {
   squareLocationId String?
   googleCalendarId String?
   googleSheetId   String?
+  posConfig       Json?    // POS integration configuration
 
   // Subscription
   plan            String   @default("free") // "free" | "basic" | "pro" | "enterprise"
@@ -262,7 +263,8 @@ model Booking {
   
   // Integrations
   googleEventId String?
-  
+  externalBookingId String?  // POS booking ID
+
   // Notifications
   reminderSent  Boolean  @default(false)
   confirmationSent Boolean @default(false)
@@ -311,6 +313,8 @@ model Order {
   paymentMethod String?  // "square" | "cash" | "card"
   squarePaymentId String?
   checkoutUrl   String?
+  externalOrderId String?  // POS order ID
+  posStatus     String?    // POS sync status
   
   // Delivery
   deliveryType  String?  // "pickup" | "delivery" | "dine-in"
@@ -438,4 +442,159 @@ model ActivityLog {
   @@index([action])
   @@index([createdAt])
   @@map("activity_logs")
+}
+
+// ==========================================
+// CUSTOMERS (for loyalty & follow-ups)
+// ==========================================
+model Customer {
+  id              String   @id @default(uuid())
+  tenantId        String
+
+  phone           String
+  email           String?
+  name            String?
+
+  // Loyalty
+  loyaltyPoints   Int      @default(0)
+  totalSpent      Float    @default(0)
+  orderCount      Int      @default(0)
+
+  // Activity
+  lastActivityAt  DateTime?
+  reactivationSentAt DateTime?
+
+  // Tags
+  tags            String[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, phone])
+  @@index([tenantId])
+  @@index([phone])
+  @@map("customers")
+}
+
+// ==========================================
+// CHAT SESSIONS (Web Chat)
+// ==========================================
+model ChatSession {
+  id              String   @id @default(uuid())
+  tenantId        String
+
+  channel         String   // "webchat" | "whatsapp"
+  customerPhone   String?
+  customerEmail   String?
+  customerName    String?
+
+  status          String   @default("active") // "active" | "ended" | "transferred"
+  assignedAgentId String?
+  transferredAt   DateTime?
+  endedAt         DateTime?
+
+  metadata        Json?
+
+  messages        ChatMessage[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+  @@map("chat_sessions")
+}
+
+// ==========================================
+// CHAT MESSAGES
+// ==========================================
+model ChatMessage {
+  id            String   @id @default(uuid())
+  sessionId     String
+  session       ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  channel       String   // "webchat" | "whatsapp"
+  sender        String   // "user" | "agent" | "ai"
+  message       String   @db.Text
+  mediaUrl      String?
+
+  metadata      Json?
+
+  createdAt     DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([channel])
+  @@map("chat_messages")
+}
+
+// ==========================================
+// QR CODES (for ordering)
+// ==========================================
+model QRCode {
+  id            String   @id @default(uuid())
+  tenantId      String
+
+  tableNumber   String?
+  locationId    String?
+  url           String
+
+  status        String   @default("active") // "active" | "inactive"
+  scanCount     Int      @default(0)
+  lastScannedAt DateTime?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+  @@map("qr_codes")
+}
+
+// ==========================================
+// FOLLOW-UP CONFIGS
+// ==========================================
+model FollowUpConfig {
+  id            String   @id @default(uuid())
+  tenantId      String
+
+  type          String   // "missed_call" | "order_upsell" | "booking_reminder" | etc
+  enabled       Boolean  @default(true)
+  delayMinutes  Int      @default(30)
+  channel       String   @default("sms") // "sms" | "email" | "whatsapp" | "all"
+  template      String   @db.Text
+  conditions    Json?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, type])
+  @@index([tenantId])
+  @@map("follow_up_configs")
+}
+
+// ==========================================
+// FOLLOW-UP JOBS
+// ==========================================
+model FollowUpJob {
+  id            String   @id @default(uuid())
+  tenantId      String
+
+  type          String
+  customerId    String?
+  customerPhone String
+  customerEmail String?
+
+  scheduledFor  DateTime
+  status        String   @default("pending") // "pending" | "sent" | "failed" | "cancelled"
+
+  data          Json?
+  error         String?
+  sentAt        DateTime?
+
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([scheduledFor])
+  @@map("follow_up_jobs")
 }

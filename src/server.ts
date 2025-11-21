@@ -17,6 +17,9 @@ import ordersRoutes from './modules/orders/orders.routes';
 import callsRoutes from './modules/calls/calls.routes';
 import aiAgentRoutes from './modules/ai-agent/ai-agent.routes';
 import integrationsRoutes from './modules/integrations/integrations.routes';
+import posIntegrationsRoutes from './modules/pos-integrations/pos-integrations.routes';
+import channelsRoutes from './modules/channels/channels.routes';
+import followUpsRoutes from './modules/follow-ups/follow-ups.routes';
 
 // Load environment variables
 dotenv.config();
@@ -89,9 +92,9 @@ app.use('/api/orders', ordersRoutes);
 app.use('/api/calls', callsRoutes);
 app.use('/api/ai-agent', aiAgentRoutes);
 app.use('/api/integrations', integrationsRoutes);
-
-// TODO: Add remaining routes
-// app.use('/api/analytics', analyticsRoutes);
+app.use('/api/pos', posIntegrationsRoutes);
+app.use('/api/channels', channelsRoutes);
+app.use('/api/follow-ups', followUpsRoutes);
 
 // ==========================================
 // ERROR HANDLING
