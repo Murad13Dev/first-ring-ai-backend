@@ -30,7 +30,7 @@ interface UpdateTenantData {
   plan?: string;
   subscriptionStatus?: string;
   twilioNumber?: string;
-  stripeAccountId?: string;
+  squareLocationId?: string;
   googleCalendarId?: string;
   googleSheetId?: string;
   settings?: any;
