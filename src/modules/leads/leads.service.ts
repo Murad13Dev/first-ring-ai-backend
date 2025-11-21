@@ -316,12 +316,13 @@ export class LeadsService {
    */
   private async sendAdminNotification(lead: any) {
     try {
-      const priorityEmoji = {
+      const priorityMap: Record<string, string> = {
         hot: '🔥',
         high: '⚡',
         normal: '🟡',
         low: '⚪',
-      }[lead.priority] || '🟡';
+      };
+      const priorityEmoji = priorityMap[lead.priority] || '🟡';
 
       const html = `
         <h2>${priorityEmoji} New Lead: ${lead.businessName}</h2>
