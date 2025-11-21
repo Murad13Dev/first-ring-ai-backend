@@ -28,18 +28,18 @@ export class AIAgentController {
         input: ['speech'],
         action: '/api/ai-agent/process',
         method: 'POST',
-        language: result.twilioLanguage,
+        language: result.twilioLanguage as any,
         speechTimeout: 'auto',
       });
 
       gather.say(
-        { voice: 'alice', language: result.twilioLanguage },
+        { voice: 'alice', language: result.twilioLanguage as any },
         result.greeting
       );
 
       // If no input, repeat
       twiml.say(
-        { voice: 'alice', language: result.twilioLanguage },
+        { voice: 'alice', language: result.twilioLanguage as any },
         result.greeting
       );
       twiml.redirect('/api/ai-agent/incoming');
@@ -289,6 +289,7 @@ export class AIAgentController {
         fromNumber: '+15551234567',
         toNumber: tenant.twilioNumber || '+15557654321',
         conversationHistory: [],
+        language: 'en-US',
       };
 
       const result = await aiAgentService.processUserInput(
