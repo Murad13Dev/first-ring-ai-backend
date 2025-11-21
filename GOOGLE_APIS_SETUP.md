@@ -316,21 +316,21 @@ curl -X DELETE http://localhost:5000/api/integrations/calendar/disconnect \
 ```
 | ID      | Customer | Phone        | Service  | Date       | Time  | Status    |
 |---------|----------|--------------|----------|------------|-------|-----------|
-| abc123  | John Doe | +994501234   | Table    | 2024-11-20 | 19:00 | confirmed |
+| abc123  | John Doe | +15551234567 | Table    | 2024-11-20 | 19:00 | confirmed |
 ```
 
 ### **Orders Sheet:**
 ```
 | ID      | Customer | Phone        | Items | Total  | Payment | Status    |
 |---------|----------|--------------|-------|--------|---------|-----------|
-| ord456  | Jane Doe | +994507890   | 3     | 45.99  | paid    | completed |
+| ord456  | Jane Doe | +15557890123 | 3     | 45.99  | paid    | completed |
 ```
 
 ### **Calls Sheet:**
 ```
 | From         | To           | Direction | Duration | Intent  | Outcome   |
 |--------------|--------------|-----------|----------|---------|-----------|
-| +994501234   | +994701234   | inbound   | 180      | booking | completed |
+| +15551234567 | +15559876543 | inbound   | 180      | booking | completed |
 ```
 
 ---

@@ -1,8 +1,8 @@
 # 🚀 First Ring AI Backend - Quick Start Guide
 
-## ⚡ Tez Başlanğıc (5 dəqiqə)
+## ⚡ Quick Start (5 minutes)
 
-### 1. Proyekti yüklə və aç
+### 1. Download and extract project
 
 ```bash
 # Extract archive
@@ -23,7 +23,7 @@ cp .env.example .env
 nano .env
 ```
 
-**Minimum tələb olunan dəyərlər:**
+**Minimum required values:**
 ```env
 DATABASE_URL="postgresql://postgres:password@localhost:5432/first_ring_ai"
 JWT_SECRET=your-random-secret-key-here
@@ -33,9 +33,9 @@ SMTP_PASSWORD=your-app-password
 SALES_EMAIL=sales@yourcompany.com
 ```
 
-### 3. Database quraşdırma
+### 3. Database setup
 
-**Variant A: Docker ilə (ən asan)**
+**Option A: With Docker (easiest)**
 ```bash
 # Start PostgreSQL and Redis
 docker-compose up -d postgres redis
@@ -47,9 +47,9 @@ sleep 10
 npm run prisma:migrate
 ```
 
-**Variant B: Local PostgreSQL**
+**Option B: Local PostgreSQL**
 ```bash
-# PostgreSQL-də database yarat
+# Create database in PostgreSQL
 createdb first_ring_ai
 
 # Run migrations
@@ -59,19 +59,19 @@ npm run prisma:migrate
 npm run prisma:generate
 ```
 
-### 4. İlk admin istifadəçi yarat
+### 4. Create first admin user
 
 ```bash
 # Option 1: Prisma Studio UI
 npm run prisma:studio
-# Browser açılacaq, AdminUser table-a daxil ol və yarat
+# Browser will open, go to AdminUser table and create user
 
-# Option 2: SQL ilə
+# Option 2: With SQL
 psql first_ring_ai
 ```
 
 ```sql
-INSERT INTO admin_users (id, email, password_hash, name, role) 
+INSERT INTO admin_users (id, email, password_hash, name, role)
 VALUES (
   gen_random_uuid(),
   'admin@firstringai.com',
@@ -81,12 +81,12 @@ VALUES (
 );
 ```
 
-**Şifrə hash yaratmaq üçün:**
+**To create password hash:**
 ```bash
 node -e "console.log(require('bcryptjs').hashSync('your-password', 10))"
 ```
 
-### 5. Serveri başlat
+### 5. Start server
 
 ```bash
 # Development mode
@@ -97,18 +97,18 @@ npm run build
 npm start
 ```
 
-Server **http://localhost:5000** ünvanında işə düşəcək.
+Server will run at **http://localhost:5000**
 
 ---
 
-## 🧪 Test etmək
+## 🧪 Testing
 
 ### Health check
 ```bash
 curl http://localhost:5000/health
 ```
 
-**Gözlənilən cavab:**
+**Expected response:**
 ```json
 {
   "success": true,
@@ -124,7 +124,7 @@ curl -X POST http://localhost:5000/api/auth/admin/login \
   -d '{"email":"admin@firstringai.com","password":"your-password"}'
 ```
 
-### Lead yaratmaq (test)
+### Create lead (test)
 ```bash
 curl -X POST http://localhost:5000/api/leads \
   -H "Content-Type: application/json" \
@@ -132,7 +132,7 @@ curl -X POST http://localhost:5000/api/leads \
     "source": "landing_page_form",
     "contactName": "Test User",
     "email": "test@example.com",
-    "phone": "+994501234567",
+    "phone": "+15551234567",
     "businessName": "Test Restaurant",
     "businessType": "restaurant",
     "selectedPlan": "pro",
@@ -142,11 +142,11 @@ curl -X POST http://localhost:5000/api/leads \
 
 ---
 
-## 📁 Vacib fayllar
+## 📁 Important files
 
 ```
 first-ring-ai-backend/
-├── .env                    # Environment variables (YARATMALISAN!)
+├── .env                    # Environment variables (YOU MUST CREATE!)
 ├── package.json            # Dependencies
 ├── tsconfig.json           # TypeScript config
 ├── prisma/
@@ -163,51 +163,51 @@ first-ring-ai-backend/
 
 ---
 
-## 🐛 Problemlərin həlli
+## 🐛 Troubleshooting
 
-### Port artıq istifadədədir
+### Port already in use
 ```bash
-# Port-u dəyiş .env faylında
+# Change port in .env file
 PORT=5001
 ```
 
 ### Database connection error
 ```bash
-# PostgreSQL işə düşdüyünü yoxla
+# Check if PostgreSQL is running
 pg_isready
 
-# Database_URL doğrudur?
+# Is DATABASE_URL correct?
 echo $DATABASE_URL
 ```
 
 ### Prisma client error
 ```bash
-# Client-i yenidən generate et
+# Regenerate client
 npm run prisma:generate
 ```
 
 ### Cannot find module errors
 ```bash
-# node_modules-u sil və yenidən install et
+# Delete node_modules and reinstall
 rm -rf node_modules
 npm install
 ```
 
 ---
 
-## 📊 İlk Lead yaradanda nə olur?
+## 📊 What happens when first Lead is created?
 
-1. ✅ Lead database-də saxlanılır
-2. 📧 Admin-ə email göndərilir (SALES_EMAIL)
-3. 📱 Lead-ə confirmation email göndərilir
-4. 🎯 Qualification score hesablanır
-5. 🔥 Priority təyin edilir (hot/high/normal/low)
+1. ✅ Lead is saved to database
+2. 📧 Email is sent to admin (SALES_EMAIL)
+3. 📱 Confirmation email is sent to lead
+4. 🎯 Qualification score is calculated
+5. 🔥 Priority is assigned (hot/high/normal/low)
 
-**Admin email təsdiqi üçün Gmail setup:**
+**Gmail setup for admin email notifications:**
 
-1. Gmail-də 2-Factor Authentication aktivləşdir
-2. App Password yarat: https://myaccount.google.com/apppasswords
-3. .env faylında:
+1. Enable 2-Factor Authentication in Gmail
+2. Create App Password: https://myaccount.google.com/apppasswords
+3. In .env file:
 ```env
 SMTP_USER=your-email@gmail.com
 SMTP_PASSWORD=your-16-digit-app-password
@@ -215,12 +215,12 @@ SMTP_PASSWORD=your-16-digit-app-password
 
 ---
 
-## 🚀 Production-a Deploy
+## 🚀 Deploy to Production
 
-### AWS EC2 (tövsiyə)
+### AWS EC2 (recommended)
 
 ```bash
-# 1. EC2 instance-ə SSH
+# 1. SSH to EC2 instance
 ssh -i your-key.pem ubuntu@your-ec2-ip
 
 # 2. Install Node.js
@@ -230,20 +230,20 @@ sudo apt-get install -y nodejs
 # 3. Install PostgreSQL
 sudo apt install postgresql postgresql-contrib
 
-# 4. Clone və setup
+# 4. Clone and setup
 git clone <your-repo>
 cd first-ring-ai-backend
 npm install
 npm run build
 
-# 5. PM2 ilə run et
+# 5. Run with PM2
 npm install -g pm2
 pm2 start dist/server.js --name first-ring-ai
 pm2 save
 pm2 startup
 ```
 
-### Docker ilə (daha asan)
+### With Docker (easier)
 
 ```bash
 # Build image
@@ -262,33 +262,33 @@ docker logs -f first-ring-ai-backend
 
 ---
 
-## 📞 Əlaqə və Dəstək
+## 📞 Contact & Support
 
-**Problemlə qarşılaşdınız?**
-- README.md oxuyun
-- Logs yoxlayın: `logs/error.log`
+**Having issues?**
+- Read README.md
+- Check logs: `logs/error.log`
 - Docker logs: `docker-compose logs backend`
 
 **Feature request?**
-- Issue açın GitHub-da
+- Open an issue on GitHub
 - Email: dev@firstringai.com
 
 ---
 
-## ✅ Növbəti addımlar
+## ✅ Next Steps
 
-Backend işə düşdükdən sonra:
+After the backend is running:
 
-1. ✅ Frontend quraşdır (Next.js)
-2. ✅ Twilio account yarat və integrate et
+1. ✅ Set up Frontend (Next.js)
+2. ✅ Create and integrate Twilio account
 3. ✅ Retell AI setup
-4. ✅ Stripe account konfiqurasiya et
-5. ✅ Google APIs aktivləşdir
-6. ✅ Production-da test et
-7. ✅ İlk müştərini onboard et! 🎉
+4. ✅ Configure Stripe account
+5. ✅ Enable Google APIs
+6. ✅ Test in production
+7. ✅ Onboard your first customer! 🎉
 
 ---
 
-**Uğurlar! 🚀**
+**Good luck! 🚀**
 
 First Ring AI Development Team
