@@ -3,6 +3,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpec from './config/swagger';
 import logger from './config/logger';
 import { errorHandler, notFound } from './middleware/error.middleware';
 
@@ -50,6 +52,11 @@ if (process.env.NODE_ENV === 'development') {
 } else {
   app.use(morgan('combined'));
 }
+
+// ==========================================
+// SWAGGER API DOCS
+// ==========================================
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // ==========================================
 // ROUTES
