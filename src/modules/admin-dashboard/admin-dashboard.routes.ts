@@ -123,7 +123,7 @@ const adminDashboardService = {
   async getCallAnalytics() {
     const [totalCalls, callsByStatus, avgDuration] = await Promise.all([
       prisma.call.count(),
-      prisma.call.groupBy({
+      (prisma.call.groupBy as any)({
         by: ['status'],
         _count: true,
       }),
@@ -141,12 +141,12 @@ const adminDashboardService = {
 
   // Get subscription analytics
   async getSubscriptionAnalytics() {
-    const subscriptions = await prisma.subscription.groupBy({
+    const subscriptions = await (prisma.subscription.groupBy as any)({
       by: ['status'],
       _count: true,
     });
 
-    const byPlan = await prisma.subscription.groupBy({
+    const byPlan = await (prisma.subscription.groupBy as any)({
       by: ['planId'],
       _count: true,
     });
