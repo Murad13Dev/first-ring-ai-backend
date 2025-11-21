@@ -247,7 +247,7 @@ Respond with JSON:
       return await this.generateAIResponse(userInput, context);
     } catch (error) {
       logger.error('Handle FAQ intent error', { error });
-      return 'Üzr istəyirəm, bu sual haqqında məlumat tapa bilmədim.';
+      return 'Sorry, I could not find information about this question.';
     }
   }
 
@@ -265,7 +265,7 @@ Respond with JSON:
       if (!details.complete) {
         // Ask for missing information
         return {
-          response: details.question || 'Neçə nəfərlik masa istəyirsiniz və hansı tarix?',
+          response: details.question || 'How many people and what date would you like to book?',
         };
       }
 
@@ -278,24 +278,24 @@ Respond with JSON:
 
       if (!isAvailable) {
         return {
-          response: 'Təəssüf ki, bu vaxt məşğuldur. Başqa vaxt təklif edə bilərəm?',
+          response: 'Unfortunately, this time slot is not available. Can I suggest another time?',
         };
       }
 
       // Create booking
       const booking = await bookingsService.createBooking({
         tenantId: context.tenantId,
-        customerName: details.name || 'Müştəri',
+        customerName: details.name || 'Customer',
         customerPhone: context.fromNumber,
         customerEmail: details.email,
-        serviceName: details.serviceName || 'Rezervasiya',
+        serviceName: details.serviceName || 'Reservation',
         dateTime: details.dateTime,
         duration: details.duration,
         partySize: details.partySize,
       });
 
       return {
-        response: `Əla! Rezervasiyanız təsdiqləndi. ${details.dateTime.toLocaleDateString('az-AZ')} tarixində ${details.dateTime.toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit' })} üçün ${details.partySize} nəfərlik masa. Rezervasiya kodu: ${booking.id.slice(0, 8)}`,
+        response: `Great! Your reservation is confirmed. Table for ${details.partySize} on ${details.dateTime.toLocaleDateString('en-US')} at ${details.dateTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}. Reservation code: ${booking.id.slice(0, 8)}`,
         action: {
           type: 'booking_created',
           bookingId: booking.id,
@@ -304,7 +304,7 @@ Respond with JSON:
     } catch (error) {
       logger.error('Handle booking intent error', { error });
       return {
-        response: 'Üzr istəyirəm, rezervasiya yaratmaqda problem oldu.',
+        response: 'Sorry, there was a problem creating the reservation.',
       };
     }
   }
@@ -322,7 +322,7 @@ Respond with JSON:
 
       if (items.length === 0) {
         return {
-          response: 'Nə sifariş etmək istəyirsiniz?',
+          response: 'What would you like to order?',
         };
       }
 
@@ -340,7 +340,7 @@ Respond with JSON:
       );
 
       return {
-        response: `Sifarişiniz hazırlandı! Cəmi: ${order.total.toFixed(2)} AZN. Ödəniş linki SMS ilə göndərildi.`,
+        response: `Your order is ready! Total: $${order.total.toFixed(2)}. Payment link sent via SMS.`,
         action: {
           type: 'order_created',
           orderId: order.id,
@@ -350,7 +350,7 @@ Respond with JSON:
     } catch (error) {
       logger.error('Handle order intent error', { error });
       return {
-        response: 'Üzr istəyirəm, sifariş yaratmaqda problem oldu.',
+        response: 'Sorry, there was a problem creating the order.',
       };
     }
   }
@@ -368,7 +368,7 @@ Respond with JSON:
 
       if (!details.complete) {
         return {
-          response: details.question || 'Sizinlə necə əlaqə saxlaya bilərik? Email və ya telefon?',
+          response: details.question || 'How can we contact you? Email or phone?',
         };
       }
 
@@ -387,7 +387,7 @@ Respond with JSON:
       });
 
       return {
-        response: 'Təşəkkür edirik! Məlumatlarınız qeydə alındı. Komandamız 24 saat ərzində sizinlə əlaqə saxlayacaq.',
+        response: 'Thank you! Your information has been recorded. Our team will contact you within 24 hours.',
         action: {
           type: 'lead_created',
           leadId: lead.id,
@@ -396,7 +396,7 @@ Respond with JSON:
     } catch (error) {
       logger.error('Handle lead intent error', { error });
       return {
-        response: 'Məlumatlarınız qeydə alındı. Tezliklə əlaqə saxlayacağıq.',
+        response: 'Your information has been recorded. We will contact you soon.',
       };
     }
   }
@@ -407,7 +407,7 @@ Respond with JSON:
   private async handleEscalation(
     context: AIAgentContext
   ): Promise<string> {
-    return `Anladım, sizi operatorla əlaqələndirirəm. Bir dəqiqə...`;
+    return `I understand, I'm connecting you to an operator. One moment...`;
   }
 
   /**
@@ -486,7 +486,7 @@ Respond with JSON:
     // This is a simplified version - full implementation would use function calling
     return {
       complete: false,
-      question: 'Hansı tarix və saat üçün rezervasiya istəyirsiniz?',
+      question: 'What date and time would you like to make a reservation for?',
     };
   }
 
@@ -510,7 +510,7 @@ Respond with JSON:
   ): Promise<any> {
     return {
       complete: false,
-      question: 'Adınız və email ünvanınız nədir?',
+      question: 'What is your name and email address?',
     };
   }
 

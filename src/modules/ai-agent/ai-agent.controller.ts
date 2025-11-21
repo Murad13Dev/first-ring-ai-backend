@@ -97,7 +97,7 @@ export class AIAgentController {
       // Handle actions
       if (result.action?.type === 'transfer') {
         twiml.say(
-          { voice: 'alice', language: 'tr-TR' },
+          { voice: 'alice', language: 'en-US' },
           result.response
         );
         twiml.dial(result.action.number);
@@ -107,19 +107,19 @@ export class AIAgentController {
           input: ['speech'],
           action: '/api/ai-agent/process',
           method: 'POST',
-          language: 'az-AZ',
+          language: 'en-US',
           speechTimeout: 'auto',
         });
 
         gather.say(
-          { voice: 'alice', language: 'tr-TR' },
+          { voice: 'alice', language: 'en-US' },
           result.response
         );
 
         // If no input, end call
         twiml.say(
-          { voice: 'alice', language: 'tr-TR' },
-          'Təşəkkür edirik. Görüşənədək!'
+          { voice: 'alice', language: 'en-US' },
+          'Thank you. Goodbye!'
         );
         twiml.hangup();
       }
@@ -201,18 +201,18 @@ export class AIAgentController {
         input: ['speech'],
         action: '/api/ai-agent/process',
         method: 'POST',
-        language: 'az-AZ',
+        language: 'en-US',
         speechTimeout: 'auto',
       });
 
       gather.say(
-        { voice: 'alice', language: 'tr-TR' },
-        'Salam! First Ring AI-dan sizə zəng edirəm. Bir dəqiqəniz varmı?'
+        { voice: 'alice', language: 'en-US' },
+        'Hello! This is First Ring AI calling. Do you have a minute?'
       );
 
       twiml.say(
-        { voice: 'alice', language: 'tr-TR' },
-        'Təşəkkür edirik.'
+        { voice: 'alice', language: 'en-US' },
+        'Thank you.'
       );
       twiml.hangup();
 
@@ -286,8 +286,8 @@ export class AIAgentController {
       const context = {
         tenantId,
         tenant,
-        fromNumber: '+994501234567',
-        toNumber: tenant.twilioNumber || '+994701234567',
+        fromNumber: '+15551234567',
+        toNumber: tenant.twilioNumber || '+15557654321',
         conversationHistory: [],
       };
 
