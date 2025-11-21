@@ -119,13 +119,33 @@ export const retellService = {
     const businessType = tenant.businessType.toLowerCase();
 
     // Restaurant functions
-    if (businessType.includes('restaurant') || businessType.includes('cafe')) {
+    if (businessType.includes('restaurant') || businessType.includes('cafe') || businessType.includes('food')) {
       return this.handleRestaurantFunction(tenantId, functionName, args);
     }
 
     // Retail functions
-    if (businessType.includes('retail') || businessType.includes('store')) {
+    if (businessType.includes('retail') || businessType.includes('store') || businessType.includes('shop')) {
       return this.handleRetailFunction(tenantId, functionName, args);
+    }
+
+    // Medical/Hospital functions
+    if (businessType.includes('medical') || businessType.includes('hospital') || businessType.includes('clinic') || businessType.includes('dental') || businessType.includes('doctor')) {
+      return this.handleMedicalFunction(tenantId, functionName, args);
+    }
+
+    // Hotel functions
+    if (businessType.includes('hotel') || businessType.includes('motel') || businessType.includes('resort') || businessType.includes('lodging')) {
+      return this.handleHotelFunction(tenantId, functionName, args);
+    }
+
+    // Salon/Spa functions
+    if (businessType.includes('salon') || businessType.includes('spa') || businessType.includes('beauty') || businessType.includes('barber')) {
+      return this.handleSalonFunction(tenantId, functionName, args);
+    }
+
+    // Real Estate functions
+    if (businessType.includes('real estate') || businessType.includes('realty') || businessType.includes('property')) {
+      return this.handleRealEstateFunction(tenantId, functionName, args);
     }
 
     // Default functions for other business types
@@ -652,6 +672,506 @@ export const retellService = {
   },
 
   // ============================================
+  // MEDICAL/HOSPITAL FUNCTIONS
+  // ============================================
+
+  async handleMedicalFunction(tenantId: string, functionName: string, args: any) {
+    switch (functionName) {
+      case 'check_availability':
+        return this.checkAppointmentAvailability(tenantId, args);
+
+      case 'book_appointment':
+        return this.bookAppointment(tenantId, args);
+
+      case 'cancel_appointment':
+        return this.cancelAppointment(tenantId, args);
+
+      case 'get_services':
+        return this.getMedicalServices(tenantId);
+
+      case 'get_hours':
+        return this.getBusinessHours(tenantId);
+
+      case 'get_doctors':
+        return this.getDoctors(tenantId, args);
+
+      case 'request_prescription':
+        return this.requestPrescriptionRefill(tenantId, args);
+
+      default:
+        return this.handleDefaultFunction(tenantId, functionName, args);
+    }
+  },
+
+  async checkAppointmentAvailability(tenantId: string, args: { date: string; doctorId?: string; serviceType?: string }) {
+    const bookings = await prisma.booking.findMany({
+      where: {
+        tenantId,
+        date: new Date(args.date),
+        status: { not: 'cancelled' },
+      },
+    });
+
+    // Available time slots
+    const allSlots = ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'];
+    const bookedTimes = bookings.map(b => b.time);
+    const availableSlots = allSlots.filter(slot => !bookedTimes.includes(slot));
+
+    return {
+      date: args.date,
+      availableSlots,
+      message: availableSlots.length > 0
+        ? `We have ${availableSlots.length} available slots on ${args.date}.`
+        : `Sorry, we're fully booked on ${args.date}. Would you like to try another date?`,
+    };
+  },
+
+  async bookAppointment(tenantId: string, args: {
+    patientName: string;
+    phone: string;
+    email?: string;
+    date: string;
+    time: string;
+    serviceType: string;
+    doctorId?: string;
+    notes?: string;
+  }) {
+    const booking = await prisma.booking.create({
+      data: {
+        tenantId,
+        customerName: args.patientName,
+        customerPhone: args.phone,
+        customerEmail: args.email,
+        date: new Date(args.date),
+        time: args.time,
+        serviceType: args.serviceType,
+        notes: args.notes,
+        status: 'confirmed',
+        source: 'retell_ai',
+      },
+    });
+
+    return {
+      success: true,
+      appointmentId: booking.id,
+      message: `Appointment confirmed for ${args.patientName} on ${args.date} at ${args.time}. Please arrive 15 minutes early.`,
+    };
+  },
+
+  async cancelAppointment(tenantId: string, args: { appointmentId?: string; phone?: string }) {
+    let booking;
+    if (args.appointmentId) {
+      booking = await prisma.booking.findFirst({
+        where: { id: args.appointmentId, tenantId },
+      });
+    } else if (args.phone) {
+      booking = await prisma.booking.findFirst({
+        where: { customerPhone: args.phone, tenantId, status: 'confirmed' },
+        orderBy: { date: 'asc' },
+      });
+    }
+
+    if (!booking) {
+      return { success: false, message: "I couldn't find your appointment." };
+    }
+
+    await prisma.booking.update({
+      where: { id: booking.id },
+      data: { status: 'cancelled' },
+    });
+
+    return {
+      success: true,
+      message: `Your appointment on ${booking.date.toLocaleDateString()} has been cancelled.`,
+    };
+  },
+
+  async getMedicalServices(tenantId: string) {
+    const services = await prisma.service.findMany({
+      where: { tenantId, isActive: true },
+    });
+
+    return {
+      services: services.map(s => ({
+        name: s.name,
+        description: s.description,
+        duration: s.duration,
+        price: s.price,
+      })),
+    };
+  },
+
+  async getDoctors(tenantId: string, args?: { specialty?: string }) {
+    // This would need a Doctor model, returning mock data for now
+    return {
+      doctors: [
+        { name: 'Dr. Smith', specialty: 'General Practice', available: true },
+        { name: 'Dr. Johnson', specialty: 'Pediatrics', available: true },
+      ],
+    };
+  },
+
+  async requestPrescriptionRefill(tenantId: string, args: { patientName: string; phone: string; medication: string }) {
+    await prisma.message.create({
+      data: {
+        tenantId,
+        senderName: args.patientName,
+        senderPhone: args.phone,
+        content: `Prescription refill request: ${args.medication}`,
+        source: 'retell_ai',
+      },
+    });
+
+    return {
+      success: true,
+      message: `Your prescription refill request for ${args.medication} has been submitted. We'll contact you when it's ready.`,
+    };
+  },
+
+  // ============================================
+  // HOTEL FUNCTIONS
+  // ============================================
+
+  async handleHotelFunction(tenantId: string, functionName: string, args: any) {
+    switch (functionName) {
+      case 'check_availability':
+        return this.checkRoomAvailability(tenantId, args);
+
+      case 'book_room':
+        return this.bookRoom(tenantId, args);
+
+      case 'cancel_reservation':
+        return this.cancelHotelReservation(tenantId, args);
+
+      case 'get_room_types':
+        return this.getRoomTypes(tenantId);
+
+      case 'get_amenities':
+        return this.getHotelAmenities(tenantId);
+
+      case 'get_hours':
+        return this.getBusinessHours(tenantId);
+
+      case 'request_service':
+        return this.requestHotelService(tenantId, args);
+
+      default:
+        return this.handleDefaultFunction(tenantId, functionName, args);
+    }
+  },
+
+  async checkRoomAvailability(tenantId: string, args: { checkIn: string; checkOut: string; guests: number; roomType?: string }) {
+    return {
+      available: true,
+      checkIn: args.checkIn,
+      checkOut: args.checkOut,
+      guests: args.guests,
+      rooms: [
+        { type: 'Standard', price: 99, available: 5 },
+        { type: 'Deluxe', price: 149, available: 3 },
+        { type: 'Suite', price: 249, available: 1 },
+      ],
+      message: `We have rooms available from ${args.checkIn} to ${args.checkOut} for ${args.guests} guests.`,
+    };
+  },
+
+  async bookRoom(tenantId: string, args: {
+    guestName: string;
+    phone: string;
+    email?: string;
+    checkIn: string;
+    checkOut: string;
+    roomType: string;
+    guests: number;
+    specialRequests?: string;
+  }) {
+    const booking = await prisma.booking.create({
+      data: {
+        tenantId,
+        customerName: args.guestName,
+        customerPhone: args.phone,
+        customerEmail: args.email,
+        date: new Date(args.checkIn),
+        time: 'Check-in: 3:00 PM',
+        partySize: args.guests,
+        notes: `Room: ${args.roomType}, Check-out: ${args.checkOut}. ${args.specialRequests || ''}`,
+        status: 'confirmed',
+        source: 'retell_ai',
+      },
+    });
+
+    return {
+      success: true,
+      reservationId: booking.id,
+      message: `Room booked for ${args.guestName}. ${args.roomType} room from ${args.checkIn} to ${args.checkOut}. Confirmation will be sent to ${args.email || args.phone}.`,
+    };
+  },
+
+  async cancelHotelReservation(tenantId: string, args: { reservationId?: string; phone?: string }) {
+    let booking;
+    if (args.reservationId) {
+      booking = await prisma.booking.findFirst({
+        where: { id: args.reservationId, tenantId },
+      });
+    } else if (args.phone) {
+      booking = await prisma.booking.findFirst({
+        where: { customerPhone: args.phone, tenantId, status: 'confirmed' },
+        orderBy: { date: 'desc' },
+      });
+    }
+
+    if (!booking) {
+      return { success: false, message: "I couldn't find your reservation." };
+    }
+
+    await prisma.booking.update({
+      where: { id: booking.id },
+      data: { status: 'cancelled' },
+    });
+
+    return {
+      success: true,
+      message: 'Your reservation has been cancelled. Any charges will be refunded within 5-7 business days.',
+    };
+  },
+
+  async getRoomTypes(tenantId: string) {
+    return {
+      roomTypes: [
+        { name: 'Standard Room', description: 'Queen bed, city view', maxGuests: 2, price: 99 },
+        { name: 'Deluxe Room', description: 'King bed, ocean view, balcony', maxGuests: 2, price: 149 },
+        { name: 'Suite', description: 'Separate living area, 2 beds, premium amenities', maxGuests: 4, price: 249 },
+        { name: 'Family Room', description: '2 queen beds, connecting available', maxGuests: 4, price: 179 },
+      ],
+    };
+  },
+
+  async getHotelAmenities(tenantId: string) {
+    return {
+      amenities: [
+        'Free WiFi', 'Pool', 'Fitness Center', 'Restaurant', 'Room Service',
+        'Concierge', 'Valet Parking', 'Business Center', 'Spa',
+      ],
+    };
+  },
+
+  async requestHotelService(tenantId: string, args: { roomNumber: string; service: string; notes?: string }) {
+    await prisma.message.create({
+      data: {
+        tenantId,
+        senderName: `Room ${args.roomNumber}`,
+        senderPhone: '',
+        content: `Service request: ${args.service}. ${args.notes || ''}`,
+        source: 'retell_ai',
+      },
+    });
+
+    return {
+      success: true,
+      message: `Your request for ${args.service} has been submitted. Someone will assist you shortly.`,
+    };
+  },
+
+  // ============================================
+  // SALON/SPA FUNCTIONS
+  // ============================================
+
+  async handleSalonFunction(tenantId: string, functionName: string, args: any) {
+    switch (functionName) {
+      case 'check_availability':
+        return this.checkSalonAvailability(tenantId, args);
+
+      case 'book_appointment':
+        return this.bookSalonAppointment(tenantId, args);
+
+      case 'cancel_appointment':
+        return this.cancelAppointment(tenantId, args);
+
+      case 'get_services':
+        return this.getSalonServices(tenantId);
+
+      case 'get_stylists':
+        return this.getStylists(tenantId);
+
+      case 'get_hours':
+        return this.getBusinessHours(tenantId);
+
+      default:
+        return this.handleDefaultFunction(tenantId, functionName, args);
+    }
+  },
+
+  async checkSalonAvailability(tenantId: string, args: { date: string; service?: string; stylistId?: string }) {
+    const bookings = await prisma.booking.findMany({
+      where: {
+        tenantId,
+        date: new Date(args.date),
+        status: { not: 'cancelled' },
+      },
+    });
+
+    const allSlots = ['9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'];
+    const bookedTimes = bookings.map(b => b.time);
+    const availableSlots = allSlots.filter(slot => !bookedTimes.includes(slot));
+
+    return {
+      date: args.date,
+      availableSlots,
+      message: availableSlots.length > 0
+        ? `We have ${availableSlots.length} available time slots on ${args.date}.`
+        : `We're fully booked on ${args.date}. Would you like to try another date?`,
+    };
+  },
+
+  async bookSalonAppointment(tenantId: string, args: {
+    clientName: string;
+    phone: string;
+    email?: string;
+    date: string;
+    time: string;
+    service: string;
+    stylistId?: string;
+    notes?: string;
+  }) {
+    const booking = await prisma.booking.create({
+      data: {
+        tenantId,
+        customerName: args.clientName,
+        customerPhone: args.phone,
+        customerEmail: args.email,
+        date: new Date(args.date),
+        time: args.time,
+        serviceType: args.service,
+        notes: args.notes,
+        status: 'confirmed',
+        source: 'retell_ai',
+      },
+    });
+
+    return {
+      success: true,
+      appointmentId: booking.id,
+      message: `Appointment booked for ${args.clientName}. ${args.service} on ${args.date} at ${args.time}. See you then!`,
+    };
+  },
+
+  async getSalonServices(tenantId: string) {
+    const services = await prisma.service.findMany({
+      where: { tenantId, isActive: true },
+    });
+
+    return {
+      services: services.map(s => ({
+        name: s.name,
+        description: s.description,
+        duration: s.duration,
+        price: s.price,
+      })),
+    };
+  },
+
+  async getStylists(tenantId: string) {
+    // Would need a Stylist/Staff model
+    return {
+      stylists: [
+        { name: 'Maria', specialties: ['Haircuts', 'Color', 'Styling'] },
+        { name: 'John', specialties: ['Men\'s cuts', 'Beard trim'] },
+        { name: 'Sarah', specialties: ['Nails', 'Pedicure', 'Waxing'] },
+      ],
+    };
+  },
+
+  // ============================================
+  // REAL ESTATE FUNCTIONS
+  // ============================================
+
+  async handleRealEstateFunction(tenantId: string, functionName: string, args: any) {
+    switch (functionName) {
+      case 'search_properties':
+        return this.searchProperties(tenantId, args);
+
+      case 'schedule_viewing':
+        return this.scheduleViewing(tenantId, args);
+
+      case 'get_property_info':
+        return this.getPropertyInfo(tenantId, args);
+
+      case 'request_callback':
+        return this.scheduleCallback(tenantId, args);
+
+      case 'get_hours':
+        return this.getBusinessHours(tenantId);
+
+      default:
+        return this.handleDefaultFunction(tenantId, functionName, args);
+    }
+  },
+
+  async searchProperties(tenantId: string, args: {
+    type?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    bedrooms?: number;
+    location?: string;
+  }) {
+    // Would need a Property model, returning mock for now
+    return {
+      properties: [
+        { id: '1', type: 'House', price: 450000, bedrooms: 3, location: 'Downtown', address: '123 Main St' },
+        { id: '2', type: 'Apartment', price: 250000, bedrooms: 2, location: 'Midtown', address: '456 Oak Ave' },
+        { id: '3', type: 'Condo', price: 350000, bedrooms: 2, location: 'Waterfront', address: '789 Beach Rd' },
+      ],
+      message: `I found 3 properties matching your criteria.`,
+    };
+  },
+
+  async scheduleViewing(tenantId: string, args: {
+    propertyId: string;
+    clientName: string;
+    phone: string;
+    email?: string;
+    preferredDate: string;
+    preferredTime: string;
+  }) {
+    const booking = await prisma.booking.create({
+      data: {
+        tenantId,
+        customerName: args.clientName,
+        customerPhone: args.phone,
+        customerEmail: args.email,
+        date: new Date(args.preferredDate),
+        time: args.preferredTime,
+        notes: `Property viewing: ${args.propertyId}`,
+        status: 'confirmed',
+        source: 'retell_ai',
+      },
+    });
+
+    return {
+      success: true,
+      viewingId: booking.id,
+      message: `Viewing scheduled for ${args.clientName} on ${args.preferredDate} at ${args.preferredTime}. An agent will meet you at the property.`,
+    };
+  },
+
+  async getPropertyInfo(tenantId: string, args: { propertyId: string }) {
+    // Would pull from Property model
+    return {
+      property: {
+        id: args.propertyId,
+        type: 'House',
+        price: 450000,
+        bedrooms: 3,
+        bathrooms: 2,
+        sqft: 1800,
+        address: '123 Main St',
+        description: 'Beautiful 3-bedroom home with modern kitchen, hardwood floors, and large backyard.',
+        features: ['Garage', 'Central AC', 'Updated Kitchen', 'Hardwood Floors'],
+      },
+    };
+  },
+
+  // ============================================
   // DEFAULT/COMMON FUNCTIONS
   // ============================================
 
@@ -795,7 +1315,7 @@ export const retellService = {
     }
 
     // Retail-specific functions
-    if (businessType.includes('retail') || businessType.includes('store')) {
+    if (businessType.includes('retail') || businessType.includes('store') || businessType.includes('shop')) {
       return [
         ...commonFunctions,
         { name: 'check_inventory', description: 'Check product availability' },
@@ -804,6 +1324,55 @@ export const retellService = {
         { name: 'check_order_status', description: 'Check order status' },
         { name: 'get_promotions', description: 'Get current promotions' },
         { name: 'process_return', description: 'Process a return' },
+      ];
+    }
+
+    // Medical/Hospital-specific functions
+    if (businessType.includes('medical') || businessType.includes('hospital') || businessType.includes('clinic') || businessType.includes('dental')) {
+      return [
+        ...commonFunctions,
+        { name: 'check_availability', description: 'Check appointment availability' },
+        { name: 'book_appointment', description: 'Book an appointment' },
+        { name: 'cancel_appointment', description: 'Cancel an appointment' },
+        { name: 'get_services', description: 'Get available services' },
+        { name: 'get_doctors', description: 'Get list of doctors' },
+        { name: 'request_prescription', description: 'Request prescription refill' },
+      ];
+    }
+
+    // Hotel-specific functions
+    if (businessType.includes('hotel') || businessType.includes('motel') || businessType.includes('resort')) {
+      return [
+        ...commonFunctions,
+        { name: 'check_availability', description: 'Check room availability' },
+        { name: 'book_room', description: 'Book a room' },
+        { name: 'cancel_reservation', description: 'Cancel reservation' },
+        { name: 'get_room_types', description: 'Get available room types' },
+        { name: 'get_amenities', description: 'Get hotel amenities' },
+        { name: 'request_service', description: 'Request room service' },
+      ];
+    }
+
+    // Salon/Spa-specific functions
+    if (businessType.includes('salon') || businessType.includes('spa') || businessType.includes('beauty') || businessType.includes('barber')) {
+      return [
+        ...commonFunctions,
+        { name: 'check_availability', description: 'Check appointment availability' },
+        { name: 'book_appointment', description: 'Book an appointment' },
+        { name: 'cancel_appointment', description: 'Cancel an appointment' },
+        { name: 'get_services', description: 'Get available services' },
+        { name: 'get_stylists', description: 'Get list of stylists' },
+      ];
+    }
+
+    // Real Estate-specific functions
+    if (businessType.includes('real estate') || businessType.includes('realty') || businessType.includes('property')) {
+      return [
+        ...commonFunctions,
+        { name: 'search_properties', description: 'Search for properties' },
+        { name: 'schedule_viewing', description: 'Schedule property viewing' },
+        { name: 'get_property_info', description: 'Get property details' },
+        { name: 'request_callback', description: 'Request agent callback' },
       ];
     }
 
