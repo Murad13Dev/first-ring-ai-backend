@@ -23,8 +23,8 @@ model Tenant {
   // Business Info
   address         String?
   city            String?
-  country         String?  @default("Azerbaijan")
-  timezone        String   @default("Asia/Baku")
+  country         String?
+  timezone        String   @default("UTC")
   website         String?
   
   // Business Hours (JSON)
