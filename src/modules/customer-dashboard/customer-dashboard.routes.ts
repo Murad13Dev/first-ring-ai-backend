@@ -82,7 +82,7 @@ const customerDashboardService = {
       },
       select: {
         duration: true,
-        status: true,
+        outcome: true,
         createdAt: true,
       },
     });
@@ -94,9 +94,10 @@ const customerDashboardService = {
       byDate[date] = (byDate[date] || 0) + 1;
     });
 
-    // By status
+    // By outcome
     const byStatus = calls.reduce((acc, call) => {
-      acc[call.status] = (acc[call.status] || 0) + 1;
+      const outcome = call.outcome || 'unknown';
+      acc[outcome] = (acc[outcome] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
@@ -171,7 +172,7 @@ const customerDashboardService = {
           id: true,
           fromNumber: true,
           duration: true,
-          status: true,
+          outcome: true,
           createdAt: true,
         },
       }),
@@ -182,8 +183,7 @@ const customerDashboardService = {
         select: {
           id: true,
           customerName: true,
-          date: true,
-          time: true,
+          dateTime: true,
           status: true,
           createdAt: true,
         },
