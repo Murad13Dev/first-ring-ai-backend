@@ -50,9 +50,9 @@ export class I18nService {
    */
   t(lang: string, key: string, params?: Record<string, any>): string {
     try {
-      // Default to Azerbaijani if language not supported
+      // Default to English if language not supported
       if (!this.supportedLanguages.includes(lang)) {
-        lang = 'az';
+        lang = 'en';
       }
 
       const translations = this.translations.get(lang);

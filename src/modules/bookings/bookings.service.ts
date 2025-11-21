@@ -482,33 +482,33 @@ export class BookingsService {
       if (!booking.customerEmail) return;
 
       const html = `
-        <h2>Rezervasiya Təsdiqi</h2>
-        
-        <p>Hörmətli ${booking.customerName},</p>
-        
-        <p>Rezervasiyanız təsdiqləndi!</p>
-        
-        <h3>Rezervasiya detalları:</h3>
+        <h2>Booking Confirmation</h2>
+
+        <p>Dear ${booking.customerName},</p>
+
+        <p>Your booking has been confirmed!</p>
+
+        <h3>Booking details:</h3>
         <ul>
-          <li><strong>Xidmət:</strong> ${booking.serviceName}</li>
-          <li><strong>Tarix:</strong> ${new Date(booking.dateTime).toLocaleDateString('az-AZ')}</li>
-          <li><strong>Saat:</strong> ${new Date(booking.dateTime).toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit' })}</li>
-          ${booking.duration ? `<li><strong>Müddət:</strong> ${booking.duration} dəqiqə</li>` : ''}
-          ${booking.partySize ? `<li><strong>Nəfər sayı:</strong> ${booking.partySize}</li>` : ''}
-          ${booking.specialRequests ? `<li><strong>Xüsusi istəklər:</strong> ${booking.specialRequests}</li>` : ''}
+          <li><strong>Service:</strong> ${booking.serviceName}</li>
+          <li><strong>Date:</strong> ${new Date(booking.dateTime).toLocaleDateString('en-US')}</li>
+          <li><strong>Time:</strong> ${new Date(booking.dateTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</li>
+          ${booking.duration ? `<li><strong>Duration:</strong> ${booking.duration} minutes</li>` : ''}
+          ${booking.partySize ? `<li><strong>Party size:</strong> ${booking.partySize}</li>` : ''}
+          ${booking.specialRequests ? `<li><strong>Special requests:</strong> ${booking.specialRequests}</li>` : ''}
         </ul>
 
-        <p><strong>Rezervasiya ID:</strong> ${booking.id}</p>
-        
-        <p>Ləğv etmək və ya dəyişdirmək üçün bizimlə əlaqə saxlayın.</p>
-        
-        <p>Görüşənədək!</p>
+        <p><strong>Booking ID:</strong> ${booking.id}</p>
+
+        <p>Please contact us to cancel or modify your booking.</p>
+
+        <p>See you soon!</p>
       `;
 
       await this.transporter.sendMail({
         from: process.env.EMAIL_FROM,
         to: booking.customerEmail,
-        subject: 'Rezervasiya Təsdiqi',
+        subject: 'Booking Confirmation',
         html,
       });
 
@@ -526,27 +526,27 @@ export class BookingsService {
       if (!booking.customerEmail) return;
 
       const html = `
-        <h2>Rezervasiya Ləğv Edildi</h2>
-        
-        <p>Hörmətli ${booking.customerName},</p>
-        
-        <p>Rezervasiyanız ləğv edildi.</p>
-        
-        <h3>Ləğv edilmiş rezervasiya:</h3>
+        <h2>Booking Cancelled</h2>
+
+        <p>Dear ${booking.customerName},</p>
+
+        <p>Your booking has been cancelled.</p>
+
+        <h3>Cancelled booking:</h3>
         <ul>
-          <li><strong>Xidmət:</strong> ${booking.serviceName}</li>
-          <li><strong>Tarix:</strong> ${new Date(booking.dateTime).toLocaleDateString('az-AZ')}</li>
-          <li><strong>Saat:</strong> ${new Date(booking.dateTime).toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit' })}</li>
-          ${booking.cancelReason ? `<li><strong>Səbəb:</strong> ${booking.cancelReason}</li>` : ''}
+          <li><strong>Service:</strong> ${booking.serviceName}</li>
+          <li><strong>Date:</strong> ${new Date(booking.dateTime).toLocaleDateString('en-US')}</li>
+          <li><strong>Time:</strong> ${new Date(booking.dateTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</li>
+          ${booking.cancelReason ? `<li><strong>Reason:</strong> ${booking.cancelReason}</li>` : ''}
         </ul>
 
-        <p>Yeni rezervasiya etmək üçün bizimlə əlaqə saxlayın.</p>
+        <p>Please contact us to make a new booking.</p>
       `;
 
       await this.transporter.sendMail({
         from: process.env.EMAIL_FROM,
         to: booking.customerEmail,
-        subject: 'Rezervasiya Ləğv Edildi',
+        subject: 'Booking Cancelled',
         html,
       });
 

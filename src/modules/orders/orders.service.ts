@@ -257,7 +257,7 @@ export class OrdersService {
         line_items: [
           {
             price_data: {
-              currency: 'azn',
+              currency: 'usd',
               product_data: {
                 name: `Order #${order.id.slice(0, 8)}`,
                 description: `${tenant?.name || 'Order'} - ${(order.items as any).length} items`,
@@ -432,28 +432,28 @@ export class OrdersService {
     try {
       if (order.customerEmail) {
         const html = `
-          <h2>Ödəniş Linki</h2>
-          
-          <p>Hörmətli ${order.customerName || 'müştəri'},</p>
-          
-          <p>Sifarişiniz hazırlanıb. Ödəniş üçün aşağıdakı linkə keçid edin:</p>
-          
-          <p><a href="${checkoutUrl}" style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Ödəniş et</a></p>
-          
-          <h3>Sifariş detalları:</h3>
+          <h2>Payment Link</h2>
+
+          <p>Dear ${order.customerName || 'customer'},</p>
+
+          <p>Your order is ready. Click the link below to proceed with payment:</p>
+
+          <p><a href="${checkoutUrl}" style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Pay Now</a></p>
+
+          <h3>Order details:</h3>
           <ul>
-            <li><strong>Sifariş ID:</strong> ${order.id.slice(0, 8)}</li>
-            <li><strong>Məbləğ:</strong> ₼${order.total.toFixed(2)}</li>
-            <li><strong>Məhsul sayı:</strong> ${order.items.length}</li>
+            <li><strong>Order ID:</strong> ${order.id.slice(0, 8)}</li>
+            <li><strong>Amount:</strong> $${order.total.toFixed(2)}</li>
+            <li><strong>Items:</strong> ${order.items.length}</li>
           </ul>
-          
-          <p>Təşəkkürlər!</p>
+
+          <p>Thank you!</p>
         `;
 
         await this.transporter.sendMail({
           from: process.env.EMAIL_FROM,
           to: order.customerEmail,
-          subject: 'Ödəniş Linki - Sifariş #' + order.id.slice(0, 8),
+          subject: 'Payment Link - Order #' + order.id.slice(0, 8),
           html,
         });
 
@@ -472,28 +472,28 @@ export class OrdersService {
       if (!order.customerEmail) return;
 
       const html = `
-        <h2>Sifariş Təsdiqi</h2>
-        
-        <p>Hörmətli ${order.customerName || 'müştəri'},</p>
-        
-        <p>Sifarişiniz təsdiqləndi və hazırlanır!</p>
-        
-        <h3>Sifariş detalları:</h3>
+        <h2>Order Confirmation</h2>
+
+        <p>Dear ${order.customerName || 'customer'},</p>
+
+        <p>Your order has been confirmed and is being prepared!</p>
+
+        <h3>Order details:</h3>
         <ul>
-          <li><strong>Sifariş ID:</strong> ${order.id.slice(0, 8)}</li>
+          <li><strong>Order ID:</strong> ${order.id.slice(0, 8)}</li>
           <li><strong>Status:</strong> ${order.status}</li>
-          <li><strong>Məbləğ:</strong> ₼${order.total.toFixed(2)}</li>
-          <li><strong>Çatdırılma:</strong> ${order.deliveryType}</li>
-          ${order.scheduledFor ? `<li><strong>Təxmini vaxt:</strong> ${new Date(order.scheduledFor).toLocaleString('az-AZ')}</li>` : ''}
+          <li><strong>Amount:</strong> $${order.total.toFixed(2)}</li>
+          <li><strong>Delivery:</strong> ${order.deliveryType}</li>
+          ${order.scheduledFor ? `<li><strong>Estimated time:</strong> ${new Date(order.scheduledFor).toLocaleString('en-US')}</li>` : ''}
         </ul>
-        
-        <p>Təşəkkürlər!</p>
+
+        <p>Thank you!</p>
       `;
 
       await this.transporter.sendMail({
         from: process.env.EMAIL_FROM,
         to: order.customerEmail,
-        subject: 'Sifariş Təsdiqi #' + order.id.slice(0, 8),
+        subject: 'Order Confirmation #' + order.id.slice(0, 8),
         html,
       });
 
