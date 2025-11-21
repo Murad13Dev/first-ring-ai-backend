@@ -34,6 +34,8 @@ model Tenant {
   squareLocationId String?
   googleCalendarId String?
   googleSheetId   String?
+  googleAccessToken String?
+  googleRefreshToken String?
   posConfig       Json?    // POS integration configuration
 
   // Subscription
@@ -53,6 +55,7 @@ model Tenant {
   bookings        Booking[]
   orders          Order[]
   calls           Call[]
+  qrCodes         QRCode[]
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -533,6 +536,7 @@ model ChatMessage {
 model QRCode {
   id            String   @id @default(uuid())
   tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   tableNumber   String?
   locationId    String?

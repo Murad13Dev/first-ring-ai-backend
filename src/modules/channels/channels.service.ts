@@ -349,7 +349,7 @@ class QROrderingService {
         tenant: {
           select: {
             id: true,
-            businessName: true,
+            name: true,
             businessType: true,
             settings: true,
           },
