@@ -1,0 +1,18 @@
+{
+  "greeting": {
+    "welcome": "Kumusta! Maligayang pagdating sa {{businessName}}. Paano kita matutulungan?",
+    "goodbye": "Salamat. Magandang araw!",
+    "hold": "Sandali lang po."
+  },
+  "booking": {
+    "ask_date": "Anong petsa mo gustong mag-book?",
+    "ask_time": "Anong oras?",
+    "ask_party_size": "Ilang tao?",
+    "ask_name": "Ano ang pangalan mo?",
+    "confirmed": "Ayos! Nakumpirma ang iyong booking para sa {{date}} ng {{time}} para sa {{partySize}} tao. Booking code: {{bookingId}}"
+  },
+  "order": {
+    "ask_items": "Ano ang gusto mong orderin?",
+    "confirm": "Handa na ang iyong order! Kabuuan: {{total}} PHP. Ipinadala na ang payment link sa SMS."
+  }
+}

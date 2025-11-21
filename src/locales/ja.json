@@ -1,0 +1,18 @@
+{
+  "greeting": {
+    "welcome": "こんにちは！{{businessName}}へようこそ。どのようにお手伝いできますか？",
+    "goodbye": "ありがとうございました。良い一日を！",
+    "hold": "少々お待ちください。"
+  },
+  "booking": {
+    "ask_date": "いつご予約されますか？",
+    "ask_time": "何時ですか？",
+    "ask_party_size": "何名様ですか？",
+    "ask_name": "お名前は？",
+    "confirmed": "承知しました！{{date}} {{time}}、{{partySize}}名様のご予約が確定しました。予約番号：{{bookingId}}"
+  },
+  "order": {
+    "ask_items": "ご注文は？",
+    "confirm": "ご注文完了！合計：{{total}}円。お支払いリンクをSMSで送信しました。"
+  }
+}

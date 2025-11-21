@@ -1,0 +1,61 @@
+{
+  "greeting": {
+    "welcome": "Hello! Welcome to {{businessName}}. How can I help you?",
+    "welcome_alt": "Greetings from {{businessName}}! How may I assist you?",
+    "goodbye": "Thank you. Have a great day!",
+    "hold": "Please hold for a moment."
+  },
+  "booking": {
+    "ask_date": "What date would you like to book?",
+    "ask_time": "What time?",
+    "ask_party_size": "For how many people?",
+    "ask_name": "What's your name?",
+    "ask_phone": "Your phone number?",
+    "ask_email": "Your email address? (Optional)",
+    "unavailable": "Sorry, that time is not available. Can I suggest another time?",
+    "confirmed": "Great! Your reservation is confirmed for {{date}} at {{time}} for {{partySize}} people. Booking code: {{bookingId}}",
+    "cancelled": "Your reservation has been cancelled.",
+    "modified": "Your reservation has been updated."
+  },
+  "order": {
+    "ask_items": "What would you like to order?",
+    "ask_quantity": "How many?",
+    "ask_delivery": "Delivery or pickup?",
+    "ask_address": "Delivery address?",
+    "confirm": "Your order is ready! Total: {{total}} USD. Payment link sent via SMS.",
+    "payment_sent": "Payment link has been sent.",
+    "preparing": "Your order is being prepared.",
+    "ready": "Your order is ready!",
+    "delivered": "Your order has been delivered."
+  },
+  "faq": {
+    "hours": "Our hours: {{hours}}",
+    "location": "Our address: {{address}}",
+    "phone": "Phone: {{phone}}",
+    "not_found": "I'm sorry, I couldn't find information about that.",
+    "anything_else": "Anything else I can help with?"
+  },
+  "lead": {
+    "ask_name": "What's your name?",
+    "ask_email": "Your email address?",
+    "ask_phone": "Your phone number?",
+    "ask_business": "Can you tell me about your business?",
+    "confirmed": "Thank you! Your information has been recorded. Our team will contact you within 24 hours."
+  },
+  "escalation": {
+    "transfer": "I understand, let me connect you with an agent. One moment...",
+    "no_agent": "Sorry, all agents are currently busy. Please try again later.",
+    "callback": "Can we call you back? What's your number?"
+  },
+  "errors": {
+    "not_understood": "I'm sorry, I didn't understand that. Could you repeat?",
+    "technical": "A technical issue occurred. Please try again.",
+    "invalid_input": "Please provide valid information."
+  },
+  "confirmation": {
+    "yes": "Yes",
+    "no": "No",
+    "confirm": "Is this correct?",
+    "correct": "Is that right?"
+  }
+}

@@ -1,0 +1,441 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// TENANTS (Müştərilər)
+// ==========================================
+model Tenant {
+  id              String   @id @default(uuid())
+  name            String
+  businessType    String   // "restaurant" | "hotel" | "fitness" | "clinic" | "salon" | "other"
+  email           String   @unique
+  phone           String?
+  twilioNumber    String?  @unique
+  
+  // Business Info
+  address         String?
+  city            String?
+  country         String?  @default("Azerbaijan")
+  timezone        String   @default("Asia/Baku")
+  website         String?
+  
+  // Business Hours (JSON)
+  businessHours   Json?    // { "monday": { "open": "09:00", "close": "22:00" }, ... }
+  
+  // Integrations
+  stripeAccountId String?
+  googleCalendarId String?
+  googleSheetId   String?
+  
+  // Subscription
+  plan            String   @default("free") // "free" | "basic" | "pro" | "enterprise"
+  subscriptionStatus String @default("trial") // "trial" | "active" | "cancelled" | "suspended"
+  subscriptionId  String?  // Stripe subscription ID
+  trialEndsAt     DateTime?
+  currentPeriodEnd DateTime?
+  
+  // Settings
+  settings        Json?    // Additional settings
+  
+  // Relations
+  users           User[]
+  services        Service[]
+  faqs            FAQ[]
+  bookings        Booking[]
+  orders          Order[]
+  calls           Call[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([email])
+  @@index([twilioNumber])
+  @@index([plan])
+  @@map("tenants")
+}
+
+// ==========================================
+// USERS (Tenant istifadəçiləri)
+// ==========================================
+model User {
+  id            String   @id @default(uuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  email         String   @unique
+  passwordHash  String
+  name          String
+  role          String   @default("owner") // "owner" | "manager" | "staff"
+  
+  // Profile
+  phone         String?
+  avatar        String?
+  
+  // Status
+  isActive      Boolean  @default(true)
+  lastLoginAt   DateTime?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([email])
+  @@index([tenantId])
+  @@map("users")
+}
+
+// ==========================================
+// LEADS (Potensial müştərilər)
+// ==========================================
+model Lead {
+  id              String   @id @default(uuid())
+  
+  // Source
+  source          String   // "landing_page_form" | "ai_call" | "contact_form" | "referral"
+  campaign        String?
+  utmSource       String?
+  utmMedium       String?
+  utmCampaign     String?
+  
+  // Contact
+  contactName     String
+  email           String
+  phone           String
+  preferredContact String? @default("phone") // "phone" | "email"
+  
+  // Business
+  businessName    String
+  businessType    String
+  website         String?
+  address         String?
+  callVolume      Int?     // Estimated daily call volume
+  
+  // Plan Selection
+  selectedPlan    String   // "basic" | "pro" | "enterprise"
+  
+  // Requirements
+  challenges      String?  // Current problems
+  requirements    String?  // Special requirements
+  budget          String?
+  urgency         String?  // "immediate" | "week" | "month" | "exploring"
+  
+  // AI Data (if source = ai_call)
+  callId          String?
+  callDuration    Int?     // seconds
+  callRecordingUrl String?
+  callTranscript  String?  @db.Text
+  aiConfidence    Float?
+  aiNotes         String?  @db.Text
+  
+  // Status
+  status          String   @default("new") 
+  // "new" | "contacted" | "qualified" | "in_progress" | "converted" | "lost"
+  
+  priority        String   @default("normal") 
+  // "low" | "normal" | "high" | "hot"
+  
+  qualificationScore Int?  // 0-100
+  
+  // Admin
+  adminNotes      String?  @db.Text
+  assignedToEmail String?
+  lostReason      String?
+  
+  // Conversion
+  convertedToTenantId String?
+  convertedAt     DateTime?
+  
+  // Follow-up
+  nextFollowUp    DateTime?
+  lastContacted   DateTime?
+  followUpCount   Int      @default(0)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([email])
+  @@index([phone])
+  @@index([status])
+  @@index([priority])
+  @@index([source])
+  @@map("leads")
+}
+
+// ==========================================
+// SERVICES (Universal - Menu/Services)
+// ==========================================
+model Service {
+  id            String   @id @default(uuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  name          String
+  description   String?  @db.Text
+  category      String?
+  price         Float
+  duration      Int?     // minutes (for services)
+  available     Boolean  @default(true)
+  image         String?
+  
+  // Modifiers (for restaurants)
+  modifiers     Json?    // { "size": ["Small", "Medium", "Large"], "toppings": [...] }
+  
+  // Inventory
+  stockQuantity Int?
+  lowStockAlert Int?
+  
+  // Sorting
+  sortOrder     Int      @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([category])
+  @@index([available])
+  @@map("services")
+}
+
+// ==========================================
+// FAQ
+// ==========================================
+model FAQ {
+  id            String   @id @default(uuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  question      String
+  answer        String   @db.Text
+  keywords      String[] // For search
+  category      String?
+  
+  // Analytics
+  viewCount     Int      @default(0)
+  helpfulCount  Int      @default(0)
+  
+  isActive      Boolean  @default(true)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([category])
+  @@map("faqs")
+}
+
+// ==========================================
+// BOOKINGS (Reservations)
+// ==========================================
+model Booking {
+  id            String   @id @default(uuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  // Customer
+  customerName  String
+  customerPhone String
+  customerEmail String?
+  
+  // Service
+  serviceId     String?
+  serviceName   String
+  
+  // Date & Time
+  dateTime      DateTime
+  duration      Int?     // minutes
+  partySize     Int?     // for restaurants
+  
+  // Status
+  status        String   @default("pending") 
+  // "pending" | "confirmed" | "cancelled" | "completed" | "no_show"
+  
+  // Notes
+  notes         String?  @db.Text
+  specialRequests String?
+  
+  // Integrations
+  googleEventId String?
+  
+  // Notifications
+  reminderSent  Boolean  @default(false)
+  confirmationSent Boolean @default(false)
+  
+  // Cancellation
+  cancelledAt   DateTime?
+  cancelReason  String?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([dateTime])
+  @@index([status])
+  @@index([customerPhone])
+  @@map("bookings")
+}
+
+// ==========================================
+// ORDERS (for restaurants, retail, etc)
+// ==========================================
+model Order {
+  id            String   @id @default(uuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  // Customer
+  customerPhone String
+  customerName  String?
+  customerEmail String?
+  
+  // Items
+  items         Json     // [{ serviceId, name, price, quantity, modifiers }]
+  
+  // Pricing
+  subtotal      Float
+  tax           Float    @default(0)
+  tip           Float    @default(0)
+  discount      Float    @default(0)
+  total         Float
+  
+  // Payment
+  paymentStatus String   @default("pending") 
+  // "pending" | "paid" | "failed" | "refunded" | "partially_refunded"
+  
+  paymentMethod String?  // "stripe" | "square" | "cash" | "card"
+  stripePaymentIntentId String?
+  checkoutUrl   String?
+  
+  // Delivery
+  deliveryType  String?  // "pickup" | "delivery" | "dine-in"
+  deliveryAddress String?
+  scheduledFor  DateTime?
+  
+  // Status
+  status        String   @default("pending") 
+  // "pending" | "confirmed" | "preparing" | "ready" | "completed" | "cancelled"
+  
+  // Fulfillment
+  preparedAt    DateTime?
+  completedAt   DateTime?
+  cancelledAt   DateTime?
+  cancelReason  String?
+  
+  // Notes
+  notes         String?  @db.Text
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([customerPhone])
+  @@index([paymentStatus])
+  @@index([status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+// ==========================================
+// CALLS (Call logs)
+// ==========================================
+model Call {
+  id            String   @id @default(uuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  // Call Info
+  fromNumber    String
+  toNumber      String   // Twilio number
+  direction     String   // "inbound" | "outbound"
+  
+  // Duration & Recording
+  duration      Int      // seconds
+  recordingUrl  String?
+  transcript    String?  @db.Text
+  
+  // AI Analysis
+  intent        String?  // "faq" | "booking" | "order" | "escalation" | "unknown"
+  outcome       String?  // "completed" | "escalated" | "failed" | "voicemail"
+  aiConfidence  Float?
+  sentiment     String?  // "positive" | "neutral" | "negative"
+  
+  // Linked Records
+  bookingId     String?
+  orderId       String?
+  leadId        String?
+  
+  // Metadata
+  metadata      Json?
+  
+  // Call Quality
+  callQuality   Int?     // 1-5 rating
+  
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([fromNumber])
+  @@index([intent])
+  @@index([createdAt])
+  @@map("calls")
+}
+
+// ==========================================
+// ADMIN USERS (Platform admins)
+// ==========================================
+model AdminUser {
+  id            String   @id @default(uuid())
+  
+  email         String   @unique
+  passwordHash  String
+  name          String
+  role          String   @default("admin") // "admin" | "superadmin"
+  
+  isActive      Boolean  @default(true)
+  lastLoginAt   DateTime?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([email])
+  @@map("admin_users")
+}
+
+// ==========================================
+// ACTIVITY LOG (Audit trail)
+// ==========================================
+model ActivityLog {
+  id            String   @id @default(uuid())
+  
+  // Actor
+  actorType     String   // "user" | "admin" | "system"
+  actorId       String?
+  actorEmail    String?
+  
+  // Target
+  tenantId      String?
+  
+  // Action
+  action        String   // "create" | "update" | "delete" | "login" | "logout"
+  entityType    String   // "tenant" | "user" | "lead" | "booking" | "order"
+  entityId      String?
+  
+  // Details
+  changes       Json?
+  metadata      Json?
+  ipAddress     String?
+  userAgent     String?
+  
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([actorId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("activity_logs")
+}

@@ -1,0 +1,18 @@
+{
+  "greeting": {
+    "welcome": "Bonjour! Bienvenue à {{businessName}}. Comment puis-je vous aider?",
+    "goodbye": "Merci. Bonne journée!",
+    "hold": "Attendez un instant, s'il vous plaît."
+  },
+  "booking": {
+    "ask_date": "Pour quelle date souhaitez-vous réserver?",
+    "ask_time": "À quelle heure?",
+    "ask_party_size": "Pour combien de personnes?",
+    "ask_name": "Quel est votre nom?",
+    "confirmed": "Parfait! Votre réservation est confirmée pour {{date}} à {{time}} pour {{partySize}} personnes. Code: {{bookingId}}"
+  },
+  "order": {
+    "ask_items": "Que souhaitez-vous commander?",
+    "confirm": "Votre commande est prête! Total: {{total}} EUR. Lien de paiement envoyé par SMS."
+  }
+}

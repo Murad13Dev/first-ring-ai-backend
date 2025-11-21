@@ -1,0 +1,18 @@
+{
+  "greeting": {
+    "welcome": "您好！欢迎来到{{businessName}}。我能帮您什么？",
+    "goodbye": "谢谢。祝您愉快！",
+    "hold": "请稍等。"
+  },
+  "booking": {
+    "ask_date": "您想预订哪一天？",
+    "ask_time": "几点？",
+    "ask_party_size": "几位？",
+    "ask_name": "您叫什么名字？",
+    "confirmed": "太好了！您的预订已确认，{{date}} {{time}}，{{partySize}}位。预订号：{{bookingId}}"
+  },
+  "order": {
+    "ask_items": "您想点什么？",
+    "confirm": "您的订单已准备好！总计：{{total}}元。付款链接已通过短信发送。"
+  }
+}

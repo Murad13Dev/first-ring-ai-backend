@@ -1,0 +1,38 @@
+{
+  "greeting": {
+    "welcome": "¡Hola! Bienvenido a {{businessName}}. ¿Cómo puedo ayudarte?",
+    "welcome_alt": "¡Saludos desde {{businessName}}! ¿En qué puedo asistirte?",
+    "goodbye": "Gracias. ¡Que tengas un buen día!",
+    "hold": "Espera un momento, por favor."
+  },
+  "booking": {
+    "ask_date": "¿Para qué fecha deseas reservar?",
+    "ask_time": "¿A qué hora?",
+    "ask_party_size": "¿Para cuántas personas?",
+    "ask_name": "¿Cuál es tu nombre?",
+    "ask_phone": "¿Tu número de teléfono?",
+    "ask_email": "¿Tu dirección de correo? (Opcional)",
+    "unavailable": "Lo siento, esa hora no está disponible. ¿Puedo sugerir otra?",
+    "confirmed": "¡Genial! Tu reserva está confirmada para {{date}} a las {{time}} para {{partySize}} personas. Código: {{bookingId}}",
+    "cancelled": "Tu reserva ha sido cancelada.",
+    "modified": "Tu reserva ha sido actualizada."
+  },
+  "order": {
+    "ask_items": "¿Qué te gustaría pedir?",
+    "ask_quantity": "¿Cuántos?",
+    "ask_delivery": "¿Entrega o recogida?",
+    "ask_address": "¿Dirección de entrega?",
+    "confirm": "¡Tu pedido está listo! Total: {{total}} USD. Enlace de pago enviado por SMS.",
+    "payment_sent": "Enlace de pago enviado.",
+    "preparing": "Tu pedido se está preparando.",
+    "ready": "¡Tu pedido está listo!",
+    "delivered": "Tu pedido ha sido entregado."
+  },
+  "faq": {
+    "hours": "Horario: {{hours}}",
+    "location": "Dirección: {{address}}",
+    "phone": "Teléfono: {{phone}}",
+    "not_found": "Lo siento, no pude encontrar información sobre eso.",
+    "anything_else": "¿Algo más en lo que pueda ayudar?"
+  }
+}
