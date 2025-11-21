@@ -32,14 +32,14 @@ const router = Router();
  *                 example: landing_page_form
  *               contactName:
  *                 type: string
- *                 example: Rəşad Məmmədov
+ *                 example: John Smith
  *               email:
  *                 type: string
  *                 format: email
- *                 example: rashad@pizzahouse.az
+ *                 example: john@pizzahouse.com
  *               phone:
  *                 type: string
- *                 example: "+994501234567"
+ *                 example: "+15551234567"
  *               businessName:
  *                 type: string
  *                 example: Pizza House

@@ -1,10 +1,10 @@
 # 🤖 First Ring AI - Multi-Language Phone Agent
 
-> AI-powered phone agent that speaks 10 languages and handles bookings, orders, and customer inquiries automatically.
+> AI-powered phone agent that speaks 9 languages and handles bookings, orders, and customer inquiries automatically.
 
 ## 🌟 Features
 
-- 🌍 **10 Languages** - Auto-detects and responds in caller's language
+- 🌍 **9 Languages** - Auto-detects and responds in caller's language
 - 🤖 **AI Agent** - Twilio + GPT-4 for natural conversations
 - 📅 **Booking System** - Smart scheduling with Google Calendar sync
 - 🛒 **Order Management** - Full e-commerce with Stripe payments
@@ -35,7 +35,6 @@ Server: `http://localhost:5000`
 
 | Code | Language | Native |
 |------|----------|--------|
-| az | Azerbaijani | Azərbaycan |
 | en | English | English |
 | ru | Russian | Русский |
 | es | Spanish | Español |
@@ -51,7 +50,6 @@ Server: `http://localhost:5000`
 - [Quick Start](./QUICKSTART.md)
 - [AI Agent Setup](./AI_AGENT_SETUP.md)
 - [Google APIs Setup](./GOOGLE_APIS_SETUP.md)
-- [Multilingual Guide](./MULTILINGUAL_GUIDE.md)
 
 ## 🧪 Test AI
 

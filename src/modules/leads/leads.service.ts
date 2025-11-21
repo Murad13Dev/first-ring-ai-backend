@@ -388,34 +388,33 @@ export class LeadsService {
   private async sendLeadConfirmation(lead: any) {
     try {
       const html = `
-        <h2>Müraciətiniz qəbul edildi! ✅</h2>
-        
-        <p>Hörmətli ${lead.contactName},</p>
-        
-        <p>First Ring AI-a göstərdiyiniz marağa görə təşəkkür edirik!</p>
-        
-        <p>Sizin müraciətiniz uğurla qeydə alındı və komandamız 24 saat ərzində sizinlə əlaqə saxlayacaq.</p>
-        
-        <h3>Müraciət detalları:</h3>
+        <h2>Your request has been received! ✅</h2>
+
+        <p>Dear ${lead.contactName},</p>
+
+        <p>Thank you for your interest in First Ring AI!</p>
+
+        <p>Your request has been successfully recorded and our team will contact you within 24 hours.</p>
+
+        <h3>Request details:</h3>
         <ul>
-          <li><strong>Biznes:</strong> ${lead.businessName}</li>
-          <li><strong>Seçilmiş paket:</strong> ${lead.selectedPlan.toUpperCase()}</li>
+          <li><strong>Business:</strong> ${lead.businessName}</li>
+          <li><strong>Selected plan:</strong> ${lead.selectedPlan.toUpperCase()}</li>
           <li><strong>Email:</strong> ${lead.email}</li>
-          <li><strong>Telefon:</strong> ${lead.phone}</li>
+          <li><strong>Phone:</strong> ${lead.phone}</li>
         </ul>
 
-        <p>Əgər təcili sualınız varsa, bizimlə əlaqə saxlaya bilərsiniz:</p>
-        <p>📧 ${process.env.SALES_EMAIL}<br>
-        📞 +994 XX XXX XX XX</p>
+        <p>If you have urgent questions, please contact us:</p>
+        <p>📧 ${process.env.SALES_EMAIL}</p>
 
-        <p>Hörmətlə,<br>
+        <p>Best regards,<br>
         First Ring AI Team</p>
       `;
 
       await this.transporter.sendMail({
         from: process.env.EMAIL_FROM,
         to: lead.email,
-        subject: 'Müraciətiniz qəbul edildi - First Ring AI',
+        subject: 'Your request has been received - First Ring AI',
         html,
       });
 
@@ -431,51 +430,50 @@ export class LeadsService {
   private async sendWelcomeEmail(lead: any, tenant: any, tempPassword: string) {
     try {
       const html = `
-        <h2>🎉 Xoş gəlmisiniz, ${tenant.name}!</h2>
-        
-        <p>Hörmətli ${lead.contactName},</p>
-        
-        <p>First Ring AI platformasına xoş gəlmisiniz! Hesabınız aktivləşdirildi.</p>
-        
-        <h3>🔐 Giriş məlumatları:</h3>
+        <h2>🎉 Welcome, ${tenant.name}!</h2>
+
+        <p>Dear ${lead.contactName},</p>
+
+        <p>Welcome to First Ring AI platform! Your account has been activated.</p>
+
+        <h3>🔐 Login credentials:</h3>
         <table style="background: #f5f5f5; padding: 20px; border-radius: 8px;">
           <tr><td><strong>Dashboard:</strong></td><td><a href="${process.env.FRONTEND_URL}">${process.env.FRONTEND_URL}</a></td></tr>
           <tr><td><strong>Email:</strong></td><td>${lead.email}</td></tr>
-          <tr><td><strong>Müvəqqəti şifrə:</strong></td><td><code style="background: #fff; padding: 4px 8px; border-radius: 4px;">${tempPassword}</code></td></tr>
+          <tr><td><strong>Temporary password:</strong></td><td><code style="background: #fff; padding: 4px 8px; border-radius: 4px;">${tempPassword}</code></td></tr>
         </table>
 
         <p style="background: #fff3cd; padding: 15px; border-left: 4px solid #ffa726; margin: 20px 0;">
-          <strong>⚠️ Vacib:</strong> İlk girişdən sonra şifrənizi dəyişdirin!
+          <strong>⚠️ Important:</strong> Change your password after first login!
         </p>
 
-        <h3>🚀 Növbəti addımlar:</h3>
+        <h3>🚀 Next steps:</h3>
         <ol>
-          <li>Dashboard-a giriş edin</li>
-          <li>Setup Wizard-ı tamamlayın (5 dəqiqə)</li>
-          <li>Xidmətlərinizi/menyunuzu əlavə edin</li>
-          <li>FAQ-larınızı əlavə edin</li>
-          <li>AI agent-inizi test edin</li>
+          <li>Login to Dashboard</li>
+          <li>Complete Setup Wizard (5 minutes)</li>
+          <li>Add your services/menu</li>
+          <li>Add your FAQs</li>
+          <li>Test your AI agent</li>
         </ol>
 
         <p style="margin-top: 30px;">
-          <a href="${process.env.FRONTEND_URL}" 
+          <a href="${process.env.FRONTEND_URL}"
              style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
-            Dashboard-a daxil ol
+            Go to Dashboard
           </a>
         </p>
 
-        <p style="margin-top: 40px;">Kömək lazımdır?<br>
-        📧 ${process.env.SALES_EMAIL}<br>
-        📞 +994 XX XXX XX XX</p>
+        <p style="margin-top: 40px;">Need help?<br>
+        📧 ${process.env.SALES_EMAIL}</p>
 
-        <p>Hörmətlə,<br>
+        <p>Best regards,<br>
         First Ring AI Team</p>
       `;
 
       await this.transporter.sendMail({
         from: process.env.EMAIL_FROM,
         to: lead.email,
-        subject: '🎉 First Ring AI-a xoş gəlmisiniz!',
+        subject: '🎉 Welcome to First Ring AI!',
         html,
       });
 

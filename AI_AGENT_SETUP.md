@@ -100,7 +100,8 @@ curl -X POST http://localhost:5000/api/ai-agent/test \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "userInput": "Salam, cümə axşamı 4 nəfərlik masa istəyirəm"
+    "userInput": "Hello, I want a table for 4 on Friday",
+    "language": "en"
   }'
 ```
 
@@ -109,7 +110,7 @@ curl -X POST http://localhost:5000/api/ai-agent/test \
 {
   "success": true,
   "data": {
-    "response": "Əla! Cümə axşamı hansı saat üçün?",
+    "response": "Great! What time on Friday?",
     "intent": "booking",
     "confidence": 0.92
   }
@@ -119,46 +120,46 @@ curl -X POST http://localhost:5000/api/ai-agent/test \
 #### **Test Live Call:**
 
 1. Call your Twilio number
-2. Say: "Salam"
+2. Say: "Hello"
 3. AI will respond with greeting
 4. Try different intents:
-   - "Neçədə açılırsınız?" (FAQ)
-   - "Sabah 19:00-a masa istəyirəm" (Booking)
-   - "2 pizza sifariş etmək istəyirəm" (Order)
-   - "Operatorla danışmaq istəyirəm" (Escalation)
+   - "What time do you open?" (FAQ)
+   - "I want a table for tomorrow at 7pm" (Booking)
+   - "I want to order 2 pizzas" (Order)
+   - "I want to speak to an operator" (Escalation)
 
 ### 📊 Intent Detection Examples
 
 #### **FAQ Intent:**
 ```
-User: "Neçədə açılırsınız?"
+User: "What time do you open?"
 Intent: faq
 Confidence: 0.95
-Response: "Biz hər gün 10:00-dan 23:00-dək açığıq"
+Response: "We are open daily from 10:00 to 23:00"
 ```
 
 #### **Booking Intent:**
 ```
-User: "Cümə axşamı 4 nəfərlik masa"
+User: "Table for 4 on Friday"
 Intent: booking
 Confidence: 0.88
-Response: "Hansı saat üçün?" → Collect details → Create booking
+Response: "What time?" → Collect details → Create booking
 ```
 
 #### **Order Intent:**
 ```
-User: "2 margarita pizza və 1 cola"
+User: "2 margherita pizzas and 1 cola"
 Intent: order
 Confidence: 0.92
-Response: "Cəmi 32.97 AZN. Ödəniş linki SMS ilə göndərildi"
+Response: "Total $32.97. Payment link sent via SMS"
 ```
 
 #### **Lead Intent:**
 ```
-User: "Sizin xidmətiniz haqqında məlumat almaq istəyirəm"
+User: "I want information about your service"
 Intent: lead
 Confidence: 0.85
-Response: "Əla! Sizinlə necə əlaqə saxlaya bilərik?"
+Response: "Great! How can we contact you?"
 ```
 
 ### 🔄 OpenAI Integration
@@ -169,7 +170,7 @@ Uses GPT-4 to analyze user input:
 ```typescript
 const prompt = `
 You are an AI assistant for Pizza House, a restaurant.
-Analyze: "2 pizza istəyirəm"
+Analyze: "I want 2 pizzas"
 
 Available intents: faq, booking, order, lead, escalation, unknown
 
@@ -204,7 +205,7 @@ curl -X POST http://localhost:5000/api/ai-agent/outbound \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "toNumber": "+994501234567",
+    "toNumber": "+15551234567",
     "script": "sales_intro"
   }'
 ```
@@ -212,12 +213,12 @@ curl -X POST http://localhost:5000/api/ai-agent/outbound \
 #### **Outbound Script:**
 
 ```
-AI: "Salam! First Ring AI-dan Sarah-yam. Biznesiniz 
-     haqqında danışmaq üçün bir dəqiqəniz varmı?"
+AI: "Hello! I'm Sarah from First Ring AI. Do you have
+     a minute to discuss your business?"
 
-User: "Bəli"
+User: "Yes"
 
-AI: "Əla! Hansı sahədə fəaliyyət göstərirsiniz?"
+AI: "Great! What industry are you in?"
 ...
 ```
 
@@ -287,7 +288,7 @@ curl http://localhost:5000/api/calls/stats \
 - Review logs: `logs/error.log`
 
 #### **Speech not recognized:**
-- Twilio uses `az-AZ` language
+- Twilio uses appropriate language code (e.g., `en-US`)
 - Check pronunciation is clear
 - Review Twilio console transcripts
 
