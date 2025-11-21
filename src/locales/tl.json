@@ -1,6 +1,7 @@
 {
   "greeting": {
     "welcome": "Kumusta! Maligayang pagdating sa {{businessName}}. Paano kita matutulungan?",
+    "welcome_alt": "Pagbati mula sa {{businessName}}! Paano ko kayo matutulungan?",
     "goodbye": "Salamat. Magandang araw!",
     "hold": "Sandali lang po."
   },
@@ -9,10 +10,52 @@
     "ask_time": "Anong oras?",
     "ask_party_size": "Ilang tao?",
     "ask_name": "Ano ang pangalan mo?",
-    "confirmed": "Ayos! Nakumpirma ang iyong booking para sa {{date}} ng {{time}} para sa {{partySize}} tao. Booking code: {{bookingId}}"
+    "ask_phone": "Ano ang numero ng telepono mo?",
+    "ask_email": "Ano ang email mo? (Opsyonal)",
+    "unavailable": "Pasensya na, hindi available ang oras na iyan. Maaari ba akong magmungkahi ng ibang oras?",
+    "confirmed": "Ayos! Nakumpirma ang iyong booking para sa {{date}} ng {{time}} para sa {{partySize}} tao. Booking code: {{bookingId}}",
+    "cancelled": "Na-cancel na ang iyong reservation.",
+    "modified": "Na-update na ang iyong reservation."
   },
   "order": {
     "ask_items": "Ano ang gusto mong orderin?",
-    "confirm": "Handa na ang iyong order! Kabuuan: {{total}} PHP. Ipinadala na ang payment link sa SMS."
+    "ask_quantity": "Ilan?",
+    "ask_delivery": "Delivery o pickup?",
+    "ask_address": "Anong address para sa delivery?",
+    "confirm": "Handa na ang iyong order! Kabuuan: {{total}} PHP. Ipinadala na ang payment link sa SMS.",
+    "payment_sent": "Naipadala na ang payment link.",
+    "preparing": "Inihahanda na ang iyong order.",
+    "ready": "Handa na ang iyong order!",
+    "delivered": "Naihatid na ang iyong order."
+  },
+  "faq": {
+    "hours": "Oras ng operasyon: {{hours}}",
+    "location": "Address namin: {{address}}",
+    "phone": "Telepono: {{phone}}",
+    "not_found": "Pasensya na, hindi ko mahanap ang impormasyon tungkol doon.",
+    "anything_else": "May iba pa ba akong maitutulong?"
+  },
+  "lead": {
+    "ask_name": "Ano ang pangalan mo?",
+    "ask_email": "Ano ang email mo?",
+    "ask_phone": "Ano ang numero ng telepono mo?",
+    "ask_business": "Maaari mo bang sabihin sa akin ang tungkol sa iyong negosyo?",
+    "confirmed": "Salamat! Naitala na ang iyong impormasyon. Makikipag-ugnayan sa iyo ang aming team sa loob ng 24 oras."
+  },
+  "escalation": {
+    "transfer": "Naiintindihan ko, hayaan mo akong ikonekta ka sa isang ahente. Sandali lang...",
+    "no_agent": "Pasensya na, lahat ng ahente ay busy ngayon. Subukan ulit mamaya.",
+    "callback": "Maaari ba naming tawagan ka pabalik? Ano ang numero mo?"
+  },
+  "errors": {
+    "not_understood": "Pasensya na, hindi ko naintindihan iyon. Maaari mo bang ulitin?",
+    "technical": "May naganap na technical issue. Subukan ulit.",
+    "invalid_input": "Mangyaring magbigay ng tamang impormasyon."
+  },
+  "confirmation": {
+    "yes": "Oo",
+    "no": "Hindi",
+    "confirm": "Tama ba ito?",
+    "correct": "Tama ba?"
   }
 }
