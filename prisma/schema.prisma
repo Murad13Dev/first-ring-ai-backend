@@ -34,6 +34,8 @@ model Tenant {
   squareLocationId String?
   googleCalendarId String?
   googleSheetId   String?
+  googleAccessToken String?
+  googleRefreshToken String?
   posConfig       Json?    // POS integration configuration
 
   // Subscription
