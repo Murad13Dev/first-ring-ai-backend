@@ -56,7 +56,7 @@ if (process.env.NODE_ENV === 'development') {
 // ==========================================
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.status(200).json({
     success: true,
     message: 'Server is healthy',
@@ -66,7 +66,7 @@ app.get('/health', (req, res) => {
 });
 
 // API root
-app.get('/api', (req, res) => {
+app.get('/api', (_req, res) => {
   res.status(200).json({
     success: true,
     message: 'First Ring AI API v1.0',
