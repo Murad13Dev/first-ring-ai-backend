@@ -24,6 +24,11 @@ import channelsRoutes from './modules/channels/channels.routes';
 import followUpsRoutes from './modules/follow-ups/follow-ups.routes';
 import retellRoutes from './modules/retell/retell.routes';
 import businessTypesRoutes from './modules/business-types/business-types.routes';
+import subscriptionsRoutes from './modules/subscriptions/subscriptions.routes';
+import adminDashboardRoutes from './modules/admin-dashboard/admin-dashboard.routes';
+import customerDashboardRoutes from './modules/customer-dashboard/customer-dashboard.routes';
+import analyticsRoutes from './modules/analytics/analytics.routes';
+import notificationsRoutes from './modules/notifications/notifications.routes';
 
 // Load environment variables
 dotenv.config();
@@ -106,6 +111,11 @@ app.use('/api/channels', channelsRoutes);
 app.use('/api/follow-ups', followUpsRoutes);
 app.use('/api/retell', retellRoutes);
 app.use('/api/business-types', businessTypesRoutes);
+app.use('/api/subscriptions', subscriptionsRoutes);
+app.use('/api/admin', adminDashboardRoutes);
+app.use('/api/dashboard', customerDashboardRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // ==========================================
 // ERROR HANDLING

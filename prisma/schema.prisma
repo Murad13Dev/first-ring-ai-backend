@@ -56,6 +56,7 @@ model Tenant {
   orders          Order[]
   calls           Call[]
   qrCodes         QRCode[]
+  subscription    Subscription?
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -776,4 +777,197 @@ model Promotion {
   @@index([tenantId])
   @@index([isActive])
   @@map("promotions")
+}
+
+// ==========================================
+// SUBSCRIPTION PLANS
+// ==========================================
+model Plan {
+  id          String   @id @default(uuid())
+  slug        String   @unique // starter, professional, enterprise
+  name        String
+  description String?
+
+  price       Float    // Monthly price
+  yearlyPrice Float?   // Yearly price (discounted)
+
+  // Limits
+  callMinutes    Int   // Monthly call minutes
+  maxCalls       Int   // Max calls per month
+  maxUsers       Int   @default(1)
+
+  // Features
+  features    Json?    // Array of feature strings
+
+  isActive    Boolean  @default(true)
+  isPopular   Boolean  @default(false)
+
+  subscriptions Subscription[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("plans")
+}
+
+// ==========================================
+// SUBSCRIPTIONS
+// ==========================================
+model Subscription {
+  id          String   @id @default(uuid())
+  tenantId    String   @unique
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  planId      String
+  plan        Plan     @relation(fields: [planId], references: [id])
+
+  status      String   @default("active") // active, cancelled, past_due, trialing
+
+  // Billing
+  billingCycle    String   @default("monthly") // monthly, yearly
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean  @default(false)
+
+  // Payment
+  squareCustomerId    String?
+  squareSubscriptionId String?
+
+  // Trial
+  trialEndsAt DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+  @@map("subscriptions")
+}
+
+// ==========================================
+// USAGE TRACKING
+// ==========================================
+model UsageRecord {
+  id          String   @id @default(uuid())
+  tenantId    String
+
+  // Period
+  periodStart DateTime
+  periodEnd   DateTime
+
+  // Usage metrics
+  callMinutes   Int    @default(0)
+  callCount     Int    @default(0)
+  smsCount      Int    @default(0)
+  apiCalls      Int    @default(0)
+
+  // Limits from plan
+  callMinutesLimit Int
+  callCountLimit   Int
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, periodStart])
+  @@index([tenantId])
+  @@map("usage_records")
+}
+
+// ==========================================
+// INVOICES
+// ==========================================
+model Invoice {
+  id          String   @id @default(uuid())
+  tenantId    String
+
+  invoiceNumber String  @unique
+
+  // Amounts
+  subtotal    Float
+  tax         Float    @default(0)
+  total       Float
+
+  // Status
+  status      String   @default("pending") // pending, paid, failed, refunded
+
+  // Payment
+  squarePaymentId String?
+  paidAt      DateTime?
+
+  // Period
+  periodStart DateTime
+  periodEnd   DateTime
+
+  // Line items
+  items       InvoiceItem[]
+
+  dueDate     DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([status])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String   @id @default(uuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  description String
+  quantity    Int      @default(1)
+  unitPrice   Float
+  total       Float
+
+  @@map("invoice_items")
+}
+
+// ==========================================
+// NOTIFICATIONS
+// ==========================================
+model Notification {
+  id          String   @id @default(uuid())
+  tenantId    String?  // null for admin notifications
+  userId      String?  // specific user or null for all
+
+  type        String   // usage_warning, payment_failed, subscription_expiring, etc.
+  title       String
+  message     String
+  data        Json?
+
+  isRead      Boolean  @default(false)
+  readAt      DateTime?
+
+  // Delivery
+  emailSent   Boolean  @default(false)
+  smsSent     Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([isRead])
+  @@map("notifications")
+}
+
+// ==========================================
+// ANALYTICS EVENTS
+// ==========================================
+model AnalyticsEvent {
+  id          String   @id @default(uuid())
+  tenantId    String?
+
+  eventType   String   // call_completed, booking_made, order_placed, etc.
+  eventData   Json?
+
+  // Call specific
+  callDuration Int?
+  callOutcome  String?  // completed, missed, transferred
+  sentiment    String?  // positive, neutral, negative
+
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("analytics_events")
 }
