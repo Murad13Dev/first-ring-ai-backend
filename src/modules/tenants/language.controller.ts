@@ -37,13 +37,17 @@ export class LanguageController {
         });
       }
 
+      // Get current tenant settings
+      const currentTenant = await prisma.tenant.findUnique({ where: { id } });
+      const currentSettings = (currentTenant?.settings && typeof currentTenant.settings === 'object')
+        ? currentTenant.settings as Record<string, any>
+        : {};
+
       const tenant = await prisma.tenant.update({
         where: { id },
         data: {
           settings: {
-            ...(typeof (await prisma.tenant.findUnique({ where: { id } }))?.settings === 'object' 
-              ? (await prisma.tenant.findUnique({ where: { id } }))?.settings 
-              : {}),
+            ...currentSettings,
             defaultLanguage: language,
           },
         },
