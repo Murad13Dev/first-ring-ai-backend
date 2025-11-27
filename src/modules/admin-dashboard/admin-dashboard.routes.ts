@@ -183,6 +183,115 @@ const adminDashboardService = {
       data: { subscriptionStatus: status },
     });
   },
+
+  // Get pending approval users
+  async getPendingApprovalUsers(page: number = 1, limit: number = 20) {
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where: {
+          emailVerified: true,
+          adminApproved: false,
+          isActive: true,
+        },
+        include: {
+          tenant: {
+            select: {
+              id: true,
+              name: true,
+              businessType: true,
+              email: true,
+            },
+          },
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.user.count({
+        where: {
+          emailVerified: true,
+          adminApproved: false,
+          isActive: true,
+        },
+      }),
+    ]);
+
+    return { users, total, page, pages: Math.ceil(total / limit) };
+  },
+
+  // Approve user
+  async approveUser(userId: string, adminId: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    if (!user.emailVerified) {
+      throw new Error('User email not verified');
+    }
+
+    if (user.adminApproved) {
+      throw new Error('User already approved');
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        adminApproved: true,
+        approvedAt: new Date(),
+        approvedBy: adminId,
+      },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    // Send approval confirmation email
+    const { emailService } = require('../../services/email.service');
+    try {
+      await emailService.sendApprovalConfirmationEmail(updatedUser.email, updatedUser.name);
+    } catch (emailError) {
+      // Log error but don't fail the approval
+      console.error('Failed to send approval email:', emailError);
+    }
+
+    return updatedUser;
+  },
+
+  // Reject user
+  async rejectUser(userId: string, reason?: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    if (user.adminApproved) {
+      throw new Error('Cannot reject already approved user');
+    }
+
+    // Deactivate the user instead of deleting
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        isActive: false,
+      },
+    });
+
+    // TODO: Send rejection email with reason (optional enhancement)
+
+    return updatedUser;
+  },
 };
 
 // ==========================================
@@ -274,6 +383,49 @@ const adminDashboardController = {
       next(error);
     }
   },
+
+  async getPendingApprovalUsers(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { page = 1, limit = 20 } = req.query;
+      const result = await adminDashboardService.getPendingApprovalUsers(
+        Number(page),
+        Number(limit)
+      );
+      res.json({ success: true, ...result });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async approveUser(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { userId } = req.params;
+      const adminId = (req as any).user?.id; // Get admin ID from auth middleware
+      const user = await adminDashboardService.approveUser(userId, adminId);
+      res.json({
+        success: true,
+        data: user,
+        message: 'User approved successfully and confirmation email sent.',
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async rejectUser(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { userId } = req.params;
+      const { reason } = req.body;
+      const user = await adminDashboardService.rejectUser(userId, reason);
+      res.json({
+        success: true,
+        data: user,
+        message: 'User rejected successfully.',
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
 };
 
 // ==========================================
@@ -288,5 +440,10 @@ router.get('/analytics/revenue', adminDashboardController.getRevenueAnalytics);
 router.get('/analytics/calls', adminDashboardController.getCallAnalytics);
 router.get('/analytics/subscriptions', adminDashboardController.getSubscriptionAnalytics);
 router.get('/activities', adminDashboardController.getRecentActivities);
+
+// User approval management
+router.get('/users/pending-approval', adminDashboardController.getPendingApprovalUsers);
+router.post('/users/:userId/approve', adminDashboardController.approveUser);
+router.post('/users/:userId/reject', adminDashboardController.rejectUser);
 
 export default router;
