@@ -405,7 +405,7 @@ const adminDashboardController = {
       res.json({
         success: true,
         data: user,
-        message: 'İstifadəçi uğurla təsdiqləndi və email göndərildi.',
+        message: 'User approved successfully and confirmation email sent.',
       });
     } catch (error) {
       next(error);
@@ -420,7 +420,7 @@ const adminDashboardController = {
       res.json({
         success: true,
         data: user,
-        message: 'İstifadəçi rədd edildi.',
+        message: 'User rejected successfully.',
       });
     } catch (error) {
       next(error);

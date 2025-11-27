@@ -88,7 +88,7 @@ export class AuthService {
 
       return {
         user,
-        message: 'Qeydiyyat uğurlu oldu. Zəhmət olmasa email ünvanınızı yoxlayın və təsdiqləyin. Hesabınıza daxil ola bilmək üçün admin tərəfindən təsdiqləməni gözləyin.',
+        message: 'Registration successful. Please check your email to verify your account. Your account will require admin approval before you can log in.',
       };
     } catch (error) {
       logger.error('Registration error', { error });
@@ -336,7 +336,7 @@ export class AuthService {
       logger.info('Email verified successfully', { userId: user.id, email: user.email });
 
       return {
-        message: 'Email uğurla təsdiqləndi! Admin təsdiqləməsindən sonra hesabınıza daxil ola biləcəksiniz.',
+        message: 'Email verified successfully! Your account is pending admin approval. You will receive an email once approved.',
       };
     } catch (error) {
       logger.error('Email verification error', { error });
@@ -380,7 +380,7 @@ export class AuthService {
       logger.info('Verification email resent', { userId: user.id, email: user.email });
 
       return {
-        message: 'Təsdiq emaili yenidən göndərildi. Zəhmət olmasa email ünvanınızı yoxlayın.',
+        message: 'Verification email has been resent. Please check your email.',
       };
     } catch (error) {
       logger.error('Resend verification email error', { error });
