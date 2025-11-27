@@ -93,6 +93,11 @@ model User {
   verificationToken String?
   verificationTokenExpires DateTime?
 
+  // Admin Approval
+  adminApproved Boolean  @default(false)
+  approvedAt    DateTime?
+  approvedBy    String?  // AdminUser ID who approved
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

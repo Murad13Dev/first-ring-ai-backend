@@ -88,7 +88,7 @@ export class AuthService {
 
       return {
         user,
-        message: 'Qeydiyyat uğurlu oldu. Zəhmət olmasa email ünvanınızı yoxlayın və təsdiqləyin.',
+        message: 'Qeydiyyat uğurlu oldu. Zəhmət olmasa email ünvanınızı yoxlayın və təsdiqləyin. Hesabınıza daxil ola bilmək üçün admin tərəfindən təsdiqləməni gözləyin.',
       };
     } catch (error) {
       logger.error('Registration error', { error });
@@ -128,6 +128,11 @@ export class AuthService {
       // Check if email is verified
       if (!user.emailVerified) {
         throw new AppError('Email not verified. Please check your email and verify your account.', 403);
+      }
+
+      // Check if admin approved
+      if (!user.adminApproved) {
+        throw new AppError('Your account is pending admin approval. You will receive an email once approved.', 403);
       }
 
       // Verify password
@@ -331,7 +336,7 @@ export class AuthService {
       logger.info('Email verified successfully', { userId: user.id, email: user.email });
 
       return {
-        message: 'Email uğurla təsdiqləndi! İndi daxil ola bilərsiniz.',
+        message: 'Email uğurla təsdiqləndi! Admin təsdiqləməsindən sonra hesabınıza daxil ola biləcəksiniz.',
       };
     } catch (error) {
       logger.error('Email verification error', { error });
