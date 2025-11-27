@@ -32,7 +32,7 @@ export const emailService = {
       const mailOptions = {
         from: process.env.EMAIL_FROM || 'noreply@firstringai.com',
         to,
-        subject: 'Email TYsdiqi - First Ring AI',
+        subject: 'Email Verification - First Ring AI',
         html: `
           <!DOCTYPE html>
           <html>
@@ -60,38 +60,38 @@ export const emailService = {
                 <h1>First Ring AI</h1>
               </div>
               <div class="content">
-                <h2>Salam ${name},</h2>
-                <p>First Ring AI platformas1na xo_ gYlmisiniz!</p>
-                <p>Email �nvan1n1z1 tYsdiqlYmYk ���n a_a1dak1 linkY kliklYyin:</p>
+                <h2>Hello ${name},</h2>
+                <p>Welcome to First Ring AI platform!</p>
+                <p>Please click the button below to verify your email address:</p>
                 <div style="text-align: center;">
-                  <a href="${verificationUrl}" class="button">Email-i TYsdiqlY</a>
+                  <a href="${verificationUrl}" class="button">Verify Email</a>
                 </div>
-                <p>VY ya bu linki brauzerdY a�1n:</p>
+                <p>Or copy and paste this link in your browser:</p>
                 <p style="word-break: break-all; color: #4F46E5;">${verificationUrl}</p>
-                <p><strong>Qeyd:</strong> Bu link 24 saat YrzindY etibarl1d1r.</p>
-                <p>�gYr siz bu hesab1 yaratmam1s1n1zsa, bu emaili ignore edin.</p>
+                <p><strong>Note:</strong> This link is valid for 24 hours.</p>
+                <p>If you didn't create this account, please ignore this email.</p>
               </div>
               <div class="footer">
-                <p>&copy; 2025 First Ring AI. B�t�n h�quqlar qorunur.</p>
-                <p>He� bir zYng cavabs1z qalmas1n!</p>
+                <p>&copy; 2025 First Ring AI. All rights reserved.</p>
+                <p>Never miss a call again!</p>
               </div>
             </div>
           </body>
           </html>
         `,
         text: `
-          Salam ${name},
+          Hello ${name},
 
-          First Ring AI platformas1na xo_ gYlmisiniz!
+          Welcome to First Ring AI platform!
 
-          Email �nvan1n1z1 tYsdiqlYmYk ���n bu linkY daxil olun:
+          Please verify your email address by visiting this link:
           ${verificationUrl}
 
-          Bu link 24 saat YrzindY etibarl1d1r.
+          This link is valid for 24 hours.
 
-          �gYr siz bu hesab1 yaratmam1s1n1zsa, bu emaili ignore edin.
+          If you didn't create this account, please ignore this email.
 
-          First Ring AI - He� bir zYng cavabs1z qalmas1n!
+          First Ring AI - Never miss a call again!
         `,
       };
 
@@ -112,7 +112,7 @@ export const emailService = {
       const mailOptions = {
         from: process.env.EMAIL_FROM || 'noreply@firstringai.com',
         to,
-        subject: 'Xo_ GYlmisiniz - First Ring AI',
+        subject: 'Welcome to First Ring AI',
         html: `
           <!DOCTYPE html>
           <html>
@@ -138,60 +138,54 @@ export const emailService = {
           <body>
             <div class="container">
               <div class="header">
-                <h1><� Hesab1n1z Aktiv Edildi!</h1>
+                <h1>✓ Account Activated!</h1>
               </div>
               <div class="content">
-                <h2>TYbrik edirik, ${name}!</h2>
-                <p>Email �nvan1n1z uurla tYsdiqlYndi. 0ndi First Ring AI-1n b�t�n imkanlar1ndan istifadY edY bilYrsiniz.</p>
+                <h2>Congratulations, ${name}!</h2>
+                <p>Your email has been successfully verified. Your account is pending admin approval.</p>
 
-                <h3>N�vbYti Add1mlar:</h3>
+                <h3>Next Steps:</h3>
                 <div class="feature">
-                  <strong>1. Dashboard-a daxil olun</strong>
-                  <p>Platforman1za daxil olaraq biznesinizi konfiqurasiya edin.</p>
+                  <strong>1. Wait for Admin Approval</strong>
+                  <p>Our team will review your account and approve it shortly.</p>
                 </div>
                 <div class="feature">
-                  <strong>2. AI Agent-i qura_d1r1n</strong>
-                  <p>Biznes n�v�n�z� se�in vY agent davran1_1n1 tYyin edin.</p>
+                  <strong>2. You'll Receive Confirmation</strong>
+                  <p>Once approved, you'll receive an email with login instructions.</p>
                 </div>
                 <div class="feature">
-                  <strong>3. Telefon n�mrYsi YlavY edin</strong>
-                  <p>Twilio vY ya Retell AI ilY telefon n�mrYnizi balay1n.</p>
+                  <strong>3. Access Your Dashboard</strong>
+                  <p>Start configuring your AI agent for your business.</p>
                 </div>
                 <div class="feature">
-                  <strong>4. Test edin</strong>
-                  <p>0lk test zYnginizi edin vY nYticYni g�r�n.</p>
-                </div>
-
-                <div style="text-align: center;">
-                  <a href="${process.env.FRONTEND_URL}/dashboard" class="button">Dashboard-a Get</a>
+                  <strong>4. Connect Your Phone</strong>
+                  <p>Integrate with Twilio or Retell AI for automated call handling.</p>
                 </div>
 
-                <p>Sual1n1z varsa, bizY yaz1n: <a href="mailto:${process.env.SALES_EMAIL}">${process.env.SALES_EMAIL}</a></p>
+                <p>If you have any questions, contact us at: <a href="mailto:${process.env.SALES_EMAIL}">${process.env.SALES_EMAIL}</a></p>
               </div>
               <div class="footer">
-                <p>&copy; 2025 First Ring AI. B�t�n h�quqlar qorunur.</p>
-                <p>He� bir zYng cavabs1z qalmas1n!</p>
+                <p>&copy; 2025 First Ring AI. All rights reserved.</p>
+                <p>Never miss a call again!</p>
               </div>
             </div>
           </body>
           </html>
         `,
         text: `
-          TYbrik edirik, ${name}!
+          Congratulations, ${name}!
 
-          Email �nvan1n1z uurla tYsdiqlYndi. 0ndi First Ring AI-1n b�t�n imkanlar1ndan istifadY edY bilYrsiniz.
+          Your email has been successfully verified. Your account is pending admin approval.
 
-          N�vbYti add1mlar:
-          1. Dashboard-a daxil olun
-          2. AI Agent-i qura_d1r1n
-          3. Telefon n�mrYsi YlavY edin
-          4. Test edin
+          Next steps:
+          1. Wait for admin approval
+          2. You'll receive a confirmation email
+          3. Access your dashboard
+          4. Connect your phone number
 
-          Dashboard: ${process.env.FRONTEND_URL}/dashboard
+          If you have any questions, contact us at: ${process.env.SALES_EMAIL}
 
-          Sual1n1z varsa, bizY yaz1n: ${process.env.SALES_EMAIL}
-
-          First Ring AI - He� bir zYng cavabs1z qalmas1n!
+          First Ring AI - Never miss a call again!
         `,
       };
 
@@ -214,7 +208,7 @@ export const emailService = {
       const mailOptions = {
         from: process.env.EMAIL_FROM || 'noreply@firstringai.com',
         to,
-        subject: '^ifrY YenilYmY - First Ring AI',
+        subject: 'Password Reset - First Ring AI',
         html: `
           <!DOCTYPE html>
           <html>
@@ -240,42 +234,42 @@ export const emailService = {
           <body>
             <div class="container">
               <div class="header">
-                <h1>^ifrY YenilYmY</h1>
+                <h1>Password Reset</h1>
               </div>
               <div class="content">
-                <h2>Salam ${name},</h2>
-                <p>Hesab1n1z ���n _ifrY yenilYmY tYlYbi ald1q.</p>
-                <p>^ifrYnizi yenilYmYk ���n a_a1dak1 linkY kliklYyin:</p>
+                <h2>Hello ${name},</h2>
+                <p>We received a password reset request for your account.</p>
+                <p>Click the button below to reset your password:</p>
                 <div style="text-align: center;">
-                  <a href="${resetUrl}" class="button">^ifrYni YenilY</a>
+                  <a href="${resetUrl}" class="button">Reset Password</a>
                 </div>
-                <p>VY ya bu linki brauzerdY a�1n:</p>
+                <p>Or copy and paste this link in your browser:</p>
                 <p style="word-break: break-all; color: #DC2626;">${resetUrl}</p>
 
                 <div class="warning">
-                  <strong>� TYhl�kYsizlik xYbYrdarl11:</strong>
-                  <p>Bu link yaln1z 1 saat YrzindY etibarl1d1r.</p>
-                  <p>�gYr siz bu tYlYbi g�ndYrmYmisinizsY, dYrhal hesab1n1z1 tYhl�kYsizliyY al1n.</p>
+                  <strong>⚠ Security Warning:</strong>
+                  <p>This link is only valid for 1 hour.</p>
+                  <p>If you didn't request this, please secure your account immediately.</p>
                 </div>
               </div>
               <div class="footer">
-                <p>&copy; 2025 First Ring AI. B�t�n h�quqlar qorunur.</p>
+                <p>&copy; 2025 First Ring AI. All rights reserved.</p>
               </div>
             </div>
           </body>
           </html>
         `,
         text: `
-          Salam ${name},
+          Hello ${name},
 
-          Hesab1n1z ���n _ifrY yenilYmY tYlYbi ald1q.
+          We received a password reset request for your account.
 
-          ^ifrYnizi yenilYmYk ���n bu linkY daxil olun:
+          Reset your password by visiting this link:
           ${resetUrl}
 
-          Bu link yaln1z 1 saat YrzindY etibarl1d1r.
+          This link is only valid for 1 hour.
 
-          �gYr siz bu tYlYbi g�ndYrmYmisinizsY, dYrhal hesab1n1z1 tYhl�kYsizliyY al1n.
+          If you didn't request this, please secure your account immediately.
 
           First Ring AI
         `,
@@ -300,7 +294,7 @@ export const emailService = {
       const mailOptions = {
         from: process.env.EMAIL_FROM || 'noreply@firstringai.com',
         to,
-        subject: 'Hesabınız Təsdiqləndi - First Ring AI',
+        subject: 'Account Approved - First Ring AI',
         html: `
           <!DOCTYPE html>
           <html>
@@ -327,70 +321,70 @@ export const emailService = {
           <body>
             <div class="container">
               <div class="header">
-                <h1>✓ Hesabınız Təsdiqləndi!</h1>
+                <h1>✓ Account Approved!</h1>
               </div>
               <div class="content">
-                <h2>Təbriklər, ${name}!</h2>
+                <h2>Congratulations, ${name}!</h2>
                 <div class="success-badge">
-                  <strong>✓ Admin tərəfindən təsdiqləndi</strong>
+                  <strong>✓ Approved by Admin</strong>
                 </div>
-                <p>Hesabınız admin tərəfindən uğurla təsdiqləndi. İndi platformaya daxil olaraq First Ring AI-ın bütün imkanlarından istifadə edə bilərsiniz.</p>
+                <p>Your account has been successfully approved by our admin team. You can now log in and access all features of First Ring AI platform.</p>
 
-                <h3>Növbəti Addımlar:</h3>
+                <h3>Next Steps:</h3>
                 <div class="feature">
-                  <strong>1. Platformaya daxil olun</strong>
-                  <p>Email və şifrənizlə daxil olaraq dashboard-a keçid edin.</p>
+                  <strong>1. Log In to the Platform</strong>
+                  <p>Use your email and password to access your dashboard.</p>
                 </div>
                 <div class="feature">
-                  <strong>2. Biznesinizi konfiqurasiya edin</strong>
-                  <p>Biznes məlumatlarınızı daxil edin və AI agent-i quraşdırın.</p>
+                  <strong>2. Configure Your Business</strong>
+                  <p>Enter your business information and set up your AI agent.</p>
                 </div>
                 <div class="feature">
-                  <strong>3. AI Agent-i tənzimləyin</strong>
-                  <p>Biznes növünüzə uyğun agent davranışını təyin edin.</p>
+                  <strong>3. Customize AI Agent</strong>
+                  <p>Configure agent behavior according to your business type.</p>
                 </div>
                 <div class="feature">
-                  <strong>4. Telefon nömrəsi əlavə edin</strong>
-                  <p>Müştəriləriniz üçün avtomatik zəng cavablandırma sistemini aktivləşdirin.</p>
+                  <strong>4. Add Phone Number</strong>
+                  <p>Activate automated call answering system for your customers.</p>
                 </div>
 
                 <div style="text-align: center;">
-                  <a href="${loginUrl}" class="button">İndi Daxil Olun</a>
+                  <a href="${loginUrl}" class="button">Log In Now</a>
                 </div>
 
-                <p style="margin-top: 30px;">Sualınız varsa və ya köməyə ehtiyacınız varsa, bizimlə əlaqə saxlayın:</p>
+                <p style="margin-top: 30px;">If you have any questions or need assistance, please contact us:</p>
                 <p><strong>Email:</strong> <a href="mailto:${process.env.SALES_EMAIL}">${process.env.SALES_EMAIL}</a></p>
 
                 <p style="margin-top: 20px; font-size: 14px; color: #666;">
-                  Bizə qoşulduğunuz üçün təşəkkür edirik! Biznes proseslərinizi avtomatlaşdırmaq və müştəri xidmətinizi təkmilləşdirmək üçün buradayıq.
+                  Thank you for joining us! We're here to help you automate your business processes and improve customer service.
                 </p>
               </div>
               <div class="footer">
-                <p>&copy; 2025 First Ring AI. Bütün hüquqlar qorunur.</p>
-                <p>Heç bir zəng cavabsız qalmasın!</p>
+                <p>&copy; 2025 First Ring AI. All rights reserved.</p>
+                <p>Never miss a call again!</p>
               </div>
             </div>
           </body>
           </html>
         `,
         text: `
-          Təbriklər, ${name}!
+          Congratulations, ${name}!
 
-          Hesabınız admin tərəfindən uğurla təsdiqləndi!
+          Your account has been successfully approved by our admin team!
 
-          İndi platformaya daxil olaraq First Ring AI-ın bütün imkanlarından istifadə edə bilərsiniz.
+          You can now log in and access all features of First Ring AI platform.
 
-          Növbəti addımlar:
-          1. Platformaya daxil olun
-          2. Biznesinizi konfiqurasiya edin
-          3. AI Agent-i tənzimləyin
-          4. Telefon nömrəsi əlavə edin
+          Next steps:
+          1. Log in to the platform
+          2. Configure your business
+          3. Customize AI Agent
+          4. Add phone number
 
-          Daxil olmaq üçün: ${loginUrl}
+          Log in here: ${loginUrl}
 
-          Sualınız varsa, bizimlə əlaqə saxlayın: ${process.env.SALES_EMAIL}
+          If you have any questions, contact us at: ${process.env.SALES_EMAIL}
 
-          First Ring AI - Heç bir zəng cavabsız qalmasın!
+          First Ring AI - Never miss a call again!
         `,
       };
 
