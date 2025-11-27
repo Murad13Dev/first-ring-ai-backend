@@ -7,6 +7,7 @@ import {
   ScheduleDemoDto,
   CheckFeatureAvailabilityDto
 } from './dto/sales-agent-functions.dto';
+import { emailService } from '../email/email.service';
 
 /**
  * Retell AI Service
@@ -1456,24 +1457,26 @@ Additional Notes: ${data.notes || 'None'}
 
   /**
    * Send pricing packages via email
-   * NOTE: This requires EmailService to be implemented
    */
   async sendPricingPackages(data: SendPricingPackagesDto) {
     try {
-      // TODO: Implement email sending via EmailService
-      // For now, we'll log the intent and return success
-      logger.info('Pricing packages requested', {
+      // Send email with pricing packages
+      await emailService.sendPricingPackages({
+        to: data.email,
+        customerName: data.customerName,
+        businessType: data.businessType,
+        recommendedPlan: data.recommendedPlan,
+      });
+
+      logger.info('Pricing packages email sent successfully', {
         email: data.email,
         businessType: data.businessType,
         recommendedPlan: data.recommendedPlan,
       });
 
-      // In production, this would call:
-      // await emailService.sendPricingPackages(data);
-
       return {
         success: true,
-        message: `Great! I'm sending our pricing packages to ${data.email} right now. You'll receive details on our Starter ($99/month), Professional ($299/month), and Enterprise (custom) plans. The email includes a detailed comparison and a case study relevant to ${data.businessType} businesses.`,
+        message: `Great! I'm sending our pricing packages to ${data.email} right now. You'll receive details on our Starter ($99/month), Professional ($299/month), and Enterprise (custom) plans. The email includes a detailed comparison and information relevant to ${data.businessType} businesses.`,
       };
     } catch (error) {
       logger.error('Error sending pricing packages:', error);
@@ -1504,15 +1507,25 @@ Additional Notes: ${data.notes || 'None'}
         },
       });
 
-      logger.info('Demo scheduled', { demoId: demo.id, email: data.email, dateTime });
+      // Send demo confirmation email
+      await emailService.sendDemoConfirmation({
+        to: data.email,
+        customerName: data.email.split('@')[0],
+        date: data.preferredDate,
+        time: data.preferredTime,
+        timezone: data.timezone,
+      });
 
-      // TODO: Send calendar invite via EmailService
-      // await emailService.sendDemoConfirmation(data);
+      logger.info('Demo scheduled and confirmation email sent', {
+        demoId: demo.id,
+        email: data.email,
+        dateTime,
+      });
 
       return {
         success: true,
         bookingId: demo.id,
-        message: `Perfect! I've scheduled your demo for ${data.preferredDate} at ${data.preferredTime} ${data.timezone || 'UTC'}. You'll receive a calendar invite at ${data.email} with the video meeting link. Our product specialist will walk you through the platform and answer all your questions.`,
+        message: `Perfect! I've scheduled your demo for ${data.preferredDate} at ${data.preferredTime} ${data.timezone || 'UTC'}. You'll receive a confirmation email at ${data.email} with all the details and meeting link. Our product specialist will walk you through the platform and answer all your questions.`,
       };
     } catch (error) {
       logger.error('Error scheduling demo:', error);
