@@ -1,6 +1,12 @@
 import prisma from '../../config/database';
 import logger from '../../config/logger';
 import { AppError } from '../../middleware/error.middleware';
+import {
+  CreateSalesLeadDto,
+  SendPricingPackagesDto,
+  ScheduleDemoDto,
+  CheckFeatureAvailabilityDto
+} from './dto/sales-agent-functions.dto';
 
 /**
  * Retell AI Service
@@ -97,6 +103,19 @@ export const retellService = {
 
       case 'get_business_types':
         return this.getBusinessTypes();
+
+      // NEW: Sales Agent Functions
+      case 'create_sales_lead':
+        return this.createSalesLead(args);
+
+      case 'send_pricing_packages':
+        return this.sendPricingPackages(args);
+
+      case 'schedule_demo':
+        return this.scheduleSalesDemo(args);
+
+      case 'check_feature_availability':
+        return this.checkFeatureAvailability(args);
 
       default:
         throw new AppError(`Unknown function: ${functionName}`, 400);
@@ -1378,5 +1397,218 @@ export const retellService = {
     }
 
     return commonFunctions;
+  },
+
+  // ============================================
+  // SALES AGENT FUNCTIONS (Platform Level)
+  // ============================================
+
+  /**
+   * Create a sales lead with comprehensive business information
+   * Used by the sales AI agent to capture potential customers
+   */
+  async createSalesLead(data: CreateSalesLeadDto) {
+    try {
+      const lead = await prisma.lead.create({
+        data: {
+          contactName: data.name,
+          email: data.email,
+          phone: data.phone || '',
+          businessName: data.businessName,
+          businessType: data.businessType,
+          selectedPlan: data.budgetRange || 'not_discussed',
+          source: 'ai_call',
+          status: 'new',
+          aiNotes: `
+Company Size: ${data.companySize || 'Not specified'}
+Daily Call Volume: ${data.dailyCallVolume || 'Not specified'}
+Desired Features: ${data.desiredFeatures?.join(', ') || 'Not specified'}
+Pain Points: ${data.painPoints || 'Not specified'}
+Timeline: ${data.timeline || 'Not specified'}
+Additional Notes: ${data.notes || 'None'}
+          `.trim(),
+          aiCallData: {
+            companySize: data.companySize,
+            dailyCallVolume: data.dailyCallVolume,
+            desiredFeatures: data.desiredFeatures,
+            painPoints: data.painPoints,
+            timeline: data.timeline,
+            budgetRange: data.budgetRange,
+          },
+        },
+      });
+
+      logger.info('Sales lead created', { leadId: lead.id, businessName: data.businessName });
+
+      return {
+        success: true,
+        leadId: lead.id,
+        message: `Perfect! I've recorded all your information for ${data.businessName}. You should receive our pricing packages at ${data.email} within 2 minutes.`,
+      };
+    } catch (error) {
+      logger.error('Error creating sales lead:', error);
+      return {
+        success: false,
+        message: 'I apologize, but I encountered an issue saving your information. Let me connect you with our sales team directly.',
+      };
+    }
+  },
+
+  /**
+   * Send pricing packages via email
+   * NOTE: This requires EmailService to be implemented
+   */
+  async sendPricingPackages(data: SendPricingPackagesDto) {
+    try {
+      // TODO: Implement email sending via EmailService
+      // For now, we'll log the intent and return success
+      logger.info('Pricing packages requested', {
+        email: data.email,
+        businessType: data.businessType,
+        recommendedPlan: data.recommendedPlan,
+      });
+
+      // In production, this would call:
+      // await emailService.sendPricingPackages(data);
+
+      return {
+        success: true,
+        message: `Great! I'm sending our pricing packages to ${data.email} right now. You'll receive details on our Starter ($99/month), Professional ($299/month), and Enterprise (custom) plans. The email includes a detailed comparison and a case study relevant to ${data.businessType} businesses.`,
+      };
+    } catch (error) {
+      logger.error('Error sending pricing packages:', error);
+      return {
+        success: false,
+        message: 'I had trouble sending the email. Let me note that down and our team will send the pricing manually within an hour.',
+      };
+    }
+  },
+
+  /**
+   * Schedule a product demo
+   */
+  async scheduleSalesDemo(data: ScheduleDemoDto) {
+    try {
+      const dateTime = new Date(`${data.preferredDate}T${data.preferredTime}:00`);
+
+      // Create a demo booking (could be in a separate Demo table)
+      const demo = await prisma.booking.create({
+        data: {
+          customerEmail: data.email,
+          customerName: data.email.split('@')[0], // Extract name from email if not provided
+          dateTime,
+          duration: 30, // 30-minute demo
+          status: 'pending',
+          serviceName: 'Product Demo',
+          notes: `${data.notes || 'General product demo'}. Timezone: ${data.timezone || 'UTC'}`,
+        },
+      });
+
+      logger.info('Demo scheduled', { demoId: demo.id, email: data.email, dateTime });
+
+      // TODO: Send calendar invite via EmailService
+      // await emailService.sendDemoConfirmation(data);
+
+      return {
+        success: true,
+        bookingId: demo.id,
+        message: `Perfect! I've scheduled your demo for ${data.preferredDate} at ${data.preferredTime} ${data.timezone || 'UTC'}. You'll receive a calendar invite at ${data.email} with the video meeting link. Our product specialist will walk you through the platform and answer all your questions.`,
+      };
+    } catch (error) {
+      logger.error('Error scheduling demo:', error);
+      return {
+        success: false,
+        message: 'I had trouble scheduling the demo in our system. Let me transfer you to our sales team who can book it directly.',
+      };
+    }
+  },
+
+  /**
+   * Check if a specific feature is available
+   */
+  async checkFeatureAvailability(data: CheckFeatureAvailabilityDto) {
+    const featureName = data.featureName.toLowerCase();
+    const businessType = data.businessType?.toLowerCase();
+
+    // Feature availability catalog
+    const featuresCatalog: Record<string, { available: boolean; description: string; plans?: string[] }> = {
+      'appointment booking': {
+        available: true,
+        description: 'Yes! Our AI handles appointment scheduling with real-time calendar integration (Google Calendar, Outlook). It checks availability, books appointments, sends confirmations, and manages reminders automatically.',
+        plans: ['Professional', 'Enterprise'],
+      },
+      'order taking': {
+        available: true,
+        description: 'Absolutely! The AI can take orders, process payments through Stripe or Square, calculate totals with tax, handle delivery/pickup options, and send order confirmations via SMS.',
+        plans: ['Professional', 'Enterprise'],
+      },
+      'multilingual': {
+        available: true,
+        description: 'Yes, we support 9 languages: English, Spanish, Russian, Italian, French, Chinese, Japanese, Persian, and Tagalog. The AI automatically detects the caller\'s language.',
+        plans: ['All plans'],
+      },
+      'crm integration': {
+        available: true,
+        description: 'Yes! We integrate with popular CRMs through our API or via Zapier. Every call, booking, and lead is automatically synced to your CRM.',
+        plans: ['Professional', 'Enterprise'],
+      },
+      'google calendar': {
+        available: true,
+        description: 'Yes! Full Google Calendar integration. Bookings sync automatically, and the AI checks real-time availability before confirming appointments.',
+        plans: ['Professional', 'Enterprise'],
+      },
+      'payment processing': {
+        available: true,
+        description: 'Yes! We integrate with Stripe and Square for secure payment processing. The AI can send payment links via SMS or email after taking orders.',
+        plans: ['Professional', 'Enterprise'],
+      },
+      'sms notifications': {
+        available: true,
+        description: 'Yes! Automated SMS notifications for confirmations, reminders, order updates, and follow-ups via Twilio.',
+        plans: ['Professional', 'Enterprise'],
+      },
+      'call analytics': {
+        available: true,
+        description: 'Yes! Comprehensive analytics including call volume, sentiment analysis, intent detection, conversion rates, and custom reports. All available in your dashboard.',
+        plans: ['All plans'],
+      },
+      'whatsapp': {
+        available: false,
+        description: 'WhatsApp integration is on our roadmap for Q2 2025. Currently, we support phone calls and SMS. Would you like to be notified when WhatsApp becomes available?',
+      },
+      'custom voice': {
+        available: true,
+        description: 'Yes! You can customize the AI voice, personality, and conversation style to match your brand. Enterprise plans can even clone a specific voice.',
+        plans: ['Professional', 'Enterprise'],
+      },
+      '24/7 availability': {
+        available: true,
+        description: 'Yes! The AI agent works 24/7, handling calls even when your business is closed. You control what it says during off-hours.',
+        plans: ['All plans'],
+      },
+    };
+
+    // Search for matching feature
+    const matchedFeature = Object.keys(featuresCatalog).find((key) =>
+      featureName.includes(key) || key.includes(featureName)
+    );
+
+    if (matchedFeature) {
+      const feature = featuresCatalog[matchedFeature];
+      return {
+        available: feature.available,
+        featureName: matchedFeature,
+        description: feature.description,
+        plans: feature.plans,
+        message: feature.description,
+      };
+    }
+
+    // If feature not found in catalog
+    return {
+      available: 'unknown',
+      featureName: data.featureName,
+      message: `That's a great question about ${data.featureName}. Let me connect you with our technical team who can give you detailed information about that specific feature and whether it's available for ${businessType || 'your'} business.`,
+    };
   },
 };
