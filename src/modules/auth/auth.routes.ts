@@ -258,6 +258,56 @@ router.get('/me', authenticateToken, authController.getProfile);
 
 /**
  * @swagger
+ * /api/auth/verify-email/{token}:
+ *   get:
+ *     summary: Verify email with token
+ *     tags: [Auth]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Email verification token
+ *     responses:
+ *       200:
+ *         description: Email verified successfully
+ *       400:
+ *         description: Invalid or expired token
+ */
+router.get('/verify-email/:token', authController.verifyEmail);
+
+/**
+ * @swagger
+ * /api/auth/resend-verification:
+ *   post:
+ *     summary: Resend verification email
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@pizzahouse.az
+ *     responses:
+ *       200:
+ *         description: Verification email resent
+ *       400:
+ *         description: Email already verified
+ *       404:
+ *         description: User not found
+ */
+router.post('/resend-verification', authController.resendVerification);
+
+/**
+ * @swagger
  * /api/auth/logout:
  *   post:
  *     summary: Logout user (client-side token removal)

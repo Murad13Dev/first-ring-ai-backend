@@ -1,8 +1,10 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import prisma from '../../config/database';
 import logger from '../../config/logger';
 import { AppError } from '../../middleware/error.middleware';
+import { emailService } from '../../services/email.service';
 
 interface RegisterData {
   email: string;
@@ -44,6 +46,10 @@ export class AuthService {
       // Hash password
       const passwordHash = await bcrypt.hash(data.password, 10);
 
+      // Generate verification token
+      const verificationToken = crypto.randomBytes(32).toString('hex');
+      const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
       // Create user
       const user = await prisma.user.create({
         data: {
@@ -52,6 +58,8 @@ export class AuthService {
           name: data.name,
           tenantId: data.tenantId,
           role: data.role || 'owner',
+          verificationToken,
+          verificationTokenExpires,
         },
         select: {
           id: true,
@@ -59,13 +67,19 @@ export class AuthService {
           name: true,
           role: true,
           tenantId: true,
+          emailVerified: true,
           createdAt: true,
         },
       });
 
-      // Generate tokens
-      const accessToken = this.generateAccessToken(user);
-      const refreshToken = this.generateRefreshToken(user);
+      // Send verification email
+      try {
+        await emailService.sendVerificationEmail(user.email, user.name, verificationToken);
+        logger.info('Verification email sent', { userId: user.id, email: user.email });
+      } catch (emailError) {
+        logger.error('Failed to send verification email', { error: emailError, userId: user.id });
+        // Don't throw error, user can resend verification email
+      }
 
       logger.info('User registered successfully', {
         userId: user.id,
@@ -74,8 +88,7 @@ export class AuthService {
 
       return {
         user,
-        accessToken,
-        refreshToken,
+        message: 'Qeydiyyat uğurlu oldu. Zəhmət olmasa email ünvanınızı yoxlayın və təsdiqləyin.',
       };
     } catch (error) {
       logger.error('Registration error', { error });
@@ -110,6 +123,11 @@ export class AuthService {
       // Check if user is active
       if (!user.isActive) {
         throw new AppError('Account is inactive', 403);
+      }
+
+      // Check if email is verified
+      if (!user.emailVerified) {
+        throw new AppError('Email not verified. Please check your email and verify your account.', 403);
       }
 
       // Verify password
@@ -273,6 +291,96 @@ export class AuthService {
         expiresIn: '24h',
       } as jwt.SignOptions
     );
+  }
+
+  /**
+   * Verify email with token
+   */
+  async verifyEmail(token: string) {
+    try {
+      const user = await prisma.user.findFirst({
+        where: {
+          verificationToken: token,
+          verificationTokenExpires: {
+            gt: new Date(),
+          },
+        },
+      });
+
+      if (!user) {
+        throw new AppError('Invalid or expired verification token', 400);
+      }
+
+      // Update user
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          emailVerified: true,
+          verificationToken: null,
+          verificationTokenExpires: null,
+        },
+      });
+
+      // Send welcome email
+      try {
+        await emailService.sendWelcomeEmail(user.email, user.name);
+      } catch (emailError) {
+        logger.error('Failed to send welcome email', { error: emailError, userId: user.id });
+      }
+
+      logger.info('Email verified successfully', { userId: user.id, email: user.email });
+
+      return {
+        message: 'Email uğurla təsdiqləndi! İndi daxil ola bilərsiniz.',
+      };
+    } catch (error) {
+      logger.error('Email verification error', { error });
+      throw error;
+    }
+  }
+
+  /**
+   * Resend verification email
+   */
+  async resendVerificationEmail(email: string) {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { email },
+      });
+
+      if (!user) {
+        throw new AppError('User not found', 404);
+      }
+
+      if (user.emailVerified) {
+        throw new AppError('Email already verified', 400);
+      }
+
+      // Generate new verification token
+      const verificationToken = crypto.randomBytes(32).toString('hex');
+      const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      // Update user with new token
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          verificationToken,
+          verificationTokenExpires,
+        },
+      });
+
+      // Send verification email
+      await emailService.sendVerificationEmail(user.email, user.name, verificationToken);
+
+      logger.info('Verification email resent', { userId: user.id, email: user.email });
+
+      return {
+        message: 'Təsdiq emaili yenidən göndərildi. Zəhmət olmasa email ünvanınızı yoxlayın.',
+      };
+    } catch (error) {
+      logger.error('Resend verification email error', { error });
+      throw error;
+    }
   }
 
   /**
