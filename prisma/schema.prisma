@@ -87,7 +87,12 @@ model User {
   // Status
   isActive      Boolean  @default(true)
   lastLoginAt   DateTime?
-  
+
+  // Email Verification
+  emailVerified Boolean  @default(false)
+  verificationToken String?
+  verificationTokenExpires DateTime?
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

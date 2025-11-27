@@ -143,6 +143,58 @@ export class AuthController {
   }
 
   /**
+   * Verify email
+   * GET /api/auth/verify-email/:token
+   */
+  async verifyEmail(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token } = req.params;
+
+      if (!token) {
+        return res.status(400).json({
+          success: false,
+          message: 'Verification token is required',
+        });
+      }
+
+      const result = await authService.verifyEmail(token);
+
+      return res.status(200).json({
+        success: true,
+        ...result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Resend verification email
+   * POST /api/auth/resend-verification
+   */
+  async resendVerification(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email is required',
+        });
+      }
+
+      const result = await authService.resendVerificationEmail(email);
+
+      return res.status(200).json({
+        success: true,
+        ...result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Logout (client-side token removal)
    * POST /api/auth/logout
    */
