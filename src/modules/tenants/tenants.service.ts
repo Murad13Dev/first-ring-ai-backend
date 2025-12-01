@@ -2,6 +2,8 @@ import prisma from '../../config/database';
 import logger from '../../config/logger';
 import { AppError } from '../../middleware/error.middleware';
 import bcrypt from 'bcryptjs';
+import twilioProvisioningService from '../../services/twilio-provisioning.service';
+import retellProvisioningService from '../../services/retell-provisioning.service';
 
 interface CreateTenantData {
   name: string;
@@ -16,6 +18,11 @@ interface CreateTenantData {
   ownerName: string;
   ownerEmail: string;
   ownerPassword: string;
+  // Auto-provisioning options
+  autoProvisionPhone?: boolean; // Automatically provision Twilio number
+  autoProvisionAgent?: boolean; // Automatically create Retell agent
+  phoneAreaCode?: string; // Area code for phone number (e.g., '929')
+  language?: string; // Agent language (default: 'en-US')
 }
 
 interface UpdateTenantData {
@@ -106,6 +113,73 @@ export class TenantsService {
         tenantId: result.tenant.id,
         tenantName: result.tenant.name,
       });
+
+      // Auto-provision Twilio phone number if requested
+      if (data.autoProvisionPhone) {
+        try {
+          logger.info('Auto-provisioning Twilio phone number', {
+            tenantId: result.tenant.id,
+          });
+
+          const twilioNumber = await twilioProvisioningService.autoProvisionForTenant(
+            result.tenant.id,
+            {
+              areaCode: data.phoneAreaCode,
+              countryCode: 'US',
+            }
+          );
+
+          // Update tenant with phone number
+          result.tenant = await prisma.tenant.update({
+            where: { id: result.tenant.id },
+            data: { twilioNumber },
+          });
+
+          logger.info('Twilio phone number provisioned', {
+            tenantId: result.tenant.id,
+            twilioNumber,
+          });
+        } catch (error) {
+          logger.error('Failed to auto-provision phone number', {
+            error,
+            tenantId: result.tenant.id,
+          });
+          // Don't fail tenant creation if phone provisioning fails
+        }
+      }
+
+      // Auto-provision Retell AI agent if requested
+      if (data.autoProvisionAgent) {
+        try {
+          logger.info('Auto-provisioning Retell AI agent', {
+            tenantId: result.tenant.id,
+          });
+
+          const retellAgentId = await retellProvisioningService.createAgentForTenant({
+            tenantId: result.tenant.id,
+            tenantName: result.tenant.name,
+            businessType: result.tenant.businessType,
+            language: data.language || 'en-US',
+          });
+
+          // Update tenant with agent ID
+          result.tenant = await prisma.tenant.update({
+            where: { id: result.tenant.id },
+            data: { retellAgentId },
+          });
+
+          logger.info('Retell AI agent provisioned', {
+            tenantId: result.tenant.id,
+            retellAgentId,
+          });
+        } catch (error) {
+          logger.error('Failed to auto-provision Retell agent', {
+            error,
+            tenantId: result.tenant.id,
+          });
+          // Don't fail tenant creation if agent provisioning fails
+        }
+      }
 
       return result;
     } catch (error) {
