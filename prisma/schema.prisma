@@ -19,7 +19,8 @@ model Tenant {
   email           String   @unique
   phone           String?
   twilioNumber    String?  @unique
-  
+  retellAgentId   String?  @unique
+
   // Business Info
   address         String?
   city            String?
@@ -63,6 +64,7 @@ model Tenant {
 
   @@index([email])
   @@index([twilioNumber])
+  @@index([retellAgentId])
   @@index([plan])
   @@map("tenants")
 }

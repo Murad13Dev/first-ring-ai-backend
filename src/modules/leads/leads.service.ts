@@ -2,6 +2,8 @@ import prisma from '../../config/database';
 import logger from '../../config/logger';
 import { AppError } from '../../middleware/error.middleware';
 import nodemailer from 'nodemailer';
+import twilioProvisioningService from '../../services/twilio-provisioning.service';
+import retellProvisioningService from '../../services/retell-provisioning.service';
 
 interface CreateLeadData {
   source: string;
@@ -249,6 +251,68 @@ export class LeadsService {
         leadId,
         tenantId: tenant.id,
       });
+
+      // Auto-provision Twilio phone number
+      try {
+        logger.info('Auto-provisioning Twilio phone number for converted lead', {
+          tenantId: tenant.id,
+        });
+
+        const twilioNumber = await twilioProvisioningService.autoProvisionForTenant(
+          tenant.id,
+          {
+            countryCode: 'US',
+          }
+        );
+
+        // Update tenant with phone number
+        await prisma.tenant.update({
+          where: { id: tenant.id },
+          data: { twilioNumber },
+        });
+
+        logger.info('Twilio phone number auto-provisioned', {
+          tenantId: tenant.id,
+          twilioNumber,
+        });
+      } catch (error) {
+        logger.error('Failed to auto-provision phone number for converted lead', {
+          error,
+          tenantId: tenant.id,
+        });
+        // Don't fail conversion if phone provisioning fails
+      }
+
+      // Auto-provision Retell AI agent
+      try {
+        logger.info('Auto-provisioning Retell AI agent for converted lead', {
+          tenantId: tenant.id,
+        });
+
+        const retellAgentId = await retellProvisioningService.createAgentForTenant({
+          tenantId: tenant.id,
+          tenantName: tenant.name,
+          businessType: tenant.businessType,
+          language: 'en-US', // Default language, can be customized
+        });
+
+        // Update tenant with agent ID
+        await prisma.tenant.update({
+          where: { id: tenant.id },
+          data: { retellAgentId },
+        });
+
+        logger.info('Retell AI agent auto-provisioned', {
+          tenantId: tenant.id,
+          retellAgentId,
+        });
+      } catch (error) {
+        logger.error('Failed to auto-provision Retell agent for converted lead', {
+          error,
+          tenantId: tenant.id,
+        });
+        // Don't fail conversion if agent provisioning fails
+      }
 
       // Send welcome email
       await this.sendWelcomeEmail(lead, tenant, tempPassword);
