@@ -292,6 +292,247 @@ const adminDashboardService = {
 
     return updatedUser;
   },
+
+  // Populate test data for production testing
+  async populateTestData() {
+    const timestamp = Date.now();
+    const results: any = { created: {} };
+
+    // 1. Create test tenant
+    const tenant = await prisma.tenant.create({
+      data: {
+        name: `Test Spa & Wellness ${timestamp}`,
+        businessType: 'salon',
+        email: `test-${timestamp}@spa.com`,
+        phone: '+1234567890',
+        address: '123 Main Street, New York',
+        city: 'New York',
+        country: 'United States',
+        plan: 'professional',
+        subscriptionStatus: 'active',
+        retellAgentId: `agent_test_${timestamp}`,
+      },
+    });
+    results.created.tenant = tenant.id;
+
+    // 2. Create test call logs
+    const callLogs = await prisma.$transaction([
+      prisma.callLog.create({
+        data: {
+          callId: `call_${timestamp}_1`,
+          fromNumber: '+1234567001',
+          toNumber: '+1234567890',
+          status: 'ended',
+          duration: 180,
+          transcript: 'Customer: Hi, I would like to book a massage appointment. Agent: Sure, what day works for you?',
+          summary: 'Customer requested massage appointment',
+          sentiment: 'positive',
+          tenantId: tenant.id,
+          startedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+          endedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+        },
+      }),
+      prisma.callLog.create({
+        data: {
+          callId: `call_${timestamp}_2`,
+          fromNumber: '+1234567002',
+          toNumber: '+1234567890',
+          status: 'ended',
+          duration: 120,
+          transcript: 'Customer: What are your hours? Agent: We are open from 9 AM to 8 PM daily.',
+          summary: 'Customer inquired about business hours',
+          sentiment: 'neutral',
+          tenantId: tenant.id,
+          startedAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
+          endedAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
+        },
+      }),
+      prisma.callLog.create({
+        data: {
+          callId: `call_${timestamp}_3`,
+          fromNumber: '+1234567003',
+          toNumber: '+1234567890',
+          status: 'ended',
+          duration: 240,
+          transcript: 'Customer: I want to book a facial treatment. Agent: Great! We have availability this week.',
+          summary: 'Customer booked facial treatment',
+          sentiment: 'positive',
+          tenantId: tenant.id,
+          startedAt: new Date(Date.now() - 30 * 60 * 1000),
+          endedAt: new Date(Date.now() - 30 * 60 * 1000),
+        },
+      }),
+    ]);
+    results.created.callLogs = callLogs.length;
+
+    // 3. Create Call records for analytics
+    const calls = await prisma.$transaction([
+      prisma.call.create({
+        data: {
+          tenantId: tenant.id,
+          fromNumber: '+1234567001',
+          toNumber: '+1234567890',
+          direction: 'inbound',
+          duration: 180,
+          intent: 'booking',
+          outcome: 'successful',
+          sentiment: 'positive',
+          aiConfidence: 0.95,
+        },
+      }),
+      prisma.call.create({
+        data: {
+          tenantId: tenant.id,
+          fromNumber: '+1234567002',
+          toNumber: '+1234567890',
+          direction: 'inbound',
+          duration: 120,
+          intent: 'inquiry',
+          outcome: 'successful',
+          sentiment: 'neutral',
+          aiConfidence: 0.88,
+        },
+      }),
+      prisma.call.create({
+        data: {
+          tenantId: tenant.id,
+          fromNumber: '+1234567003',
+          toNumber: '+1234567890',
+          direction: 'inbound',
+          duration: 240,
+          intent: 'booking',
+          outcome: 'successful',
+          sentiment: 'positive',
+          aiConfidence: 0.92,
+        },
+      }),
+    ]);
+    results.created.calls = calls.length;
+
+    // 4. Create test leads
+    const leads = await prisma.$transaction([
+      prisma.lead.create({
+        data: {
+          contactName: 'Michael Johnson',
+          email: `michael-${timestamp}@business.com`,
+          phone: '+1234567890',
+          businessName: 'Johnson Wellness Center',
+          businessType: 'salon',
+          selectedPlan: 'professional',
+          source: 'ai_call',
+          status: 'new',
+          aiNotes: 'Very interested in AI solution. 50+ daily calls for spa bookings.',
+          qualificationScore: 85,
+          priority: 'high',
+          aiCallData: {
+            companySize: '10-50',
+            dailyCallVolume: '50-100',
+            timeline: 'Within 2 weeks',
+          },
+        },
+      }),
+      prisma.lead.create({
+        data: {
+          contactName: 'Sarah Williams',
+          email: `sarah-${timestamp}@salon.com`,
+          phone: '+1234567891',
+          businessName: 'Elegant Beauty Spa',
+          businessType: 'salon',
+          selectedPlan: 'starter',
+          source: 'ai_call',
+          status: 'new',
+          aiNotes: 'Interested in appointment booking and SMS reminder features.',
+          qualificationScore: 70,
+          priority: 'normal',
+          aiCallData: {
+            companySize: '1-10',
+            dailyCallVolume: '10-20',
+          },
+        },
+      }),
+    ]);
+    results.created.leads = leads.length;
+
+    // 5. Create test bookings
+    const bookings = await prisma.$transaction([
+      prisma.booking.create({
+        data: {
+          tenantId: tenant.id,
+          customerName: 'Emily Davis',
+          customerPhone: '+1234567892',
+          customerEmail: 'emily@example.com',
+          serviceName: 'Swedish Massage - 60 min',
+          dateTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          partySize: 1,
+          status: 'confirmed',
+          notes: 'Prefers deep tissue pressure',
+        },
+      }),
+      prisma.booking.create({
+        data: {
+          tenantId: tenant.id,
+          customerName: 'Robert Anderson',
+          customerPhone: '+1234567893',
+          customerEmail: 'robert@example.com',
+          serviceName: 'Couples Spa Package',
+          dateTime: new Date(Date.now() + 48 * 60 * 60 * 1000),
+          partySize: 2,
+          status: 'confirmed',
+          notes: 'Anniversary celebration',
+        },
+      }),
+    ]);
+    results.created.bookings = bookings.length;
+
+    // 6. Create test orders
+    const orders = await prisma.$transaction([
+      prisma.order.create({
+        data: {
+          tenantId: tenant.id,
+          customerName: 'Jennifer Taylor',
+          customerPhone: '+1234567894',
+          customerEmail: 'jennifer@example.com',
+          items: [{ name: 'Aromatherapy Essential Oil Set', quantity: 1, price: 45 }],
+          subtotal: 45,
+          total: 48.6,
+          deliveryType: 'delivery',
+          deliveryAddress: '456 Park Avenue, New York',
+          status: 'confirmed',
+        },
+      }),
+      prisma.order.create({
+        data: {
+          tenantId: tenant.id,
+          customerName: 'David Martinez',
+          customerPhone: '+1234567895',
+          customerEmail: 'david@example.com',
+          items: [{ name: 'Spa Gift Card - $100', quantity: 2, price: 100 }],
+          subtotal: 200,
+          total: 200,
+          deliveryType: 'pickup',
+          status: 'ready',
+        },
+      }),
+    ]);
+    results.created.orders = orders.length;
+
+    return {
+      success: true,
+      message: 'Test data created successfully!',
+      tenant: {
+        id: tenant.id,
+        name: tenant.name,
+        email: tenant.email,
+      },
+      summary: {
+        callLogs: results.created.callLogs,
+        calls: results.created.calls,
+        leads: results.created.leads,
+        bookings: results.created.bookings,
+        orders: results.created.orders,
+      },
+    };
+  },
 };
 
 // ==========================================
@@ -426,6 +667,15 @@ const adminDashboardController = {
       next(error);
     }
   },
+
+  async populateTestData(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await adminDashboardService.populateTestData();
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
 };
 
 // ==========================================
@@ -445,5 +695,8 @@ router.get('/activities', adminDashboardController.getRecentActivities);
 router.get('/users/pending-approval', adminDashboardController.getPendingApprovalUsers);
 router.post('/users/:userId/approve', adminDashboardController.approveUser);
 router.post('/users/:userId/reject', adminDashboardController.rejectUser);
+
+// Test data population (for production testing)
+router.post('/test/populate', adminDashboardController.populateTestData);
 
 export default router;
