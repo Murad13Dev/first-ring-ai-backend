@@ -150,7 +150,8 @@ model Lead {
   callTranscript  String?  @db.Text
   aiConfidence    Float?
   aiNotes         String?  @db.Text
-  
+  aiCallData      Json?    // Structured data from AI call
+
   // Status
   status          String   @default("new") 
   // "new" | "contacted" | "qualified" | "in_progress" | "converted" | "lost"
@@ -252,12 +253,12 @@ model FAQ {
 // ==========================================
 model Booking {
   id            String   @id @default(uuid())
-  tenantId      String
-  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  
+  tenantId      String?
+  tenant        Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
   // Customer
   customerName  String
-  customerPhone String
+  customerPhone String?
   customerEmail String?
   
   // Service
