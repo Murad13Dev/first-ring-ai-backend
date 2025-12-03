@@ -292,6 +292,247 @@ const adminDashboardService = {
 
     return updatedUser;
   },
+
+  // Populate test data for production testing
+  async populateTestData() {
+    const timestamp = Date.now();
+    const results: any = { created: {} };
+
+    // 1. Create test tenant
+    const tenant = await prisma.tenant.create({
+      data: {
+        name: `Test Restaurant ${timestamp}`,
+        businessType: 'restaurant',
+        email: `test-${timestamp}@restaurant.com`,
+        phone: '+994501234567',
+        address: '123 Nizami Street, Baku',
+        city: 'Baku',
+        country: 'Azerbaijan',
+        plan: 'professional',
+        subscriptionStatus: 'active',
+        retellAgentId: `agent_test_${timestamp}`,
+      },
+    });
+    results.created.tenant = tenant.id;
+
+    // 2. Create test call logs
+    const callLogs = await prisma.$transaction([
+      prisma.callLog.create({
+        data: {
+          callId: `call_${timestamp}_1`,
+          fromNumber: '+994501111111',
+          toNumber: '+994559876543',
+          status: 'ended',
+          duration: 180,
+          transcript: 'Customer: Hi, I want to book a table. Agent: Sure, for how many people?',
+          summary: 'Customer requested table reservation',
+          sentiment: 'positive',
+          tenantId: tenant.id,
+          startedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+          endedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+        },
+      }),
+      prisma.callLog.create({
+        data: {
+          callId: `call_${timestamp}_2`,
+          fromNumber: '+994502222222',
+          toNumber: '+994559876543',
+          status: 'ended',
+          duration: 120,
+          transcript: 'Customer: What time do you open? Agent: We open at 10 AM.',
+          summary: 'Customer asked about opening hours',
+          sentiment: 'neutral',
+          tenantId: tenant.id,
+          startedAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
+          endedAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
+        },
+      }),
+      prisma.callLog.create({
+        data: {
+          callId: `call_${timestamp}_3`,
+          fromNumber: '+994503333333',
+          toNumber: '+994559876543',
+          status: 'ended',
+          duration: 240,
+          transcript: 'Customer: I want to order food. Agent: Great! What would you like?',
+          summary: 'Customer placed food order',
+          sentiment: 'positive',
+          tenantId: tenant.id,
+          startedAt: new Date(Date.now() - 30 * 60 * 1000),
+          endedAt: new Date(Date.now() - 30 * 60 * 1000),
+        },
+      }),
+    ]);
+    results.created.callLogs = callLogs.length;
+
+    // 3. Create Call records for analytics
+    const calls = await prisma.$transaction([
+      prisma.call.create({
+        data: {
+          tenantId: tenant.id,
+          fromNumber: '+994501111111',
+          toNumber: '+994559876543',
+          direction: 'inbound',
+          duration: 180,
+          intent: 'reservation',
+          outcome: 'successful',
+          sentiment: 'positive',
+          aiConfidence: 0.95,
+        },
+      }),
+      prisma.call.create({
+        data: {
+          tenantId: tenant.id,
+          fromNumber: '+994502222222',
+          toNumber: '+994559876543',
+          direction: 'inbound',
+          duration: 120,
+          intent: 'inquiry',
+          outcome: 'successful',
+          sentiment: 'neutral',
+          aiConfidence: 0.88,
+        },
+      }),
+      prisma.call.create({
+        data: {
+          tenantId: tenant.id,
+          fromNumber: '+994503333333',
+          toNumber: '+994559876543',
+          direction: 'inbound',
+          duration: 240,
+          intent: 'order',
+          outcome: 'successful',
+          sentiment: 'positive',
+          aiConfidence: 0.92,
+        },
+      }),
+    ]);
+    results.created.calls = calls.length;
+
+    // 4. Create test leads
+    const leads = await prisma.$transaction([
+      prisma.lead.create({
+        data: {
+          contactName: 'Murad Mammadov',
+          email: `murad-${timestamp}@business.az`,
+          phone: '+994501234567',
+          businessName: 'My Business LLC',
+          businessType: 'retail',
+          selectedPlan: 'professional',
+          source: 'ai_call',
+          status: 'new',
+          aiNotes: 'Very interested in AI solution. 50+ daily calls.',
+          qualificationScore: 85,
+          priority: 'high',
+          aiCallData: {
+            companySize: '10-50',
+            dailyCallVolume: '50-100',
+            timeline: 'Within 2 weeks',
+          },
+        },
+      }),
+      prisma.lead.create({
+        data: {
+          contactName: 'Leyla Aliyeva',
+          email: `leyla-${timestamp}@salon.az`,
+          phone: '+994502345678',
+          businessName: 'Beauty Salon',
+          businessType: 'salon',
+          selectedPlan: 'starter',
+          source: 'ai_call',
+          status: 'new',
+          aiNotes: 'Interested in appointment booking feature.',
+          qualificationScore: 70,
+          priority: 'normal',
+          aiCallData: {
+            companySize: '1-10',
+            dailyCallVolume: '10-20',
+          },
+        },
+      }),
+    ]);
+    results.created.leads = leads.length;
+
+    // 5. Create test bookings
+    const bookings = await prisma.$transaction([
+      prisma.booking.create({
+        data: {
+          tenantId: tenant.id,
+          customerName: 'John Doe',
+          customerPhone: '+994551234567',
+          customerEmail: 'john@example.com',
+          serviceName: 'Table Reservation',
+          dateTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          partySize: 4,
+          status: 'confirmed',
+          notes: 'Window seat preferred',
+        },
+      }),
+      prisma.booking.create({
+        data: {
+          tenantId: tenant.id,
+          customerName: 'Jane Smith',
+          customerPhone: '+994552345678',
+          customerEmail: 'jane@example.com',
+          serviceName: 'Table Reservation',
+          dateTime: new Date(Date.now() + 48 * 60 * 60 * 1000),
+          partySize: 2,
+          status: 'confirmed',
+          notes: 'Anniversary dinner',
+        },
+      }),
+    ]);
+    results.created.bookings = bookings.length;
+
+    // 6. Create test orders
+    const orders = await prisma.$transaction([
+      prisma.order.create({
+        data: {
+          tenantId: tenant.id,
+          customerName: 'Ali Hasanov',
+          customerPhone: '+994553456789',
+          customerEmail: 'ali@example.com',
+          items: [{ name: 'Pizza', quantity: 2, price: 15 }],
+          subtotal: 30,
+          total: 33,
+          deliveryType: 'delivery',
+          deliveryAddress: '456 Oak Street, Baku',
+          status: 'confirmed',
+        },
+      }),
+      prisma.order.create({
+        data: {
+          tenantId: tenant.id,
+          customerName: 'Sara Mammadova',
+          customerPhone: '+994554567890',
+          customerEmail: 'sara@example.com',
+          items: [{ name: 'Burger', quantity: 1, price: 12 }],
+          subtotal: 12,
+          total: 13.5,
+          deliveryType: 'pickup',
+          status: 'ready',
+        },
+      }),
+    ]);
+    results.created.orders = orders.length;
+
+    return {
+      success: true,
+      message: 'Test data created successfully!',
+      tenant: {
+        id: tenant.id,
+        name: tenant.name,
+        email: tenant.email,
+      },
+      summary: {
+        callLogs: results.created.callLogs,
+        calls: results.created.calls,
+        leads: results.created.leads,
+        bookings: results.created.bookings,
+        orders: results.created.orders,
+      },
+    };
+  },
 };
 
 // ==========================================
@@ -426,6 +667,15 @@ const adminDashboardController = {
       next(error);
     }
   },
+
+  async populateTestData(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await adminDashboardService.populateTestData();
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
 };
 
 // ==========================================
@@ -445,5 +695,8 @@ router.get('/activities', adminDashboardController.getRecentActivities);
 router.get('/users/pending-approval', adminDashboardController.getPendingApprovalUsers);
 router.post('/users/:userId/approve', adminDashboardController.approveUser);
 router.post('/users/:userId/reject', adminDashboardController.rejectUser);
+
+// Test data population (for production testing)
+router.post('/test/populate', adminDashboardController.populateTestData);
 
 export default router;
