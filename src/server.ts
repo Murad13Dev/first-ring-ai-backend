@@ -44,9 +44,27 @@ const app: Application = express();
 app.use(helmet());
 
 // CORS
+// CORS CONFIG FOR PRODUCTION + LOCAL DEV
+const allowedOrigins = [
+  'https://firstring.ai',
+  'https://www.firstring.ai',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+];
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: function (origin, callback) {
+    // allow requests with no origin (mobile apps, curl)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log("❌ Blocked by CORS:", origin);
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
+  methods: "GET,POST,PUT,DELETE,OPTIONS",
+  allowedHeaders: "Content-Type,Authorization",
 }));
 
 // Body parser
