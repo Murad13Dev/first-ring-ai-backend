@@ -207,6 +207,24 @@ export class LeadsService {
         throw new AppError('Lead already converted', 400);
       }
 
+      // Check if user with this email already exists
+      const existingUser = await prisma.user.findUnique({
+        where: { email: lead.email },
+      });
+
+      if (existingUser) {
+        throw new AppError('A user with this email already exists', 400);
+      }
+
+      // Check if tenant with this email already exists
+      const existingTenant = await prisma.tenant.findUnique({
+        where: { email: lead.email },
+      });
+
+      if (existingTenant) {
+        throw new AppError('A tenant with this email already exists', 400);
+      }
+
       // Create tenant
       const tenant = await prisma.tenant.create({
         data: {
@@ -234,6 +252,9 @@ export class LeadsService {
           name: lead.contactName,
           passwordHash,
           role: 'owner',
+          emailVerified: true, // Auto-verify converted leads
+          adminApproved: true, // Auto-approve converted leads
+          approvedAt: new Date(),
         },
       });
 
