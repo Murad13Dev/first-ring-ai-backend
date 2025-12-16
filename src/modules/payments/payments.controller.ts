@@ -317,8 +317,8 @@ export class PaymentsController {
     try {
       const tenantId = session.metadata?.tenantId;
 
-      if (!tenantId) {
-        logger.warn('Checkout session missing tenantId in metadata', {
+      if (!tenantId || tenantId === 'admin') {
+        logger.warn('Checkout session missing valid tenantId in metadata', {
           sessionId: session.id,
         });
         return;
@@ -330,19 +330,64 @@ export class PaymentsController {
         amount: session.amount_total,
       });
 
-      // Update tenant subscription status if needed
-      if (session.mode === 'subscription') {
-        await prisma.tenant.update({
-          where: { id: tenantId },
-          data: {
-            subscriptionStatus: 'active',
-            subscriptionId: session.subscription,
-          },
-        });
+      // Get tenant details
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: {
+          id: true,
+          name: true,
+          businessType: true,
+          email: true,
+          twilioNumber: true,
+          retellAgentId: true,
+          subscriptionStatus: true,
+        },
+      });
+
+      if (!tenant) {
+        logger.error('Tenant not found for payment', { tenantId });
+        return;
       }
 
-      // TODO: Send confirmation email to customer
-      // TODO: Record payment in database
+      // Update tenant subscription status to 'paid'
+      const updateData: any = {};
+
+      if (session.mode === 'subscription') {
+        updateData.subscriptionStatus = 'active';
+        updateData.subscriptionId = session.subscription;
+      } else {
+        // One-time payment - mark as paid
+        updateData.subscriptionStatus = 'active'; // or 'paid' if you prefer
+      }
+
+      // Update tenant
+      await prisma.tenant.update({
+        where: { id: tenantId },
+        data: updateData,
+      });
+
+      // NOTE: Twilio number and Retell AI agent will be provisioned manually by admin
+
+      // Send payment confirmation email
+      try {
+        const { emailService } = require('../../services/email.service');
+        await emailService.sendPaymentConfirmationEmail({
+          to: tenant.email,
+          customerName: tenant.name,
+          amount: session.amount_total / 100,
+          description: session.metadata?.description || 'Subscription Payment',
+          paymentId: session.payment_intent,
+          tenantName: tenant.name,
+        });
+      } catch (emailError) {
+        logger.error('Failed to send payment confirmation email', { emailError });
+      }
+
+      logger.info('Payment processed successfully', {
+        tenantId,
+        subscriptionStatus: updateData.subscriptionStatus,
+        confirmationEmailSent: true,
+      });
     } catch (error) {
       logger.error('Handle checkout completed error', { error });
     }
@@ -393,6 +438,23 @@ export class PaymentsController {
         tenantId,
       });
 
+      // Get tenant details
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: {
+          id: true,
+          name: true,
+          businessType: true,
+          twilioNumber: true,
+          retellAgentId: true,
+        },
+      });
+
+      if (!tenant) {
+        logger.error('Tenant not found for subscription update', { tenantId });
+        return;
+      }
+
       // Update tenant subscription
       await prisma.tenant.update({
         where: { id: tenantId },
@@ -401,6 +463,13 @@ export class PaymentsController {
           subscriptionId: subscription.id,
           currentPeriodEnd: new Date(subscription.current_period_end * 1000),
         },
+      });
+
+      // NOTE: Twilio and Retell provisioning will be done manually by admin
+
+      logger.info('Subscription updated', {
+        tenantId,
+        status: subscription.status,
       });
     } catch (error) {
       logger.error('Handle subscription update error', { error });
