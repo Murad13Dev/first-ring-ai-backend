@@ -36,7 +36,9 @@ export const errorHandler = (
   }
 
   // Handle Prisma errors
-  if (err.name === 'PrismaClientKnownRequestError') {
+  if (err.name === 'PrismaClientKnownRequestError' ||
+      err.name === 'PrismaClientValidationError' ||
+      err.name === 'PrismaClientInitializationError') {
     logger.error('Database Error', {
       error: err,
       url: req.url,
@@ -45,7 +47,10 @@ export const errorHandler = (
 
     return res.status(400).json({
       success: false,
-      message: 'Database operation failed',
+      message: process.env.NODE_ENV === 'production'
+        ? 'Database operation failed'
+        : `Database error: ${err.message}`,
+      ...(process.env.NODE_ENV !== 'production' && { error: err }),
     });
   }
 
