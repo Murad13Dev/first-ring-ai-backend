@@ -29,6 +29,7 @@ import adminDashboardRoutes from './modules/admin-dashboard/admin-dashboard.rout
 import customerDashboardRoutes from './modules/customer-dashboard/customer-dashboard.routes';
 import analyticsRoutes from './modules/analytics/analytics.routes';
 import notificationsRoutes from './modules/notifications/notifications.routes';
+import paymentsRoutes from './modules/payments/payments.routes';
 
 // Load environment variables
 dotenv.config();
@@ -134,6 +135,7 @@ app.use('/api/admin', adminDashboardRoutes);
 app.use('/api/dashboard', customerDashboardRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/payments', paymentsRoutes);
 
 // ==========================================
 // ERROR HANDLING

@@ -396,4 +396,348 @@ export const emailService = {
       throw error;
     }
   },
+
+  /**
+   * Send payment link email
+   */
+  async sendPaymentLinkEmail(params: {
+    to: string;
+    customerName: string;
+    amount: number; // in dollars (e.g., 50.00)
+    description: string;
+    paymentUrl: string;
+    tenantName?: string;
+    dueDate?: string;
+  }) {
+    try {
+      const { to, customerName, amount, description, paymentUrl, tenantName, dueDate } = params;
+
+      const formattedAmount = `$${amount.toFixed(2)}`;
+
+      const mailOptions = {
+        from: process.env.EMAIL_FROM || 'noreply@firstringai.com',
+        to,
+        subject: `Payment Request - ${formattedAmount}${tenantName ? ` from ${tenantName}` : ''}`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; }
+              .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+              .content { padding: 30px; background-color: white; border-radius: 0 0 10px 10px; }
+              .amount-box {
+                background-color: #f0f4ff;
+                border-left: 4px solid #667eea;
+                padding: 20px;
+                margin: 20px 0;
+                border-radius: 5px;
+              }
+              .amount-box .amount {
+                font-size: 32px;
+                font-weight: bold;
+                color: #667eea;
+                margin: 10px 0;
+              }
+              .button {
+                display: inline-block;
+                padding: 15px 40px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                text-decoration: none;
+                border-radius: 30px;
+                font-weight: bold;
+                margin: 20px 0;
+                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+              }
+              .button:hover {
+                box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+              }
+              .details-table {
+                width: 100%;
+                margin: 20px 0;
+                border-collapse: collapse;
+              }
+              .details-table td {
+                padding: 10px;
+                border-bottom: 1px solid #eee;
+              }
+              .details-table td:first-child {
+                font-weight: bold;
+                width: 40%;
+              }
+              .footer {
+                text-align: center;
+                padding: 20px;
+                color: #666;
+                font-size: 12px;
+              }
+              .security-note {
+                background-color: #fff3cd;
+                border-left: 4px solid #ffa726;
+                padding: 15px;
+                margin: 20px 0;
+                border-radius: 5px;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>💳 Payment Request</h1>
+                <p style="margin: 0;">You have a payment waiting</p>
+              </div>
+
+              <div class="content">
+                <p>Hello ${customerName},</p>
+
+                ${tenantName ? `<p>You have received a payment request from <strong>${tenantName}</strong>.</p>` : ''}
+
+                <div class="amount-box">
+                  <div style="font-size: 14px; color: #666;">Amount Due</div>
+                  <div class="amount">${formattedAmount}</div>
+                  <div style="font-size: 14px; color: #666;">${description}</div>
+                </div>
+
+                <table class="details-table">
+                  <tr>
+                    <td>Description:</td>
+                    <td>${description}</td>
+                  </tr>
+                  <tr>
+                    <td>Amount:</td>
+                    <td><strong>${formattedAmount}</strong></td>
+                  </tr>
+                  ${dueDate ? `
+                  <tr>
+                    <td>Due Date:</td>
+                    <td>${dueDate}</td>
+                  </tr>
+                  ` : ''}
+                  ${tenantName ? `
+                  <tr>
+                    <td>From:</td>
+                    <td>${tenantName}</td>
+                  </tr>
+                  ` : ''}
+                </table>
+
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${paymentUrl}" class="button">
+                    🔒 Pay Securely with Stripe
+                  </a>
+                </div>
+
+                <div class="security-note">
+                  <strong>🔐 Secure Payment</strong><br>
+                  Your payment is processed securely through Stripe. We never store your credit card information.
+                </div>
+
+                <p style="color: #666; font-size: 14px; margin-top: 30px;">
+                  <strong>Payment Methods Accepted:</strong><br>
+                  💳 Credit Card • 💳 Debit Card • 🏦 Bank Transfer
+                </p>
+
+                ${tenantName ? `
+                <p style="margin-top: 30px;">
+                  If you have any questions about this payment, please contact ${tenantName} directly.
+                </p>
+                ` : ''}
+
+                <p style="margin-top: 30px; color: #666; font-size: 12px;">
+                  <strong>Note:</strong> This is an automated email. Please do not reply to this message.
+                </p>
+              </div>
+
+              <div class="footer">
+                <p>Powered by First Ring AI | Secure payments by Stripe</p>
+                <p>© ${new Date().getFullYear()} First Ring AI. All rights reserved.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `,
+        text: `
+          Payment Request
+
+          Hello ${customerName},
+
+          ${tenantName ? `You have received a payment request from ${tenantName}.` : ''}
+
+          Amount Due: ${formattedAmount}
+          Description: ${description}
+          ${dueDate ? `Due Date: ${dueDate}` : ''}
+
+          To complete your payment securely, please visit:
+          ${paymentUrl}
+
+          Your payment is processed securely through Stripe. We never store your credit card information.
+
+          Payment Methods Accepted:
+          - Credit Card
+          - Debit Card
+          - Bank Transfer
+
+          ${tenantName ? `If you have any questions about this payment, please contact ${tenantName} directly.` : ''}
+
+          Powered by First Ring AI | Secure payments by Stripe
+        `,
+      };
+
+      const info = await transporter.sendMail(mailOptions);
+      logger.info('Payment link email sent:', { to, amount: formattedAmount, messageId: info.messageId });
+      return { success: true, messageId: info.messageId };
+    } catch (error) {
+      logger.error('Failed to send payment link email:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Send payment confirmation email
+   */
+  async sendPaymentConfirmationEmail(params: {
+    to: string;
+    customerName: string;
+    amount: number;
+    description: string;
+    paymentId: string;
+    tenantName?: string;
+  }) {
+    try {
+      const { to, customerName, amount, description, paymentId, tenantName } = params;
+
+      const formattedAmount = `$${amount.toFixed(2)}`;
+
+      const mailOptions = {
+        from: process.env.EMAIL_FROM || 'noreply@firstringai.com',
+        to,
+        subject: `Payment Confirmation - ${formattedAmount}`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; }
+              .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+              .content { padding: 30px; background-color: white; border-radius: 0 0 10px 10px; }
+              .success-icon { font-size: 60px; margin-bottom: 20px; }
+              .amount { font-size: 36px; font-weight: bold; color: #10b981; margin: 20px 0; }
+              .details-table {
+                width: 100%;
+                margin: 20px 0;
+                border-collapse: collapse;
+              }
+              .details-table td {
+                padding: 10px;
+                border-bottom: 1px solid #eee;
+              }
+              .details-table td:first-child {
+                font-weight: bold;
+                width: 40%;
+              }
+              .footer {
+                text-align: center;
+                padding: 20px;
+                color: #666;
+                font-size: 12px;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <div class="success-icon">✅</div>
+                <h1>Payment Successful!</h1>
+              </div>
+
+              <div class="content">
+                <p>Hello ${customerName},</p>
+
+                <p>Thank you! Your payment has been successfully processed.</p>
+
+                <div style="text-align: center;">
+                  <div class="amount">${formattedAmount}</div>
+                </div>
+
+                <table class="details-table">
+                  <tr>
+                    <td>Payment ID:</td>
+                    <td><code>${paymentId}</code></td>
+                  </tr>
+                  <tr>
+                    <td>Description:</td>
+                    <td>${description}</td>
+                  </tr>
+                  <tr>
+                    <td>Amount:</td>
+                    <td><strong>${formattedAmount}</strong></td>
+                  </tr>
+                  <tr>
+                    <td>Date:</td>
+                    <td>${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</td>
+                  </tr>
+                  ${tenantName ? `
+                  <tr>
+                    <td>Paid to:</td>
+                    <td>${tenantName}</td>
+                  </tr>
+                  ` : ''}
+                </table>
+
+                <p style="margin-top: 30px;">
+                  A receipt has been sent to your email address. Please save this for your records.
+                </p>
+
+                ${tenantName ? `
+                <p>
+                  If you have any questions about this payment, please contact ${tenantName}.
+                </p>
+                ` : ''}
+
+                <p style="margin-top: 30px; color: #666; font-size: 12px;">
+                  <strong>Note:</strong> This is an automated confirmation email.
+                </p>
+              </div>
+
+              <div class="footer">
+                <p>Powered by First Ring AI | Secure payments by Stripe</p>
+                <p>© ${new Date().getFullYear()} First Ring AI. All rights reserved.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `,
+        text: `
+          Payment Successful!
+
+          Hello ${customerName},
+
+          Thank you! Your payment has been successfully processed.
+
+          Payment Details:
+          - Payment ID: ${paymentId}
+          - Description: ${description}
+          - Amount: ${formattedAmount}
+          - Date: ${new Date().toLocaleDateString()}
+          ${tenantName ? `- Paid to: ${tenantName}` : ''}
+
+          A receipt has been sent to your email address. Please save this for your records.
+
+          ${tenantName ? `If you have any questions about this payment, please contact ${tenantName}.` : ''}
+
+          Powered by First Ring AI | Secure payments by Stripe
+        `,
+      };
+
+      const info = await transporter.sendMail(mailOptions);
+      logger.info('Payment confirmation email sent:', { to, amount: formattedAmount, messageId: info.messageId });
+      return { success: true, messageId: info.messageId };
+    } catch (error) {
+      logger.error('Failed to send payment confirmation email:', error);
+      throw error;
+    }
+  },
 };
