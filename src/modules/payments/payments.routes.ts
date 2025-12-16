@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import paymentsController from './payments.controller';
-import { authenticate } from '../../middleware/auth.middleware';
+import paymentEmailController from './payments-email.controller';
+import { authenticate, authenticateAdmin } from '../../middleware/auth.middleware';
 import express from 'express';
 
 const router = Router();
@@ -111,5 +112,77 @@ router.post(
   express.raw({ type: 'application/json' }),
   paymentsController.handleWebhook
 );
+
+// ==========================================
+// EMAIL PAYMENT LINKS (Admin only)
+// ==========================================
+
+/**
+ * Send payment link via email
+ * POST /api/payments/send-link
+ *
+ * Body:
+ * {
+ *   "tenantId": "uuid", // optional
+ *   "customerEmail": "customer@example.com",
+ *   "customerName": "John Doe",
+ *   "amount": 5000,  // $50.00 in cents
+ *   "description": "Massage Service",
+ *   "tenantName": "Spa Name", // optional
+ *   "dueDate": "2025-01-15", // optional
+ *   "metadata": {}
+ * }
+ */
+router.post('/send-link', authenticateAdmin, paymentEmailController.sendPaymentLink);
+
+/**
+ * Send payment link to multiple customers
+ * POST /api/payments/send-link-bulk
+ *
+ * Body:
+ * {
+ *   "recipients": [
+ *     { "email": "customer1@example.com", "name": "John Doe" },
+ *     { "email": "customer2@example.com", "name": "Jane Smith" }
+ *   ],
+ *   "amount": 5000,
+ *   "description": "Monthly subscription",
+ *   "tenantId": "uuid", // optional
+ *   "tenantName": "Company Name", // optional
+ *   "dueDate": "2025-01-15" // optional
+ * }
+ */
+router.post('/send-link-bulk', authenticateAdmin, paymentEmailController.sendPaymentLinkBulk);
+
+/**
+ * Create payment link (without sending email)
+ * POST /api/payments/create-link
+ *
+ * Body:
+ * {
+ *   "customerEmail": "customer@example.com",
+ *   "customerName": "John Doe", // optional
+ *   "amount": 5000,
+ *   "description": "Service payment",
+ *   "tenantId": "uuid", // optional
+ *   "metadata": {}
+ * }
+ */
+router.post('/create-link', authenticateAdmin, paymentEmailController.createPaymentLinkOnly);
+
+/**
+ * Resend payment link
+ * POST /api/payments/resend-link/:sessionId
+ *
+ * Body:
+ * {
+ *   "customerEmail": "customer@example.com",
+ *   "customerName": "John Doe",
+ *   "description": "Payment reminder",
+ *   "tenantName": "Company Name", // optional
+ *   "dueDate": "2025-01-15" // optional
+ * }
+ */
+router.post('/resend-link/:sessionId', authenticateAdmin, paymentEmailController.resendPaymentLink);
 
 export default router;
