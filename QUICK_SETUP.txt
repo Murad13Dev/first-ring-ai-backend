@@ -1,0 +1,121 @@
+╔══════════════════════════════════════════════════════════════════╗
+║           RETELL AI MANUAL SETUP - QUICK REFERENCE               ║
+║                    (Print et və masada saxla)                    ║
+╚══════════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────────┐
+│ HƏR MÜŞTƏRİ ÜÇÜN BU 3 ADDIMI TƏKRARLAYıN (5 dəfə)               │
+└──────────────────────────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ADDIM 1: MƏLUMATLARI TAP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Terminal:
+  $ cd /home/user/first-ring-ai-backend
+  $ node scripts/list-tenants.js
+
+Köçür:
+  📞 Twilio Number: ________________
+  🤖 Retell Agent:  ________________
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ADDIM 2: RETELL DASHBOARD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+URL: https://dashboard.retellai.com
+
+Sol menyu → "Phone Numbers" → "+ Add Phone Number"
+
+Form:
+  Provider:       [Twilio ▼]
+  Phone Number:   [Twilio Number buraya]
+  Agent:          [Retell Agent buraya]
+  Webhook URL:    https://api.firstringai.com/api/retell/webhook
+
+[Save] düyməsi
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ADDIM 3: TWILIO WEBHOOK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+URL: https://console.twilio.com
+
+Sol menyu → "Phone Numbers" → "Manage" → "Active numbers"
+
+Twilio nömrəni tap → Aç
+
+Voice Configuration:
+  A CALL COMES IN:
+    [✓] Webhook
+    URL:    https://api.retellai.com/create-phone-call
+    Method: [POST ▼]
+
+[Save Configuration] düyməsi
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ADDIM 4: TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Mobil: Twilio nömrəyə zəng et
+
+Eşitməlisiniz:
+  🤖 "Hello! Thank you for calling [Business Name]..."
+
+Deməyi sına:
+  💬 "I want to book an appointment"
+
+AI cavab verməlidir!
+
+
+╔══════════════════════════════════════════════════════════════════╗
+║                    5 MÜŞTƏRİ CHECKLİST                           ║
+╚══════════════════════════════════════════════════════════════════╝
+
+ MÜŞTƏRİ 1: _______________
+   ☐ Addım 1  ☐ Addım 2  ☐ Addım 3  ☐ Test ✅
+
+ MÜŞTƏRİ 2: _______________
+   ☐ Addım 1  ☐ Addım 2  ☐ Addım 3  ☐ Test ✅
+
+ MÜŞTƏRİ 3: _______________
+   ☐ Addım 1  ☐ Addım 2  ☐ Addım 3  ☐ Test ✅
+
+ MÜŞTƏRİ 4: _______________
+   ☐ Addım 1  ☐ Addım 2  ☐ Addım 3  ☐ Test ✅
+
+ MÜŞTƏRİ 5: _______________
+   ☐ Addım 1  ☐ Addım 2  ☐ Addım 3  ☐ Test ✅
+
+
+╔══════════════════════════════════════════════════════════════════╗
+║                      TROUBLESHOOTİNG                             ║
+╚══════════════════════════════════════════════════════════════════╝
+
+ Agent siyahısı boşdur?
+   → npm run create-agents
+
+ Zəng cavab vermir?
+   → Twilio webhook URL yoxla:
+     https://api.retellai.com/create-phone-call
+
+ AI səhv məlumat deyir?
+   → Retell-də agent düzgün seçilibmi yoxla
+
+
+╔══════════════════════════════════════════════════════════════════╗
+║                      ƏTRAΦLI MƏLUMAT                             ║
+╚══════════════════════════════════════════════════════════════════╝
+
+ README faylları:
+   - SETUP_GUIDE_AZ.md      (Ətraflı təlimat)
+   - RETELL_MANUAL_SETUP.md (İngiliscə təlimat)
+
+ Script:
+   - scripts/list-tenants.js (Tenant məlumatları)
+
+
+Müvəffəqiyyətlər! 🚀
