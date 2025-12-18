@@ -206,6 +206,42 @@ export class AuthController {
       message: 'Logged out successfully',
     });
   }
+
+  /**
+   * Set password from verification token
+   * POST /api/auth/set-password
+   */
+  async setPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token, password } = req.body;
+
+      // Validation
+      if (!token || !password) {
+        return res.status(400).json({
+          success: false,
+          message: 'Token and password are required',
+        });
+      }
+
+      // Password strength validation
+      if (password.length < 8) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password must be at least 8 characters long',
+        });
+      }
+
+      const result = await authService.setPasswordFromToken(token, password);
+
+      return res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.user,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new AuthController();
