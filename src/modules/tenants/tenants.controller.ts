@@ -21,13 +21,17 @@ export class TenantsController {
         ownerName,
         ownerEmail,
         ownerPassword,
+        autoProvisionPhone,
+        autoProvisionAgent,
+        phoneAreaCode,
+        language,
       } = req.body;
 
-      // Validation
-      if (!name || !businessType || !email || !ownerName || !ownerEmail || !ownerPassword) {
+      // Validation - only basic tenant info is required
+      if (!name || !businessType || !email) {
         return res.status(400).json({
           success: false,
-          message: 'Required fields: name, businessType, email, ownerName, ownerEmail, ownerPassword',
+          message: 'Required fields: name, businessType, email',
         });
       }
 
@@ -43,12 +47,31 @@ export class TenantsController {
         ownerName,
         ownerEmail,
         ownerPassword,
+        autoProvisionPhone,
+        autoProvisionAgent,
+        phoneAreaCode,
+        language,
       });
+
+      // Customize response message based on flow
+      const message = result.needsVerification
+        ? 'Tenant created successfully. Verification email sent to owner.'
+        : 'Tenant created successfully';
 
       return res.status(201).json({
         success: true,
-        message: 'Tenant created successfully',
-        data: result,
+        message,
+        data: {
+          tenant: result.tenant,
+          owner: {
+            id: result.owner.id,
+            email: result.owner.email,
+            name: result.owner.name,
+            role: result.owner.role,
+            emailVerified: result.owner.emailVerified,
+          },
+          needsVerification: result.needsVerification,
+        },
       });
     } catch (error) {
       next(error);

@@ -308,6 +308,71 @@ router.post('/resend-verification', authController.resendVerification);
 
 /**
  * @swagger
+ * /api/auth/set-password:
+ *   post:
+ *     summary: Set password from verification token (for new tenants)
+ *     description: Allows new tenant owners to set their password after receiving verification email
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *               - password
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: Verification token from email
+ *                 example: a1b2c3d4e5f6...
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 8
+ *                 description: New password (min 8 characters)
+ *                 example: SecurePass123!
+ *     responses:
+ *       200:
+ *         description: Password set successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Password set successfully. Your account has been activated!
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                     emailVerified:
+ *                       type: boolean
+ *                       example: true
+ *                     adminApproved:
+ *                       type: boolean
+ *                       example: true
+ *       400:
+ *         description: Invalid request or token expired
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post('/set-password', authController.setPassword);
+
+/**
+ * @swagger
  * /api/auth/logout:
  *   post:
  *     summary: Logout user (client-side token removal)

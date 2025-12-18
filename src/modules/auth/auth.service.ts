@@ -428,6 +428,83 @@ export class AuthService {
       throw error;
     }
   }
+
+  /**
+   * Set password from verification token (for new tenants)
+   */
+  async setPasswordFromToken(token: string, newPassword: string) {
+    try {
+      // Find user with this verification token
+      const user = await prisma.user.findFirst({
+        where: {
+          verificationToken: token,
+          verificationTokenExpires: {
+            gt: new Date(), // Token not expired
+          },
+        },
+        include: {
+          tenant: {
+            select: {
+              id: true,
+              name: true,
+              businessType: true,
+            },
+          },
+        },
+      });
+
+      if (!user) {
+        throw new AppError('Invalid or expired verification token', 400);
+      }
+
+      // Hash new password
+      const passwordHash = await bcrypt.hash(newPassword, 10);
+
+      // Update user: set password, verify email, clear token, auto-approve
+      const updatedUser = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          passwordHash,
+          emailVerified: true,
+          adminApproved: true, // Auto-approve tenant owners
+          approvedAt: new Date(),
+          verificationToken: null,
+          verificationTokenExpires: null,
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          emailVerified: true,
+          adminApproved: true,
+          tenantId: true,
+          tenant: {
+            select: {
+              id: true,
+              name: true,
+              businessType: true,
+              plan: true,
+            },
+          },
+        },
+      });
+
+      logger.info('Password set successfully from verification token', {
+        userId: user.id,
+        email: user.email,
+        tenantId: user.tenantId,
+      });
+
+      return {
+        user: updatedUser,
+        message: 'Password set successfully. Your account has been activated!',
+      };
+    } catch (error) {
+      logger.error('Set password from token error', { error });
+      throw error;
+    }
+  }
 }
 
 export default new AuthService();

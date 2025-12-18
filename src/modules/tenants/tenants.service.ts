@@ -14,10 +14,10 @@ interface CreateTenantData {
   city?: string;
   website?: string;
   plan?: string;
-  // Owner user data
-  ownerName: string;
-  ownerEmail: string;
-  ownerPassword: string;
+  // Owner user data (OPTIONAL - if not provided, uses tenant email/name)
+  ownerName?: string;
+  ownerEmail?: string;
+  ownerPassword?: string;
   // Auto-provisioning options
   autoProvisionPhone?: boolean; // Automatically provision Twilio number
   autoProvisionAgent?: boolean; // Automatically create Retell agent
@@ -58,13 +58,32 @@ export class TenantsService {
         throw new AppError('Email already registered', 400);
       }
 
+      // Determine owner email (use provided or fallback to tenant email)
+      const ownerEmail = data.ownerEmail || data.email;
+      const ownerName = data.ownerName || data.name;
+
       // Check if owner email exists
       const existingUser = await prisma.user.findUnique({
-        where: { email: data.ownerEmail },
+        where: { email: ownerEmail },
       });
 
       if (existingUser) {
         throw new AppError('Owner email already registered', 400);
+      }
+
+      // Determine if we need email verification flow
+      const needsVerification = !data.ownerPassword;
+
+      // Generate verification token if password not provided
+      let verificationToken: string | undefined;
+      let verificationTokenExpires: Date | undefined;
+
+      if (needsVerification) {
+        // Generate random token
+        const crypto = require('crypto');
+        verificationToken = crypto.randomBytes(32).toString('hex');
+        // Token expires in 24 hours
+        verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
       }
 
       // Create tenant and owner in transaction
@@ -85,28 +104,43 @@ export class TenantsService {
           },
         });
 
-        // Hash password
-        const passwordHash = await bcrypt.hash(data.ownerPassword, 10);
+        // Prepare user data
+        const userData: any = {
+          tenantId: tenant.id,
+          email: ownerEmail,
+          name: ownerName,
+          role: 'owner',
+          emailVerified: !needsVerification, // Auto-verify if password provided
+          adminApproved: !needsVerification, // Auto-approve if password provided
+        };
+
+        // Add password or verification token
+        if (needsVerification) {
+          // Email verification flow - no password yet
+          userData.verificationToken = verificationToken;
+          userData.verificationTokenExpires = verificationTokenExpires;
+          userData.passwordHash = ''; // Temporary empty password
+        } else {
+          // Direct creation with password
+          userData.passwordHash = await bcrypt.hash(data.ownerPassword!, 10);
+          userData.approvedAt = new Date();
+        }
 
         // Create owner user
         const owner = await tx.user.create({
-          data: {
-            tenantId: tenant.id,
-            email: data.ownerEmail,
-            name: data.ownerName,
-            passwordHash,
-            role: 'owner',
-          },
+          data: userData,
           select: {
             id: true,
             email: true,
             name: true,
             role: true,
+            emailVerified: true,
+            verificationToken: true,
             createdAt: true,
           },
         });
 
-        return { tenant, owner };
+        return { tenant, owner, needsVerification, verificationToken };
       });
 
       logger.info('Tenant created successfully', {
@@ -178,6 +212,30 @@ export class TenantsService {
             tenantId: result.tenant.id,
           });
           // Don't fail tenant creation if agent provisioning fails
+        }
+      }
+
+      // Send verification email if needed
+      if (result.needsVerification && result.verificationToken) {
+        try {
+          const { emailService } = require('../../services/email.service');
+          await emailService.sendTenantWelcomeEmail(
+            result.owner.email,
+            result.owner.name,
+            result.tenant.name,
+            result.verificationToken
+          );
+
+          logger.info('Verification email sent', {
+            tenantId: result.tenant.id,
+            ownerEmail: result.owner.email,
+          });
+        } catch (emailError) {
+          logger.error('Failed to send verification email', {
+            error: emailError,
+            tenantId: result.tenant.id,
+          });
+          // Don't fail tenant creation if email fails
         }
       }
 

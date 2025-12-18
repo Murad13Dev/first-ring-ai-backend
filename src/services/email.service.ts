@@ -740,4 +740,167 @@ export const emailService = {
       throw error;
     }
   },
+
+  /**
+   * Send tenant welcome email with verification link
+   */
+  async sendTenantWelcomeEmail(to: string, ownerName: string, tenantName: string, verificationToken: string) {
+    try {
+      const verificationUrl = `${process.env.FRONTEND_URL}/auth/set-password?token=${verificationToken}`;
+
+      const mailOptions = {
+        from: process.env.EMAIL_FROM || 'noreply@firstringai.com',
+        to,
+        subject: `Welcome to First Ring AI - ${tenantName}`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background-color: #4F46E5; color: white; padding: 30px; text-align: center; }
+              .content { padding: 30px; background-color: #f9f9f9; }
+              .button {
+                display: inline-block;
+                padding: 15px 35px;
+                background-color: #4F46E5;
+                color: white;
+                text-decoration: none;
+                border-radius: 8px;
+                font-weight: bold;
+                margin: 20px 0;
+              }
+              .button:hover { background-color: #4338CA; }
+              .info-box {
+                background-color: #EEF2FF;
+                border-left: 4px solid #4F46E5;
+                padding: 15px;
+                margin: 20px 0;
+              }
+              .feature { padding: 15px 0; border-bottom: 1px solid #ddd; }
+              .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+              .success-icon { font-size: 48px; margin: 10px 0; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <div class="success-icon">🎉</div>
+                <h1>Welcome to First Ring AI!</h1>
+                <p style="font-size: 16px; margin: 10px 0;">Your business account has been created</p>
+              </div>
+              <div class="content">
+                <h2>Hello ${ownerName},</h2>
+                <p>Great news! Your tenant account for <strong>${tenantName}</strong> has been successfully created on First Ring AI platform.</p>
+
+                <div class="info-box">
+                  <strong>🔐 One More Step to Get Started</strong>
+                  <p style="margin: 10px 0 0 0;">To activate your account and start using our AI-powered phone automation, please set your password.</p>
+                </div>
+
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${verificationUrl}" class="button">Set Your Password</a>
+                </div>
+
+                <p style="text-align: center; color: #666; font-size: 14px;">
+                  Or copy and paste this link in your browser:<br/>
+                  <span style="word-break: break-all; color: #4F46E5;">${verificationUrl}</span>
+                </p>
+
+                <p style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 12px; margin: 20px 0;">
+                  <strong>⏰ Important:</strong> This link is valid for <strong>24 hours</strong> only.
+                </p>
+
+                <h3 style="margin-top: 30px;">What happens next?</h3>
+
+                <div class="feature">
+                  <strong>1. Set Your Password</strong>
+                  <p>Click the button above to create your secure password.</p>
+                </div>
+                <div class="feature">
+                  <strong>2. Verify Your Email</strong>
+                  <p>Your email will be automatically verified after setting password.</p>
+                </div>
+                <div class="feature">
+                  <strong>3. Start Your 14-Day Free Trial</strong>
+                  <p>Get full access to all features - no credit card required!</p>
+                </div>
+                <div class="feature">
+                  <strong>4. Access Your Dashboard</strong>
+                  <p>Configure your AI agent and start automating customer calls.</p>
+                </div>
+
+                <h3 style="margin-top: 30px;">What you'll get:</h3>
+                <ul style="line-height: 2;">
+                  <li>✅ AI-powered phone agent for your business</li>
+                  <li>✅ 24/7 automated call handling</li>
+                  <li>✅ Multi-language support</li>
+                  <li>✅ Booking & order management</li>
+                  <li>✅ Real-time analytics & insights</li>
+                  <li>✅ Seamless integrations (Twilio, Square, Google)</li>
+                </ul>
+
+                <p style="margin-top: 30px;">
+                  Need help? Our support team is here for you at:
+                  <a href="mailto:${process.env.SUPPORT_EMAIL || 'support@firstringai.com'}">${process.env.SUPPORT_EMAIL || 'support@firstringai.com'}</a>
+                </p>
+
+                <p style="margin-top: 20px; color: #666; font-size: 13px;">
+                  If you didn't create this account, please ignore this email or contact us if you have concerns.
+                </p>
+              </div>
+              <div class="footer">
+                <p><strong>First Ring AI</strong></p>
+                <p>Never miss a call again!</p>
+                <p>&copy; 2025 First Ring AI. All rights reserved.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `,
+        text: `
+          Welcome to First Ring AI!
+
+          Hello ${ownerName},
+
+          Great news! Your tenant account for ${tenantName} has been successfully created on First Ring AI platform.
+
+          TO GET STARTED:
+          Please set your password by visiting this link:
+          ${verificationUrl}
+
+          IMPORTANT: This link is valid for 24 hours only.
+
+          WHAT HAPPENS NEXT:
+          1. Set your password
+          2. Verify your email (automatic)
+          3. Start your 14-day free trial
+          4. Access your dashboard
+
+          WHAT YOU'LL GET:
+          - AI-powered phone agent for your business
+          - 24/7 automated call handling
+          - Multi-language support
+          - Booking & order management
+          - Real-time analytics & insights
+          - Seamless integrations (Twilio, Square, Google)
+
+          Need help? Contact us at: ${process.env.SUPPORT_EMAIL || 'support@firstringai.com'}
+
+          If you didn't create this account, please ignore this email.
+
+          First Ring AI - Never miss a call again!
+          © 2025 First Ring AI. All rights reserved.
+        `,
+      };
+
+      const info = await transporter.sendMail(mailOptions);
+      logger.info('Tenant welcome email sent:', { to, tenantName, messageId: info.messageId });
+      return { success: true, messageId: info.messageId };
+    } catch (error) {
+      logger.error('Failed to send tenant welcome email:', error);
+      throw error;
+    }
+  },
 };
