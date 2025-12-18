@@ -361,6 +361,46 @@ router.put('/:id', authenticateAdmin, leadsController.updateLead);
 
 /**
  * @swagger
+ * /api/leads/{id}:
+ *   delete:
+ *     summary: Delete lead (admin only)
+ *     description: Delete a lead from the system. Cannot delete converted leads.
+ *     tags: [Leads]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Lead ID
+ *     responses:
+ *       200:
+ *         description: Lead deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Lead deleted successfully
+ *       400:
+ *         description: Cannot delete converted lead
+ *       404:
+ *         description: Lead not found
+ *       401:
+ *         description: Unauthorized
+ */
+router.delete('/:id', authenticateAdmin, leadsController.deleteLead);
+
+/**
+ * @swagger
  * /api/leads/{id}/convert:
  *   post:
  *     summary: Convert lead to tenant (admin only)

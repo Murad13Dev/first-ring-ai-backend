@@ -191,6 +191,39 @@ export class LeadsService {
   }
 
   /**
+   * Delete lead
+   */
+  async deleteLead(id: string) {
+    try {
+      // Check if lead exists
+      const lead = await prisma.lead.findUnique({
+        where: { id },
+      });
+
+      if (!lead) {
+        throw new AppError('Lead not found', 404);
+      }
+
+      // Check if lead is already converted
+      if (lead.status === 'converted' && lead.convertedToTenantId) {
+        throw new AppError('Cannot delete a converted lead', 400);
+      }
+
+      // Delete the lead
+      await prisma.lead.delete({
+        where: { id },
+      });
+
+      logger.info('Lead deleted successfully', { leadId: id });
+
+      return { message: 'Lead deleted successfully' };
+    } catch (error) {
+      logger.error('Delete lead error', { error });
+      throw error;
+    }
+  }
+
+  /**
    * Convert lead to tenant
    */
   async convertLeadToTenant(leadId: string) {
