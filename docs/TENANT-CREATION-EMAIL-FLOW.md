@@ -25,6 +25,8 @@ This document covers the following endpoints:
 
 **Migration Required:** See [Database Migration](#-database-migration-critical) section below.
 
+**💡 Try it Live:** All these endpoints are available in [Swagger UI](http://localhost:5000/api-docs) for interactive testing. See [SWAGGER-API-GUIDE.md](./SWAGGER-API-GUIDE.md) for detailed instructions.
+
 ---
 
 ## 🎯 Benefits
