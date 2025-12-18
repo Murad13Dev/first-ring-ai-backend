@@ -84,6 +84,23 @@ export class LeadsController {
   }
 
   /**
+   * Delete lead
+   * DELETE /api/leads/:id
+   */
+  async deleteLead(req: Request, res: Response, next: NextFunction) {
+    try {
+      await leadsService.deleteLead(req.params.id);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Lead deleted successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Convert lead to tenant
    * POST /api/leads/:id/convert
    */
