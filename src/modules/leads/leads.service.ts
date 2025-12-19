@@ -38,16 +38,28 @@ export class LeadsService {
   private transporter: nodemailer.Transporter;
 
   constructor() {
-    // Initialize email transporter
-    this.transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASSWORD,
-      },
-    });
+    // Initialize email transporter (only if credentials are configured)
+    const hasEmailConfig = process.env.SMTP_HOST &&
+                          process.env.SMTP_USER &&
+                          process.env.SMTP_PASSWORD &&
+                          process.env.SMTP_PASSWORD !== 'your-app-password';
+
+    if (hasEmailConfig) {
+      this.transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '587'),
+        secure: false,
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASSWORD,
+        },
+      });
+      logger.info('Email transporter initialized');
+    } else {
+      logger.warn('Email credentials not configured - email notifications disabled');
+      // @ts-ignore - Allow null transporter when email is disabled
+      this.transporter = null;
+    }
   }
 
   /**
@@ -96,6 +108,14 @@ export class LeadsService {
    * Send lead emails asynchronously (background)
    */
   private async sendLeadEmailsAsync(lead: any): Promise<void> {
+    // Skip email sending if transporter is not configured
+    if (!this.transporter) {
+      logger.info('Email notifications skipped (not configured)', {
+        leadId: lead.id,
+      });
+      return;
+    }
+
     try {
       // Send notification email to admin
       await this.sendAdminNotification(lead);
@@ -489,6 +509,11 @@ export class LeadsService {
    * Send admin notification email
    */
   private async sendAdminNotification(lead: any) {
+    // Skip if email not configured
+    if (!this.transporter) {
+      return;
+    }
+
     try {
       const priorityMap: Record<string, string> = {
         hot: '🔥',
@@ -561,6 +586,11 @@ export class LeadsService {
    * Send confirmation to lead
    */
   private async sendLeadConfirmation(lead: any) {
+    // Skip if email not configured
+    if (!this.transporter) {
+      return;
+    }
+
     try {
       const html = `
         <h2>Your request has been received! ✅</h2>
@@ -603,6 +633,12 @@ export class LeadsService {
    * Send welcome email to new tenant
    */
   private async sendWelcomeEmail(lead: any, tenant: any, tempPassword: string) {
+    // Skip if email not configured
+    if (!this.transporter) {
+      logger.info('Welcome email skipped (not configured)', { tenantId: tenant.id });
+      return;
+    }
+
     try {
       const html = `
         <h2>🎉 Welcome, ${tenant.name}!</h2>
