@@ -77,16 +77,45 @@ export class LeadsService {
         source: lead.source,
       });
 
-      // Send notification email to admin
-      await this.sendAdminNotification(lead);
-
-      // Send confirmation SMS/Email to lead
-      await this.sendLeadConfirmation(lead);
+      // Send emails asynchronously (fire-and-forget to prevent timeout)
+      this.sendLeadEmailsAsync(lead).catch((error) => {
+        logger.error('Failed to send lead emails', {
+          error,
+          leadId: lead.id,
+        });
+      });
 
       return lead;
     } catch (error) {
       logger.error('Create lead error', { error });
       throw error;
+    }
+  }
+
+  /**
+   * Send lead emails asynchronously (background)
+   */
+  private async sendLeadEmailsAsync(lead: any): Promise<void> {
+    try {
+      // Send notification email to admin
+      await this.sendAdminNotification(lead);
+      logger.info('Admin notification sent', { leadId: lead.id });
+    } catch (error) {
+      logger.error('Failed to send admin notification', {
+        error,
+        leadId: lead.id,
+      });
+    }
+
+    try {
+      // Send confirmation to lead
+      await this.sendLeadConfirmation(lead);
+      logger.info('Lead confirmation sent', { leadId: lead.id });
+    } catch (error) {
+      logger.error('Failed to send lead confirmation', {
+        error,
+        leadId: lead.id,
+      });
     }
   }
 
