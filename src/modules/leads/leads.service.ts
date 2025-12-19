@@ -306,70 +306,15 @@ export class LeadsService {
         tenantId: tenant.id,
       });
 
-      // Auto-provision Twilio phone number
-      try {
-        logger.info('Auto-provisioning Twilio phone number for converted lead', {
-          tenantId: tenant.id,
-        });
-
-        const twilioNumber = await twilioProvisioningService.autoProvisionForTenant(
-          tenant.id,
-          {
-            countryCode: 'US',
-          }
-        );
-
-        // Update tenant with phone number
-        await prisma.tenant.update({
-          where: { id: tenant.id },
-          data: { twilioNumber },
-        });
-
-        logger.info('Twilio phone number auto-provisioned', {
-          tenantId: tenant.id,
-          twilioNumber,
-        });
-      } catch (error) {
-        logger.error('Failed to auto-provision phone number for converted lead', {
+      // Start async provisioning in background (fire-and-forget)
+      // This prevents 504 timeout on slow Twilio/Retell API calls
+      this.provisionServicesAsync(tenant, lead, tempPassword).catch((error) => {
+        logger.error('Background provisioning failed', {
           error,
           tenantId: tenant.id,
+          leadId,
         });
-        // Don't fail conversion if phone provisioning fails
-      }
-
-      // Auto-provision Retell AI agent
-      try {
-        logger.info('Auto-provisioning Retell AI agent for converted lead', {
-          tenantId: tenant.id,
-        });
-
-        const retellAgentId = await retellProvisioningService.createAgentForTenant({
-          tenantId: tenant.id,
-          tenantName: tenant.name,
-          businessType: tenant.businessType,
-          language: 'en-US', // Default language, can be customized
-        });
-
-        // Update tenant with agent ID
-        await prisma.tenant.update({
-          where: { id: tenant.id },
-          data: { retellAgentId },
-        });
-
-        logger.info('Retell AI agent auto-provisioned', {
-          tenantId: tenant.id,
-          retellAgentId,
-        });
-      } catch (error) {
-        logger.error('Failed to auto-provision Retell agent for converted lead', {
-          error,
-          tenantId: tenant.id,
-        });
-        // Don't fail conversion if agent provisioning fails
-      }
-
-      // Send welcome email
-      await this.sendWelcomeEmail(lead, tenant, tempPassword);
+      });
 
       return {
         tenant,
@@ -379,6 +324,88 @@ export class LeadsService {
     } catch (error) {
       logger.error('Convert lead to tenant error', { error });
       throw error;
+    }
+  }
+
+  /**
+   * Provision services asynchronously in background
+   * This runs after lead conversion to prevent timeout issues
+   */
+  private async provisionServicesAsync(
+    tenant: any,
+    lead: any,
+    tempPassword: string
+  ): Promise<void> {
+    // Auto-provision Twilio phone number
+    try {
+      logger.info('Auto-provisioning Twilio phone number for converted lead', {
+        tenantId: tenant.id,
+      });
+
+      const twilioNumber = await twilioProvisioningService.autoProvisionForTenant(
+        tenant.id,
+        {
+          countryCode: 'US',
+        }
+      );
+
+      // Update tenant with phone number
+      await prisma.tenant.update({
+        where: { id: tenant.id },
+        data: { twilioNumber },
+      });
+
+      logger.info('Twilio phone number auto-provisioned', {
+        tenantId: tenant.id,
+        twilioNumber,
+      });
+    } catch (error) {
+      logger.error('Failed to auto-provision phone number for converted lead', {
+        error,
+        tenantId: tenant.id,
+      });
+      // Don't fail if phone provisioning fails
+    }
+
+    // Auto-provision Retell AI agent
+    try {
+      logger.info('Auto-provisioning Retell AI agent for converted lead', {
+        tenantId: tenant.id,
+      });
+
+      const retellAgentId = await retellProvisioningService.createAgentForTenant({
+        tenantId: tenant.id,
+        tenantName: tenant.name,
+        businessType: tenant.businessType,
+        language: 'en-US', // Default language, can be customized
+      });
+
+      // Update tenant with agent ID
+      await prisma.tenant.update({
+        where: { id: tenant.id },
+        data: { retellAgentId },
+      });
+
+      logger.info('Retell AI agent auto-provisioned', {
+        tenantId: tenant.id,
+        retellAgentId,
+      });
+    } catch (error) {
+      logger.error('Failed to auto-provision Retell agent for converted lead', {
+        error,
+        tenantId: tenant.id,
+      });
+      // Don't fail if agent provisioning fails
+    }
+
+    // Send welcome email
+    try {
+      await this.sendWelcomeEmail(lead, tenant, tempPassword);
+    } catch (error) {
+      logger.error('Failed to send welcome email for converted lead', {
+        error,
+        tenantId: tenant.id,
+      });
     }
   }
 
