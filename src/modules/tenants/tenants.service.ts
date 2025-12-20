@@ -31,6 +31,7 @@ interface UpdateTenantData {
   phone?: string;
   address?: string;
   city?: string;
+  country?: string;
   website?: string;
   timezone?: string;
   businessHours?: any;
@@ -394,10 +395,37 @@ export class TenantsService {
         throw new AppError('Tenant not found', 404);
       }
 
+      // Filter data to only include valid updatable fields
+      const updateData: any = {};
+      const allowedFields = [
+        'name',
+        'businessType',
+        'phone',
+        'address',
+        'city',
+        'country',
+        'website',
+        'timezone',
+        'businessHours',
+        'plan',
+        'subscriptionStatus',
+        'twilioNumber',
+        'squareLocationId',
+        'googleCalendarId',
+        'googleSheetId',
+        'settings',
+      ];
+
+      for (const field of allowedFields) {
+        if (data[field as keyof UpdateTenantData] !== undefined) {
+          updateData[field] = data[field as keyof UpdateTenantData];
+        }
+      }
+
       const updated = await prisma.tenant.update({
         where: { id },
         data: {
-          ...data,
+          ...updateData,
           updatedAt: new Date(),
         },
       });
