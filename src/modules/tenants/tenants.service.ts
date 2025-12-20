@@ -31,6 +31,7 @@ interface UpdateTenantData {
   phone?: string;
   address?: string;
   city?: string;
+  country?: string;
   website?: string;
   timezone?: string;
   businessHours?: any;
@@ -148,101 +149,118 @@ export class TenantsService {
         tenantName: result.tenant.name,
       });
 
-      // Auto-provision Twilio phone number if requested
-      if (data.autoProvisionPhone) {
-        try {
-          logger.info('Auto-provisioning Twilio phone number', {
-            tenantId: result.tenant.id,
-          });
-
-          const twilioNumber = await twilioProvisioningService.autoProvisionForTenant(
-            result.tenant.id,
-            {
-              areaCode: data.phoneAreaCode,
-              countryCode: 'US',
-            }
-          );
-
-          // Update tenant with phone number
-          result.tenant = await prisma.tenant.update({
-            where: { id: result.tenant.id },
-            data: { twilioNumber },
-          });
-
-          logger.info('Twilio phone number provisioned', {
-            tenantId: result.tenant.id,
-            twilioNumber,
-          });
-        } catch (error) {
-          logger.error('Failed to auto-provision phone number', {
-            error,
-            tenantId: result.tenant.id,
-          });
-          // Don't fail tenant creation if phone provisioning fails
-        }
-      }
-
-      // Auto-provision Retell AI agent if requested
-      if (data.autoProvisionAgent) {
-        try {
-          logger.info('Auto-provisioning Retell AI agent', {
-            tenantId: result.tenant.id,
-          });
-
-          const retellAgentId = await retellProvisioningService.createAgentForTenant({
-            tenantId: result.tenant.id,
-            tenantName: result.tenant.name,
-            businessType: result.tenant.businessType,
-            language: data.language || 'en-US',
-          });
-
-          // Update tenant with agent ID
-          result.tenant = await prisma.tenant.update({
-            where: { id: result.tenant.id },
-            data: { retellAgentId },
-          });
-
-          logger.info('Retell AI agent provisioned', {
-            tenantId: result.tenant.id,
-            retellAgentId,
-          });
-        } catch (error) {
-          logger.error('Failed to auto-provision Retell agent', {
-            error,
-            tenantId: result.tenant.id,
-          });
-          // Don't fail tenant creation if agent provisioning fails
-        }
-      }
-
-      // Send verification email if needed
-      if (result.needsVerification && result.verificationToken) {
-        try {
-          const { emailService } = require('../../services/email.service');
-          await emailService.sendTenantWelcomeEmail(
-            result.owner.email,
-            result.owner.name,
-            result.tenant.name,
-            result.verificationToken
-          );
-
-          logger.info('Verification email sent', {
-            tenantId: result.tenant.id,
-            ownerEmail: result.owner.email,
-          });
-        } catch (emailError) {
-          logger.error('Failed to send verification email', {
-            error: emailError,
-            tenantId: result.tenant.id,
-          });
-          // Don't fail tenant creation if email fails
-        }
-      }
+      // Run post-creation tasks asynchronously (fire-and-forget to prevent timeout)
+      this.runPostCreationTasksAsync(result, data).catch((error) => {
+        logger.error('Failed to run post-creation tasks', {
+          error,
+          tenantId: result.tenant.id,
+        });
+      });
 
       return result;
     } catch (error) {
       logger.error('Create tenant error', { error });
       throw error;
+    }
+  }
+
+  /**
+   * Run post-creation tasks asynchronously (background)
+   * This includes: phone provisioning, agent provisioning, and email sending
+   */
+  private async runPostCreationTasksAsync(
+    result: any,
+    data: CreateTenantData
+  ): Promise<void> {
+    // Auto-provision Twilio phone number if requested
+    if (data.autoProvisionPhone) {
+      try {
+        logger.info('Auto-provisioning Twilio phone number', {
+          tenantId: result.tenant.id,
+        });
+
+        const twilioNumber = await twilioProvisioningService.autoProvisionForTenant(
+          result.tenant.id,
+          {
+            areaCode: data.phoneAreaCode,
+            countryCode: 'US',
+          }
+        );
+
+        // Update tenant with phone number
+        await prisma.tenant.update({
+          where: { id: result.tenant.id },
+          data: { twilioNumber },
+        });
+
+        logger.info('Twilio phone number provisioned', {
+          tenantId: result.tenant.id,
+          twilioNumber,
+        });
+      } catch (error) {
+        logger.error('Failed to auto-provision phone number', {
+          error,
+          tenantId: result.tenant.id,
+        });
+        // Don't fail - just log the error
+      }
+    }
+
+    // Auto-provision Retell AI agent if requested
+    if (data.autoProvisionAgent) {
+      try {
+        logger.info('Auto-provisioning Retell AI agent', {
+          tenantId: result.tenant.id,
+        });
+
+        const retellAgentId = await retellProvisioningService.createAgentForTenant({
+          tenantId: result.tenant.id,
+          tenantName: result.tenant.name,
+          businessType: result.tenant.businessType,
+          language: data.language || 'en-US',
+        });
+
+        // Update tenant with agent ID
+        await prisma.tenant.update({
+          where: { id: result.tenant.id },
+          data: { retellAgentId },
+        });
+
+        logger.info('Retell AI agent provisioned', {
+          tenantId: result.tenant.id,
+          retellAgentId,
+        });
+      } catch (error) {
+        logger.error('Failed to auto-provision Retell agent', {
+          error,
+          tenantId: result.tenant.id,
+        });
+        // Don't fail - just log the error
+      }
+    }
+
+    // Send verification email if needed
+    if (result.needsVerification && result.verificationToken) {
+      try {
+        const { emailService } = require('../../services/email.service');
+        await emailService.sendTenantWelcomeEmail(
+          result.owner.email,
+          result.owner.name,
+          result.tenant.name,
+          result.verificationToken
+        );
+
+        logger.info('Verification email sent', {
+          tenantId: result.tenant.id,
+          ownerEmail: result.owner.email,
+        });
+      } catch (emailError) {
+        logger.error('Failed to send verification email', {
+          error: emailError,
+          tenantId: result.tenant.id,
+        });
+        // Don't fail - just log the error
+      }
     }
   }
 
@@ -377,10 +395,37 @@ export class TenantsService {
         throw new AppError('Tenant not found', 404);
       }
 
+      // Filter data to only include valid updatable fields
+      const updateData: any = {};
+      const allowedFields = [
+        'name',
+        'businessType',
+        'phone',
+        'address',
+        'city',
+        'country',
+        'website',
+        'timezone',
+        'businessHours',
+        'plan',
+        'subscriptionStatus',
+        'twilioNumber',
+        'squareLocationId',
+        'googleCalendarId',
+        'googleSheetId',
+        'settings',
+      ];
+
+      for (const field of allowedFields) {
+        if (data[field as keyof UpdateTenantData] !== undefined) {
+          updateData[field] = data[field as keyof UpdateTenantData];
+        }
+      }
+
       const updated = await prisma.tenant.update({
         where: { id },
         data: {
-          ...data,
+          ...updateData,
           updatedAt: new Date(),
         },
       });
