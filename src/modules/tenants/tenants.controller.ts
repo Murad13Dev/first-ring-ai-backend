@@ -160,7 +160,7 @@ export class TenantsController {
 
       // Validate plan if provided
       if (data.plan) {
-        const validPlans = ['free', 'basic', 'pro', 'enterprise'];
+        const validPlans = ['free', 'basic', 'pro', 'professional', 'enterprise'];
         if (!validPlans.includes(data.plan)) {
           return res.status(400).json({
             success: false,
@@ -260,7 +260,7 @@ export class TenantsController {
       }
 
       // Validate plan
-      const validPlans = ['free', 'basic', 'pro', 'enterprise'];
+      const validPlans = ['free', 'basic', 'pro', 'professional', 'enterprise'];
       if (plan && !validPlans.includes(plan)) {
         return res.status(400).json({
           success: false,
