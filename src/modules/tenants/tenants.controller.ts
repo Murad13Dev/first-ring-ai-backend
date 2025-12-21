@@ -146,6 +146,12 @@ export class TenantsController {
         user: req.user?.email,
       });
 
+      // Support both 'status' and 'subscriptionStatus' for frontend compatibility
+      if (data.status && !data.subscriptionStatus) {
+        data.subscriptionStatus = data.status;
+        delete data.status;
+      }
+
       // Validate subscription status if provided
       if (data.subscriptionStatus) {
         const validStatuses = ['trial', 'active', 'cancelled', 'suspended'];
