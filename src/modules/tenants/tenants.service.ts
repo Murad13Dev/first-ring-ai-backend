@@ -341,8 +341,18 @@ export class TenantsService {
         prisma.tenant.count({ where }),
       ]);
 
+      // Extract defaultLanguage from settings for easier access
+      const tenantsWithLanguage = tenants.map(tenant => {
+        const settings = tenant.settings as Record<string, any> | null;
+        const defaultLanguage = settings?.defaultLanguage || 'en';
+        return {
+          ...tenant,
+          defaultLanguage,
+        };
+      });
+
       return {
-        tenants,
+        tenants: tenantsWithLanguage,
         pagination: {
           page,
           limit,
@@ -392,7 +402,14 @@ export class TenantsService {
         throw new AppError('Tenant not found', 404);
       }
 
-      return tenant;
+      // Extract defaultLanguage from settings for easier access
+      const settings = tenant.settings as Record<string, any> | null;
+      const defaultLanguage = settings?.defaultLanguage || 'en';
+
+      return {
+        ...tenant,
+        defaultLanguage,
+      };
     } catch (error) {
       logger.error('Get tenant by ID error', { error });
       throw error;
@@ -460,7 +477,14 @@ export class TenantsService {
         newPlan: updated.plan,
       });
 
-      return updated;
+      // Extract defaultLanguage from settings for easier access
+      const settings = updated.settings as Record<string, any> | null;
+      const defaultLanguage = settings?.defaultLanguage || 'en';
+
+      return {
+        ...updated,
+        defaultLanguage,
+      };
     } catch (error) {
       logger.error('Update tenant error', { error });
       throw error;
@@ -657,7 +681,14 @@ export class TenantsService {
         status: data.subscriptionStatus,
       });
 
-      return tenant;
+      // Extract defaultLanguage from settings for easier access
+      const settings = tenant.settings as Record<string, any> | null;
+      const defaultLanguage = settings?.defaultLanguage || 'en';
+
+      return {
+        ...tenant,
+        defaultLanguage,
+      };
     } catch (error) {
       logger.error('Update subscription error', { error });
       throw error;
