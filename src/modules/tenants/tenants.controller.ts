@@ -146,6 +146,12 @@ export class TenantsController {
         user: req.user?.email,
       });
 
+      // Support both 'status' and 'subscriptionStatus' for frontend compatibility
+      if (data.status && !data.subscriptionStatus) {
+        data.subscriptionStatus = data.status;
+        delete data.status;
+      }
+
       // Validate subscription status if provided
       if (data.subscriptionStatus) {
         const validStatuses = ['trial', 'active', 'cancelled', 'suspended'];
@@ -160,7 +166,7 @@ export class TenantsController {
 
       // Validate plan if provided
       if (data.plan) {
-        const validPlans = ['free', 'basic', 'pro', 'enterprise'];
+        const validPlans = ['free', 'starter', 'basic', 'pro', 'professional', 'enterprise'];
         if (!validPlans.includes(data.plan)) {
           return res.status(400).json({
             success: false,
@@ -260,7 +266,7 @@ export class TenantsController {
       }
 
       // Validate plan
-      const validPlans = ['free', 'basic', 'pro', 'enterprise'];
+      const validPlans = ['free', 'starter', 'basic', 'pro', 'professional', 'enterprise'];
       if (plan && !validPlans.includes(plan)) {
         return res.status(400).json({
           success: false,
