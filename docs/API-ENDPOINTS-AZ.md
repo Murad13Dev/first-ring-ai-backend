@@ -2,9 +2,11 @@
 
 **Ümumi Backend URL:** `https://your-domain.com/api`
 
-**Versiya:** 2.0.0
-**Son Yenilənmə:** 2024-12-03
+**Versiya:** 2.1.0
+**Son Yenilənmə:** 2024-12-21
 **Ümumi Endpoint Sayı:** 165+
+
+> 🆕 **v2.1.0 Yenilikləri:** Tenant module partial updates, language management, email improvements, və status validation əlavə edildi!
 
 ---
 
@@ -343,18 +345,19 @@ Authorization: Bearer {tenant_token}
 | Endpoint | Method | Auth | İstifadə |
 |----------|--------|------|----------|
 | `/` | POST | ✅ Admin | Yeni tenant yaratma |
-| `/` | GET | ✅ Admin | Bütün tenantlar |
+| `/` | GET | ✅ Admin | Bütün tenantlar (filter, pagination) |
 | `/:id` | GET | ✅ Tenant | Tenant detalları |
-| `/:id` | PUT | ✅ Tenant | Tenant yeniləmə |
+| `/:id` | PUT | ✅ Tenant | Tenant yeniləmə (validation ilə) |
 | `/:id` | DELETE | ✅ Admin | Tenant deaktiv etmə |
 | `/:id/stats` | GET | ✅ Tenant | Tenant statistikaları |
 | `/stats/all` | GET | ✅ Admin | Bütün tenantların statistikası |
-| `/:id/subscription` | PUT | ✅ Admin | Abunə yeniləmə |
+| `/:id/subscription` | PUT | ✅ Admin | Abunə yeniləmə (partial update) |
 | `/languages` | GET | ✅ Tenant | Dəstəklənən dillər |
 | `/languages/test` | POST | ✅ Tenant | Translation test |
 | `/:id/language` | PUT | ✅ Tenant | Tenant dilini təyin et |
 
-**Nümunə - Tenant Info:**
+### Tenant Info
+**Nümunə - Tenant Məlumatı:**
 ```bash
 GET /api/tenants/tenant_abc123
 Authorization: Bearer {tenant_token}
@@ -367,10 +370,135 @@ Authorization: Bearer {tenant_token}
   "email": "info@pizzapalace.az",
   "phone": "+994123456789",
   "twilioNumber": "+1234567890",
-  "status": "active",
-  "plan": "professional",
-  "defaultLanguage": "az"
+  "subscriptionStatus": "active",
+  "plan": "pro",
+  "settings": {
+    "defaultLanguage": "az"
+  }
 }
+```
+
+### Tenant Update
+**Nümunə - Tenant Update:**
+```bash
+PUT /api/tenants/tenant_abc123
+Authorization: Bearer {tenant_token}
+{
+  "name": "Pizza Palace Premium",
+  "phone": "+994557654321",
+  "subscriptionStatus": "active",
+  "plan": "enterprise"
+}
+
+# Validation:
+# - subscriptionStatus: trial, active, cancelled, suspended
+# - plan: free, basic, pro, enterprise
+# - Səhv status göndərsəniz aydın error mesajı alırsınız
+
+# Cavab:
+{
+  "success": true,
+  "message": "Tenant updated successfully",
+  "data": {
+    "id": "tenant_abc123",
+    "name": "Pizza Palace Premium",
+    "subscriptionStatus": "active",
+    "plan": "enterprise",
+    ...
+  }
+}
+```
+
+### Subscription Update (Partial)
+**ÖNƏMLİ:** Artıq subscription update zamanı bütün field-lər lazım deyil!
+
+```bash
+PUT /api/tenants/tenant_abc123/subscription
+Authorization: Bearer {admin_token}
+
+# Yalnız status dəyişdirmək:
+{
+  "subscriptionStatus": "active"
+}
+
+# Yalnız plan dəyişdirmək:
+{
+  "plan": "pro"
+}
+
+# Hər ikisini dəyişdirmək:
+{
+  "subscriptionStatus": "active",
+  "plan": "enterprise"
+}
+
+# Frontend compatibility - həm 'subscriptionStatus' həm 'status' işləyir:
+{
+  "status": "active"  // ✅ İşləyir
+}
+
+# Valid Subscription Statuses:
+# - trial: Sınaq dövründə
+# - active: Aktiv abunə (ödəniş lazım deyil!)
+# - cancelled: Ləğv edilmiş
+# - suspended: Dayandırılmış
+
+# Valid Plans:
+# - free: Pulsuz
+# - basic: Əsas
+# - pro: Professional
+# - enterprise: Korporativ
+
+# Cavab:
+{
+  "success": true,
+  "message": "Subscription updated successfully",
+  "data": {
+    "id": "tenant_abc123",
+    "subscriptionStatus": "active",
+    "plan": "pro",
+    ...
+  }
+}
+
+# Error Nümunəsi (səhv status):
+{
+  "success": false,
+  "message": "Invalid subscription status. Must be one of: trial, active, cancelled, suspended",
+  "providedStatus": "Active"
+}
+```
+
+### Language Update
+**Nümunə - Dil Dəyişdirmə:**
+```bash
+PUT /api/tenants/tenant_abc123/language
+Authorization: Bearer {tenant_token}
+{
+  "language": "az"
+}
+
+# Dəstəklənən dillər:
+# - az: Azərbaycan dili
+# - en: English
+# - tr: Türkçe
+# - ru: Русский
+# - es: Español
+# - zh: 中文
+
+# Cavab:
+{
+  "success": true,
+  "message": "Language updated successfully",
+  "data": {
+    "language": "az",
+    "settings": {
+      "defaultLanguage": "az"
+    }
+  }
+}
+
+# Language settings.defaultLanguage kimi saxlanılır
 ```
 
 ---
@@ -876,6 +1004,32 @@ https://your-domain.com/api
 
 ---
 
-**Versiya:** 2.0.0
-**Son Yenilənmə:** 2024-12-03
+**Versiya:** 2.1.0
+**Son Yenilənmə:** 2024-12-21
 **Müəllif:** First Ring AI Team
+
+---
+
+## 🆕 YENİLİKLƏR (v2.1.0 - 21 Dekabr 2024)
+
+### Tenant Module Təkmilləşdirmələri:
+
+1. **Partial Subscription Update** ✅
+   - Artıq subscription update zamanı bütün field-lər lazım deyil
+   - Yalnız dəyişdirmək istədiyiniz field-i göndərin
+   - `status` və ya `subscriptionStatus` - hər ikisi işləyir
+
+2. **Language Update** ✅
+   - Tenant dilini asanlıqla dəyişdirin
+   - `settings.defaultLanguage` kimi saxlanılır
+   - Response-da full settings object qaytarılır
+
+3. **Email Göndərmə Təkmilləşdirilməsi** ✅
+   - Artıq hər tenant yaradılanda email göndərilir
+   - Password varsa → Welcome email
+   - Password yoxsa → Verification email
+
+4. **Status Validation** ✅
+   - Subscription status və plan üçün built-in validation
+   - Aydın error mesajları
+   - Frontend üçün rahat

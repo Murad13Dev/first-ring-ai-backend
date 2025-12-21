@@ -47,9 +47,11 @@ This document covers the following endpoints:
 
 ## 📋 Flow Diagram
 
+### Flow A: Without Password (Email Verification)
+
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│ Step 1: Admin Creates Tenant (Simple)                           │
+│ Step 1: Admin Creates Tenant (WITHOUT ownerPassword)            │
 │ POST /api/tenants                                                │
 │ { name, email, businessType }                                   │
 └────────────────────┬─────────────────────────────────────────────┘
@@ -60,15 +62,15 @@ This document covers the following endpoints:
 │ • Creates Tenant record                                         │
 │ • Creates Owner user (emailVerified: false)                     │
 │ • Generates verification token (24h expiry)                     │
-│ • Sends welcome email with verification link                    │
+│ • ✅ SENDS VERIFICATION EMAIL with "Set Password" link         │
 └────────────────────┬─────────────────────────────────────────────┘
                      │
                      ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│ Step 3: User Receives Email                                     │
+│ Step 3: User Receives VERIFICATION Email                        │
 │ Subject: "Welcome to First Ring AI - [Tenant Name]"             │
 │ • Beautiful HTML template                                       │
-│ • Clear CTA: "Set Your Password"                               │
+│ • Clear CTA: "Set Your Password" 🔐                            │
 │ • Link: /auth/set-password?token=...                           │
 │ • Valid for 24 hours                                            │
 └────────────────────┬─────────────────────────────────────────────┘
@@ -82,22 +84,53 @@ This document covers the following endpoints:
                      │
                      ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│ Step 5: Backend Auto-Activation                                 │
-│ • Sets password hash                                            │
-│ • Verifies email (emailVerified: true)                         │
-│ • Auto-approves user (adminApproved: true)                     │
-│ • Clears verification token                                     │
-│ • Returns user data + success message                           │
-└────────────────────┬─────────────────────────────────────────────┘
-                     │
-                     ▼
-┌──────────────────────────────────────────────────────────────────┐
-│ Step 6: User Redirected to Dashboard                            │
+│ Step 5: User Can Login                                          │
 │ • Can login immediately                                          │
 │ • 14-day trial active                                           │
 │ • Full access to all features                                   │
 └──────────────────────────────────────────────────────────────────┘
 ```
+
+### Flow B: With Password (Instant Access)
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ Step 1: Admin Creates Tenant (WITH ownerPassword)               │
+│ POST /api/tenants                                                │
+│ { name, email, businessType, ownerPassword: "Pass123!" }        │
+└────────────────────┬─────────────────────────────────────────────┘
+                     │
+                     ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ Step 2: Backend Auto-Processing                                 │
+│ • Creates Tenant record                                         │
+│ • Creates Owner user (emailVerified: true, approved: true)      │
+│ • Sets password hash directly                                   │
+│ • ✅ SENDS WELCOME EMAIL with "Log In Now" link                │
+└────────────────────┬─────────────────────────────────────────────┘
+                     │
+                     ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ Step 3: User Receives WELCOME Email                             │
+│ Subject: "Account Approved - First Ring AI"                     │
+│ • Professional approval template                                │
+│ • Clear CTA: "Log In Now" ✅                                    │
+│ • Link: /login                                                  │
+│ • Account ready to use immediately                              │
+└────────────────────┬─────────────────────────────────────────────┘
+                     │
+                     ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ Step 4: User Can Login IMMEDIATELY                              │
+│ • Use provided password to login                                 │
+│ • 14-day trial active                                           │
+│ • Full access to all features                                   │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+**⚠️ IMPORTANT UPDATE:** Artıq HƏR İKİ halda email göndərilir!
+- **Password yoxsa:** Verification email (set password)
+- **Password varsa:** Welcome email (ready to login)
 
 ---
 
@@ -713,19 +746,45 @@ const deleteLead = async (leadId) => {
 
 ## 📝 Notes
 
-### Backward Compatibility:
+### Email Sending Behavior (Updated):
 
-The system maintains backward compatibility. If you provide `ownerPassword` during tenant creation, the email verification flow is skipped and the user is created directly:
+**⚠️ IMPORTANT CHANGE:** Artıq HƏR ZAMAN email göndərilir!
 
+**Scenario 1: WITHOUT ownerPassword**
 ```json
 POST /api/tenants
 {
-  "name": "Old Style Tenant",
-  "email": "old@example.com",
-  "businessType": "restaurant",
-  "ownerPassword": "DirectPassword123!" // ← Skips email flow
+  "name": "New Tenant",
+  "email": "new@example.com",
+  "businessType": "restaurant"
+  // ownerPassword yoxdur
 }
+
+// → Verification email göndərilir
+// → Email type: "Set Your Password"
+// → needsVerification: true
 ```
+
+**Scenario 2: WITH ownerPassword**
+```json
+POST /api/tenants
+{
+  "name": "Direct Tenant",
+  "email": "direct@example.com",
+  "businessType": "restaurant",
+  "ownerPassword": "DirectPassword123!"
+}
+
+// → Welcome email göndərilir
+// → Email type: "Account Approved - Log In Now"
+// → needsVerification: false
+// → User can login immediately
+```
+
+**Key Difference:**
+- ❌ Artıq email göndərmək skip olunmur
+- ✅ Hər zaman email göndərilir
+- 📧 Email type-ı password olub-olmamasına görə dəyişir
 
 ---
 

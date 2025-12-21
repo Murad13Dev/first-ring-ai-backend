@@ -12,14 +12,25 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Verify transporter configuration
-transporter.verify((error, success) => {
-  if (error) {
-    logger.error('Email transporter verification failed:', error);
-  } else {
-    logger.info('Email transporter is ready');
+// Verify transporter configuration on startup
+(async () => {
+  try {
+    await transporter.verify();
+    logger.info('✅ Email transporter is ready and connected', {
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      user: process.env.SMTP_USER,
+    });
+  } catch (error) {
+    logger.error('❌ Email transporter verification failed', {
+      error: error instanceof Error ? error.message : String(error),
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      user: process.env.SMTP_USER,
+      suggestion: 'Please check SMTP credentials and server availability',
+    });
   }
-});
+})();
 
 export const emailService = {
   /**
@@ -389,10 +400,20 @@ export const emailService = {
       };
 
       const info = await transporter.sendMail(mailOptions);
-      logger.info('Approval confirmation email sent:', { to, messageId: info.messageId });
+      logger.info('✅ Approval confirmation email sent successfully', {
+        to,
+        name,
+        messageId: info.messageId,
+        response: info.response,
+      });
       return { success: true, messageId: info.messageId };
     } catch (error) {
-      logger.error('Failed to send approval confirmation email:', error);
+      logger.error('❌ Failed to send approval confirmation email', {
+        error: error instanceof Error ? error.message : String(error),
+        to,
+        name,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       throw error;
     }
   },
@@ -896,10 +917,20 @@ export const emailService = {
       };
 
       const info = await transporter.sendMail(mailOptions);
-      logger.info('Tenant welcome email sent:', { to, tenantName, messageId: info.messageId });
+      logger.info('✅ Tenant welcome email sent successfully', {
+        to,
+        tenantName,
+        messageId: info.messageId,
+        response: info.response,
+      });
       return { success: true, messageId: info.messageId };
     } catch (error) {
-      logger.error('Failed to send tenant welcome email:', error);
+      logger.error('❌ Failed to send tenant welcome email', {
+        error: error instanceof Error ? error.message : String(error),
+        to,
+        tenantName,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       throw error;
     }
   },

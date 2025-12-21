@@ -239,10 +239,12 @@ export class TenantsService {
       }
     }
 
-    // Send verification email if needed
-    if (result.needsVerification && result.verificationToken) {
-      try {
-        const { emailService } = require('../../services/email.service');
+    // Send welcome/verification email based on flow
+    try {
+      const { emailService } = require('../../services/email.service');
+
+      if (result.needsVerification && result.verificationToken) {
+        // Send verification email (password not set yet)
         await emailService.sendTenantWelcomeEmail(
           result.owner.email,
           result.owner.name,
@@ -250,17 +252,32 @@ export class TenantsService {
           result.verificationToken
         );
 
-        logger.info('Verification email sent', {
+        logger.info('Tenant verification email sent', {
           tenantId: result.tenant.id,
           ownerEmail: result.owner.email,
+          emailType: 'verification',
         });
-      } catch (emailError) {
-        logger.error('Failed to send verification email', {
-          error: emailError,
+      } else {
+        // Send welcome email (password already set, ready to login)
+        await emailService.sendApprovalConfirmationEmail(
+          result.owner.email,
+          result.owner.name
+        );
+
+        logger.info('Tenant welcome email sent', {
           tenantId: result.tenant.id,
+          ownerEmail: result.owner.email,
+          emailType: 'welcome',
         });
-        // Don't fail - just log the error
       }
+    } catch (emailError) {
+      logger.error('Failed to send tenant email', {
+        error: emailError,
+        tenantId: result.tenant.id,
+        ownerEmail: result.owner.email,
+        errorMessage: emailError instanceof Error ? emailError.message : String(emailError),
+      });
+      // Don't fail - just log the error
     }
   }
 
@@ -422,6 +439,12 @@ export class TenantsService {
         }
       }
 
+      logger.info('Updating tenant', {
+        tenantId: id,
+        fieldsToUpdate: Object.keys(updateData),
+        updateData,
+      });
+
       const updated = await prisma.tenant.update({
         where: { id },
         data: {
@@ -430,7 +453,12 @@ export class TenantsService {
         },
       });
 
-      logger.info('Tenant updated successfully', { tenantId: id });
+      logger.info('Tenant updated successfully', {
+        tenantId: id,
+        updatedFields: Object.keys(updateData),
+        newSubscriptionStatus: updated.subscriptionStatus,
+        newPlan: updated.plan,
+      });
 
       return updated;
     } catch (error) {
@@ -611,8 +639,8 @@ export class TenantsService {
   async updateSubscription(
     tenantId: string,
     data: {
-      plan: string;
-      subscriptionStatus: string;
+      plan?: string;
+      subscriptionStatus?: string;
       subscriptionId?: string;
       currentPeriodEnd?: Date;
     }

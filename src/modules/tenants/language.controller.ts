@@ -2,6 +2,7 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../../middleware/auth.middleware';
 import i18nService from '../../services/i18n.service';
 import prisma from '../../config/database';
+import logger from '../../config/logger';
 
 export class LanguageController {
   /**
@@ -37,28 +38,53 @@ export class LanguageController {
         });
       }
 
-      // Get current tenant settings
-      const currentTenant = await prisma.tenant.findUnique({ where: { id } });
-      const currentSettings = (currentTenant?.settings && typeof currentTenant.settings === 'object')
-        ? currentTenant.settings as Record<string, any>
+      // Check if tenant exists
+      const existingTenant = await prisma.tenant.findUnique({
+        where: { id },
+        select: { settings: true }
+      });
+
+      if (!existingTenant) {
+        return res.status(404).json({
+          success: false,
+          message: 'Tenant not found',
+        });
+      }
+
+      // Get current settings and merge with new language
+      const currentSettings = (existingTenant.settings && typeof existingTenant.settings === 'object')
+        ? existingTenant.settings as Record<string, any>
         : {};
 
+      const updatedSettings = {
+        ...currentSettings,
+        defaultLanguage: language,
+      };
+
+      // Update tenant with new settings
       const tenant = await prisma.tenant.update({
         where: { id },
         data: {
-          settings: {
-            ...currentSettings,
-            defaultLanguage: language,
-          },
+          settings: updatedSettings,
         },
+      });
+
+      logger.info('Tenant language updated successfully', {
+        tenantId: id,
+        language,
+        settings: tenant.settings,
       });
 
       return res.status(200).json({
         success: true,
-        message: 'Language updated',
-        data: { language },
+        message: 'Language updated successfully',
+        data: {
+          language,
+          settings: tenant.settings,
+        },
       });
     } catch (error) {
+      logger.error('Error updating tenant language', { error, tenantId: req.params.id });
       next(error);
     }
   }
