@@ -215,19 +215,21 @@ export class TenantsController {
       const { id } = req.params;
       const { plan, subscriptionStatus, subscriptionId, currentPeriodEnd } = req.body;
 
-      if (!plan || !subscriptionStatus) {
+      // At least one field must be provided
+      if (!plan && !subscriptionStatus && !subscriptionId && !currentPeriodEnd) {
         return res.status(400).json({
           success: false,
-          message: 'Plan and subscriptionStatus are required',
+          message: 'At least one subscription field must be provided (plan, subscriptionStatus, subscriptionId, or currentPeriodEnd)',
         });
       }
 
-      const tenant = await tenantsService.updateSubscription(id, {
-        plan,
-        subscriptionStatus,
-        subscriptionId,
-        currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd) : undefined,
-      });
+      const updateData: any = {};
+      if (plan !== undefined) updateData.plan = plan;
+      if (subscriptionStatus !== undefined) updateData.subscriptionStatus = subscriptionStatus;
+      if (subscriptionId !== undefined) updateData.subscriptionId = subscriptionId;
+      if (currentPeriodEnd !== undefined) updateData.currentPeriodEnd = new Date(currentPeriodEnd);
+
+      const tenant = await tenantsService.updateSubscription(id, updateData);
 
       return res.status(200).json({
         success: true,

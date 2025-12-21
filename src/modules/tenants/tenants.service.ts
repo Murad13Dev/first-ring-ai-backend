@@ -611,8 +611,8 @@ export class TenantsService {
   async updateSubscription(
     tenantId: string,
     data: {
-      plan: string;
-      subscriptionStatus: string;
+      plan?: string;
+      subscriptionStatus?: string;
       subscriptionId?: string;
       currentPeriodEnd?: Date;
     }
