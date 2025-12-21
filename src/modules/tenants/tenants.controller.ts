@@ -139,6 +139,37 @@ export class TenantsController {
       const { id } = req.params;
       const data = req.body;
 
+      // Log incoming update request for debugging
+      console.log('📝 Tenant update request:', {
+        tenantId: id,
+        requestBody: data,
+        user: req.user?.email,
+      });
+
+      // Validate subscription status if provided
+      if (data.subscriptionStatus) {
+        const validStatuses = ['trial', 'active', 'cancelled', 'suspended'];
+        if (!validStatuses.includes(data.subscriptionStatus)) {
+          return res.status(400).json({
+            success: false,
+            message: `Invalid subscription status. Must be one of: ${validStatuses.join(', ')}`,
+            providedStatus: data.subscriptionStatus,
+          });
+        }
+      }
+
+      // Validate plan if provided
+      if (data.plan) {
+        const validPlans = ['free', 'basic', 'pro', 'enterprise'];
+        if (!validPlans.includes(data.plan)) {
+          return res.status(400).json({
+            success: false,
+            message: `Invalid plan. Must be one of: ${validPlans.join(', ')}`,
+            providedPlan: data.plan,
+          });
+        }
+      }
+
       const tenant = await tenantsService.updateTenant(id, data);
 
       return res.status(200).json({
@@ -213,10 +244,33 @@ export class TenantsController {
   async updateSubscription(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const { plan, subscriptionStatus, subscriptionId, currentPeriodEnd } = req.body;
+      const { plan, subscriptionStatus, subscriptionId, currentPeriodEnd, status } = req.body;
+
+      // Support both 'subscriptionStatus' and 'status' for frontend compatibility
+      const finalStatus = subscriptionStatus || status;
+
+      // Validate subscription status
+      const validStatuses = ['trial', 'active', 'cancelled', 'suspended'];
+      if (finalStatus && !validStatuses.includes(finalStatus)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid subscription status. Must be one of: ${validStatuses.join(', ')}`,
+          providedStatus: finalStatus,
+        });
+      }
+
+      // Validate plan
+      const validPlans = ['free', 'basic', 'pro', 'enterprise'];
+      if (plan && !validPlans.includes(plan)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid plan. Must be one of: ${validPlans.join(', ')}`,
+          providedPlan: plan,
+        });
+      }
 
       // At least one field must be provided
-      if (!plan && !subscriptionStatus && !subscriptionId && !currentPeriodEnd) {
+      if (!plan && !finalStatus && !subscriptionId && !currentPeriodEnd) {
         return res.status(400).json({
           success: false,
           message: 'At least one subscription field must be provided (plan, subscriptionStatus, subscriptionId, or currentPeriodEnd)',
@@ -225,9 +279,15 @@ export class TenantsController {
 
       const updateData: any = {};
       if (plan !== undefined) updateData.plan = plan;
-      if (subscriptionStatus !== undefined) updateData.subscriptionStatus = subscriptionStatus;
+      if (finalStatus !== undefined) updateData.subscriptionStatus = finalStatus;
       if (subscriptionId !== undefined) updateData.subscriptionId = subscriptionId;
       if (currentPeriodEnd !== undefined) updateData.currentPeriodEnd = new Date(currentPeriodEnd);
+
+      console.log('🔄 Subscription update request:', {
+        tenantId: id,
+        requestBody: req.body,
+        updateData,
+      });
 
       const tenant = await tenantsService.updateSubscription(id, updateData);
 

@@ -439,6 +439,12 @@ export class TenantsService {
         }
       }
 
+      logger.info('Updating tenant', {
+        tenantId: id,
+        fieldsToUpdate: Object.keys(updateData),
+        updateData,
+      });
+
       const updated = await prisma.tenant.update({
         where: { id },
         data: {
@@ -447,7 +453,12 @@ export class TenantsService {
         },
       });
 
-      logger.info('Tenant updated successfully', { tenantId: id });
+      logger.info('Tenant updated successfully', {
+        tenantId: id,
+        updatedFields: Object.keys(updateData),
+        newSubscriptionStatus: updated.subscriptionStatus,
+        newPlan: updated.plan,
+      });
 
       return updated;
     } catch (error) {
