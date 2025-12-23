@@ -2,6 +2,7 @@ import prisma from '../../config/database';
 import logger from '../../config/logger';
 import { AppError } from '../../middleware/error.middleware';
 import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 import twilioProvisioningService from '../../services/twilio-provisioning.service';
 import retellProvisioningService from '../../services/retell-provisioning.service';
 
@@ -35,19 +36,30 @@ interface CreateLeadData {
 }
 
 export class LeadsService {
-  private transporter: nodemailer.Transporter;
+  private transporter: nodemailer.Transporter | null = null;
+  private emailService: 'sendgrid' | 'smtp';
 
   constructor() {
-    // Initialize email transporter
-    this.transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASSWORD,
-      },
-    });
+    // Determine which email service to use
+    this.emailService = (process.env.EMAIL_SERVICE as 'sendgrid' | 'smtp') || 'smtp';
+
+    if (this.emailService === 'sendgrid' && process.env.SENDGRID_API_KEY) {
+      // Initialize SendGrid
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+      logger.info('Email service initialized with SendGrid');
+    } else {
+      // Initialize SMTP (Gmail fallback)
+      this.transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '587'),
+        secure: false,
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASSWORD,
+        },
+      });
+      logger.info('Email service initialized with SMTP (Gmail)');
+    }
   }
 
   /**
@@ -544,9 +556,8 @@ export class LeadsService {
         </p>
       `;
 
-      await this.transporter.sendMail({
-        from: process.env.EMAIL_FROM,
-        to: process.env.SALES_EMAIL,
+      await this.sendEmail({
+        to: process.env.SALES_EMAIL!,
         subject: `${priorityEmoji} New Lead: ${lead.businessName} (${lead.selectedPlan.toUpperCase()})`,
         html,
       });
@@ -554,6 +565,7 @@ export class LeadsService {
       logger.info('Admin notification sent', { leadId: lead.id });
     } catch (error) {
       logger.error('Admin notification error', { error });
+      throw error; // Re-throw to be caught by retry mechanism
     }
   }
 
@@ -586,8 +598,7 @@ export class LeadsService {
         First Ring AI Team</p>
       `;
 
-      await this.transporter.sendMail({
-        from: process.env.EMAIL_FROM,
+      await this.sendEmail({
         to: lead.email,
         subject: 'Your request has been received - First Ring AI',
         html,
@@ -596,6 +607,7 @@ export class LeadsService {
       logger.info('Lead confirmation sent', { leadId: lead.id });
     } catch (error) {
       logger.error('Lead confirmation error', { error });
+      throw error; // Re-throw to be caught by retry mechanism
     }
   }
 
@@ -645,8 +657,7 @@ export class LeadsService {
         First Ring AI Team</p>
       `;
 
-      await this.transporter.sendMail({
-        from: process.env.EMAIL_FROM,
+      await this.sendEmail({
         to: lead.email,
         subject: '🎉 Welcome to First Ring AI!',
         html,
@@ -655,6 +666,7 @@ export class LeadsService {
       logger.info('Welcome email sent', { tenantId: tenant.id });
     } catch (error) {
       logger.error('Welcome email error', { error });
+      // Don't throw - welcome email is not critical
     }
   }
 
@@ -709,6 +721,72 @@ export class LeadsService {
       logger.error('Get lead stats error', { error });
       throw error;
     }
+  }
+
+  /**
+   * Universal email sending method - supports both SendGrid and SMTP
+   */
+  private async sendEmail(options: {
+    to: string;
+    subject: string;
+    html: string;
+    retries?: number;
+  }): Promise<void> {
+    const maxRetries = options.retries || 3;
+    let lastError: any;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        if (this.emailService === 'sendgrid') {
+          // SendGrid
+          await sgMail.send({
+            from: process.env.EMAIL_FROM!,
+            to: options.to,
+            subject: options.subject,
+            html: options.html,
+          });
+        } else {
+          // SMTP (Gmail)
+          if (!this.transporter) {
+            throw new Error('SMTP transporter not initialized');
+          }
+          await this.transporter.sendMail({
+            from: process.env.EMAIL_FROM,
+            to: options.to,
+            subject: options.subject,
+            html: options.html,
+          });
+        }
+
+        // Success!
+        if (attempt > 1) {
+          logger.info(`Email sent successfully on attempt ${attempt}`, {
+            to: options.to,
+            service: this.emailService,
+          });
+        }
+        return;
+      } catch (error: any) {
+        lastError = error;
+        logger.warn(`Email send attempt ${attempt}/${maxRetries} failed`, {
+          error: error.message,
+          code: error.code,
+          to: options.to,
+          service: this.emailService,
+        });
+
+        if (attempt < maxRetries) {
+          // Exponential backoff: 2s, 4s, 8s
+          const delay = Math.pow(2, attempt) * 1000;
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    // All retries failed
+    throw new Error(
+      `Failed to send email after ${maxRetries} attempts: ${lastError.message}`
+    );
   }
 }
 
