@@ -1552,7 +1552,7 @@ Additional Notes: ${data.notes || 'None'}
       },
       'order taking': {
         available: true,
-        description: 'Absolutely! The AI can take orders, process payments through Stripe or Square, calculate totals with tax, handle delivery/pickup options, and send order confirmations via SMS.',
+        description: 'Absolutely! The AI can take orders, process payments through Stripe, calculate totals with tax, handle delivery/pickup options, and send order confirmations via SMS.',
         plans: ['Professional', 'Enterprise'],
       },
       'multilingual': {
@@ -1572,7 +1572,7 @@ Additional Notes: ${data.notes || 'None'}
       },
       'payment processing': {
         available: true,
-        description: 'Yes! We integrate with Stripe and Square for secure payment processing. The AI can send payment links via SMS or email after taking orders.',
+        description: 'Yes! We integrate with Stripe for secure payment processing. The AI can send payment links via SMS or email after taking orders.',
         plans: ['Professional', 'Enterprise'],
       },
       'sms notifications': {

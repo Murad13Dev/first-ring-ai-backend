@@ -1,17 +1,8 @@
 import prisma from '../../config/database';
 import logger from '../../config/logger';
 import { AppError } from '../../middleware/error.middleware';
-import { Client, Environment, ApiError } from 'square';
 import nodemailer from 'nodemailer';
-import { randomUUID } from 'crypto';
-
-// Initialize Square client
-const squareClient = new Client({
-  accessToken: process.env.SQUARE_ACCESS_TOKEN || '',
-  environment: process.env.SQUARE_ENV === 'production'
-    ? Environment.Production
-    : Environment.Sandbox,
-});
+import stripeService from '../../services/stripe.service';
 
 interface CreateOrderData {
   tenantId: string;
@@ -234,7 +225,7 @@ export class OrdersService {
   }
 
   /**
-   * Create Square checkout link for order
+   * Create Stripe checkout link for order
    */
   async createCheckoutLink(id: string, tenantId: string) {
     try {
@@ -256,103 +247,83 @@ export class OrdersService {
         select: { name: true },
       });
 
-      // Create Square checkout link
-      const { result } = await squareClient.checkoutApi.createPaymentLink({
-        idempotencyKey: randomUUID(),
-        order: {
-          locationId: process.env.SQUARE_LOCATION_ID!,
-          lineItems: [
-            {
-              name: `Order #${order.id.slice(0, 8)}`,
-              quantity: '1',
-              basePriceMoney: {
-                amount: BigInt(Math.round(order.total * 100)), // Convert to cents
-                currency: 'USD',
-              },
-              note: `${tenant?.name || 'Order'} - ${(order.items as any).length} items`,
-            },
-          ],
+      // Build line items description
+      const itemsDescription = `${tenant?.name || 'Order'} - ${(order.items as any).length} items`;
+
+      // Create Stripe checkout session
+      const session = await stripeService.createCheckoutSession({
+        tenantId,
+        customerEmail: order.customerEmail || 'noreply@example.com',
+        customerName: order.customerName,
+        amount: Math.round(order.total * 100), // Convert to cents
+        currency: 'usd',
+        description: `Order #${order.id.slice(0, 8)}`,
+        metadata: {
+          orderId: order.id,
+          tenantId,
+          orderType: 'restaurant_order',
+          itemsCount: String((order.items as any).length),
         },
-        checkoutOptions: {
-          redirectUrl: `${process.env.FRONTEND_URL}/orders/${order.id}/success`,
-        },
-        paymentNote: `Order ID: ${order.id}, Tenant: ${tenantId}`,
+        successUrl: `${process.env.FRONTEND_URL}/orders/${order.id}/success`,
+        cancelUrl: `${process.env.FRONTEND_URL}/orders/${order.id}/cancel`,
       });
 
-      const checkoutUrl = result.paymentLink?.url;
-      const paymentLinkId = result.paymentLink?.id;
+      const checkoutUrl = session.checkoutUrl!;
+      const sessionId = session.sessionId;
 
-      // Update order with checkout URL and payment link ID
+      // Update order with checkout URL and session ID
       await prisma.order.update({
         where: { id },
         data: {
-          checkoutUrl: checkoutUrl!,
-          squarePaymentId: paymentLinkId,
+          checkoutUrl,
+          squarePaymentId: sessionId, // Reusing this field for Stripe session ID
         },
       });
 
-      logger.info('Checkout link created', {
+      logger.info('Stripe checkout link created', {
         orderId: id,
-        paymentLinkId,
+        sessionId,
       });
 
-      // Send checkout link via SMS/Email
-      await this.sendPaymentLink(order, checkoutUrl!);
+      // Send checkout link via Email
+      await this.sendPaymentLink(order, checkoutUrl);
 
       return {
         checkoutUrl,
-        paymentLinkId,
+        sessionId,
       };
     } catch (error) {
-      if (error instanceof ApiError) {
-        logger.error('Square API error', {
-          errors: error.errors,
-          statusCode: error.statusCode
-        });
-      }
       logger.error('Create checkout link error', { error });
       throw error;
     }
   }
 
   /**
-   * Handle Square webhook (payment confirmation)
+   * Handle order payment confirmation (called from Stripe webhook)
    */
-  async handleSquareWebhook(event: any) {
+  async handleOrderPaymentSuccess(orderId: string) {
     try {
-      if (event.type === 'payment.completed') {
-        const payment = event.data.object.payment;
-        const note = payment.note || '';
+      // Update order payment status
+      await prisma.order.update({
+        where: { id: orderId },
+        data: {
+          paymentStatus: 'paid',
+          paymentMethod: 'stripe',
+          status: 'confirmed',
+        },
+      });
 
-        // Extract order ID from payment note
-        const orderIdMatch = note.match(/Order ID: ([^,]+)/);
-        const orderId = orderIdMatch ? orderIdMatch[1] : null;
+      logger.info('Order payment confirmed via Stripe', { orderId });
 
-        if (!orderId) {
-          logger.warn('Order ID not found in Square webhook');
-          return;
-        }
-
-        // Update order payment status
-        await prisma.order.update({
-          where: { id: orderId },
-          data: {
-            paymentStatus: 'paid',
-            paymentMethod: 'square',
-            status: 'confirmed',
-          },
-        });
-
-        logger.info('Order payment confirmed via Square', { orderId });
-
-        // Send confirmation email/SMS
-        const order = await prisma.order.findUnique({ where: { id: orderId } });
-        if (order) {
-          await this.sendOrderConfirmation(order);
-        }
+      // Send confirmation email
+      const order = await prisma.order.findUnique({ where: { id: orderId } });
+      if (order) {
+        await this.sendOrderConfirmation(order);
       }
+
+      return order;
     } catch (error) {
-      logger.error('Square webhook error', { error });
+      logger.error('Handle order payment success error', { error });
       throw error;
     }
   }

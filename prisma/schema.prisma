@@ -324,11 +324,11 @@ model Order {
   total         Float
   
   // Payment
-  paymentStatus String   @default("pending") 
+  paymentStatus String   @default("pending")
   // "pending" | "paid" | "failed" | "refunded" | "partially_refunded"
-  
-  paymentMethod String?  // "square" | "cash" | "card"
-  squarePaymentId String?
+
+  paymentMethod String?  // "stripe" | "cash" | "card"
+  squarePaymentId String?  // Stripe checkout session ID (legacy field name)
   checkoutUrl   String?
   externalOrderId String?  // POS order ID
   posStatus     String?    // POS sync status
