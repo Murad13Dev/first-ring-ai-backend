@@ -3,6 +3,7 @@ import stripeService from '../../services/stripe.service';
 import { AppError } from '../../middleware/error.middleware';
 import logger from '../../config/logger';
 import prisma from '../../config/database';
+import ordersService from '../orders/orders.service';
 
 // ==========================================
 // PAYMENTS CONTROLLER
@@ -316,6 +317,8 @@ export class PaymentsController {
   private async handleCheckoutCompleted(session: any) {
     try {
       const tenantId = session.metadata?.tenantId;
+      const orderType = session.metadata?.orderType;
+      const orderId = session.metadata?.orderId;
 
       if (!tenantId) {
         logger.warn('Checkout session missing tenantId in metadata', {
@@ -328,7 +331,15 @@ export class PaymentsController {
         sessionId: session.id,
         tenantId,
         amount: session.amount_total,
+        orderType,
       });
+
+      // Handle restaurant order payment
+      if (orderType === 'restaurant_order' && orderId) {
+        logger.info('Processing restaurant order payment', { orderId });
+        await ordersService.handleOrderPaymentSuccess(orderId);
+        return;
+      }
 
       // Update tenant subscription status if needed
       if (session.mode === 'subscription') {
