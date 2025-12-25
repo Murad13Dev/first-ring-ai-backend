@@ -58,6 +58,7 @@ model Tenant {
   calls           Call[]
   qrCodes         QRCode[]
   subscription    Subscription?
+  integration     TenantIntegration?
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -350,7 +351,10 @@ model Order {
   
   // Notes
   notes         String?  @db.Text
-  
+
+  // Relations
+  accessGrants  AccessGrant[]
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -983,4 +987,182 @@ model AnalyticsEvent {
   @@index([eventType])
   @@index([createdAt])
   @@map("analytics_events")
+}
+
+// ==========================================
+// TENANT INTEGRATIONS (Discord & Whop)
+// ==========================================
+model TenantIntegration {
+  id          String   @id @default(uuid())
+  tenantId    String   @unique
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Discord Configuration
+  discordEnabled      Boolean  @default(false)
+  discordWebhookUrl   String?  // For sending notifications
+  discordBotToken     String?  // For bot operations (encrypted)
+  discordGuildId      String?  // Server ID
+  discordClientId     String?  // OAuth client ID
+  discordClientSecret String?  // OAuth client secret (encrypted)
+
+  // Discord Notification Settings
+  notifyOnNewOrder        Boolean  @default(true)
+  notifyOnPaymentSuccess  Boolean  @default(true)
+  notifyOnPaymentFailed   Boolean  @default(true)
+  notifyOnOrderReady      Boolean  @default(false)
+  notifyOnAICall          Boolean  @default(false)
+  dailyReportEnabled      Boolean  @default(false)
+  dailyReportTime         String?  // HH:MM format (e.g., "23:00")
+
+  // Whop Configuration
+  whopEnabled         Boolean  @default(false)
+  whopApiKey          String?  // Encrypted
+  whopCompanyId       String?
+  whopWebhookSecret   String?  // For webhook verification (encrypted)
+  whopAutoGrantAccess Boolean  @default(true)
+
+  // Product Mappings (JSON structure)
+  // { "serviceId": { "discordRoleId": "123", "whopProductId": "prod_xyz" } }
+  productMappings     Json?
+
+  // Status
+  isActive            Boolean  @default(true)
+  lastSyncAt          DateTime?
+
+  // Relations
+  accessGrants        AccessGrant[]
+  integrationEvents   IntegrationEvent[]
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("tenant_integrations")
+}
+
+// ==========================================
+// ACCESS GRANTS (Discord Role Management)
+// ==========================================
+model AccessGrant {
+  id                  String   @id @default(uuid())
+  integrationId       String
+  integration         TenantIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  orderId             String
+  order               Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // Customer Info
+  customerEmail       String?
+  customerPhone       String?
+  discordUserId       String?  // Discord user ID
+  discordUsername     String?  // Discord username for logging
+
+  // Access Details
+  discordRoleId       String?
+  discordRoleName     String?  // For display purposes
+
+  // Whop Info
+  whopMembershipId    String?  // Whop membership ID
+  whopProductId       String?  // Whop product ID
+
+  // Status
+  status              String   @default("pending") // pending, granted, revoked, expired
+  grantedAt           DateTime?
+  expiresAt           DateTime?
+  revokedAt           DateTime?
+  revokeReason        String?  // "refund", "subscription_cancelled", "manual", etc.
+
+  // Source tracking
+  source              String   // "stripe", "whop", "agent", "manual"
+  sourceId            String?  // Stripe session ID, Whop payment ID, etc.
+
+  // Metadata
+  metadata            Json?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([integrationId])
+  @@index([orderId])
+  @@index([discordUserId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("access_grants")
+}
+
+// ==========================================
+// INTEGRATION EVENTS (Webhook Logs)
+// ==========================================
+model IntegrationEvent {
+  id                String   @id @default(uuid())
+  integrationId     String
+  integration       TenantIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  // Event Info
+  source            String   // "discord", "whop", "stripe"
+  eventType         String   // "payment.succeeded", "membership.cancelled", etc.
+  eventId           String?  // External event ID
+
+  // Payload
+  payload           Json?    // Full webhook payload
+
+  // Processing
+  status            String   @default("pending") // pending, processed, failed
+  processedAt       DateTime?
+  error             String?  @db.Text
+  retryCount        Int      @default(0)
+
+  // Related Records
+  orderId           String?
+  accessGrantId     String?
+
+  createdAt         DateTime @default(now())
+
+  @@index([integrationId])
+  @@index([source])
+  @@index([eventType])
+  @@index([status])
+  @@index([createdAt])
+  @@map("integration_events")
+}
+
+// ==========================================
+// WHOP PRODUCTS (Product Sync)
+// ==========================================
+model WhopProduct {
+  id                String   @id @default(uuid())
+  tenantId          String
+
+  // Whop Info
+  whopProductId     String   @unique
+  whopCompanyId     String
+
+  // Product Details
+  name              String
+  description       String?  @db.Text
+  price             Float
+  currency          String   @default("USD")
+
+  // Type
+  type              String   // "one_time", "subscription", "membership"
+  billingPeriod     String?  // "monthly", "yearly", "lifetime"
+
+  // Discord Integration
+  discordRoleId     String?  // Auto-assign this role on purchase
+  discordRoleName   String?
+  accessDuration    Int?     // Days (null = lifetime)
+
+  // Mapping to internal service
+  serviceId         String?  // Link to Service model
+
+  // Status
+  isActive          Boolean  @default(true)
+  lastSyncAt        DateTime?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([whopProductId])
+  @@map("whop_products")
 }

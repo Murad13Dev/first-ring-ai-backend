@@ -1,161 +1,179 @@
-import { Response, NextFunction } from 'express';
-import { AuthRequest } from '../../middleware/auth.middleware';
-import googleSheetsService from './google-sheets.service';
-import googleCalendarService from './google-calendar.service';
+import { Request, Response, NextFunction } from 'express';
+import { integrationService } from '../../services/integration.service';
+import { WhopService } from '../../services/whop.service';
+import { DiscordService } from '../../services/discord.service';
+import { AppError } from '../../middleware/errorHandler';
+import { logger } from '../../utils/logger';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export class IntegrationsController {
-  // Google Sheets
-  async getSheetsAuthUrl(req: AuthRequest, res: Response, next: NextFunction) {
+  /**
+   * Get integration settings for tenant
+   * GET /api/integrations
+   */
+  async getIntegration(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
-      const url = await googleSheetsService.getAuthUrl(tenantId);
-      return res.status(200).json({ success: true, data: { url } });
-    } catch (error) {
-      next(error);
-    }
-  }
+      const tenantId = req.tenantId;
 
-  async handleSheetsCallback(req: AuthRequest, res: Response, next: NextFunction) {
-    try {
-      const { code, state } = req.query;
-      const result = await googleSheetsService.handleCallback(code as string, state as string);
-      return res.status(200).json({ success: true, data: result });
-    } catch (error) {
-      next(error);
-    }
-  }
+      if (!tenantId) {
+        throw new AppError('Tenant ID is required', 400);
+      }
 
-  async createSpreadsheet(req: AuthRequest, res: Response, next: NextFunction) {
-    try {
-      const tenantId = req.tenantId!;
-      const { title } = req.body;
-      const result = await googleSheetsService.createSpreadsheet(tenantId, title || 'First Ring AI Data');
-      return res.status(200).json({ success: true, data: result });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async exportBookings(req: AuthRequest, res: Response, next: NextFunction) {
-    try {
-      const tenantId = req.tenantId!;
-      const { dateFrom, dateTo } = req.query;
-      const result = await googleSheetsService.exportBookings(
-        tenantId,
-        dateFrom ? new Date(dateFrom as string) : undefined,
-        dateTo ? new Date(dateTo as string) : undefined
+      const integration = await integrationService.getTenantIntegration(
+        tenantId
       );
-      return res.status(200).json({ success: true, data: result });
+
+      // Remove sensitive fields from response
+      if (integration) {
+        const safeIntegration = {
+          ...integration,
+          discordBotToken: integration.discordBotToken ? '••••••••' : null,
+          discordClientSecret: integration.discordClientSecret
+            ? '••••••••'
+            : null,
+          whopApiKey: integration.whopApiKey ? '••••••••' : null,
+          whopWebhookSecret: integration.whopWebhookSecret ? '••••••••' : null,
+        };
+        res.json(safeIntegration);
+      } else {
+        res.json({
+          discordEnabled: false,
+          whopEnabled: false,
+          isActive: false,
+        });
+      }
     } catch (error) {
       next(error);
     }
   }
 
-  async exportOrders(req: AuthRequest, res: Response, next: NextFunction) {
+  /**
+   * Configure Discord integration
+   * POST /api/integrations/discord/configure
+   */
+  async configureDiscord(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
-      const { dateFrom, dateTo } = req.query;
-      const result = await googleSheetsService.exportOrders(
+      const tenantId = req.tenantId;
+      const {
+        webhookUrl,
+        botToken,
+        guildId,
+        notifyOnNewOrder,
+        notifyOnPaymentSuccess,
+        notifyOnPaymentFailed,
+        notifyOnOrderReady,
+        notifyOnAICall,
+        dailyReportEnabled,
+        dailyReportTime,
+      } = req.body;
+
+      if (!tenantId) {
+        throw new AppError('Tenant ID is required', 400);
+      }
+
+      // Validate webhook URL if provided
+      if (webhookUrl && !DiscordService.isValidWebhookUrl(webhookUrl)) {
+        throw new AppError('Invalid Discord webhook URL', 400);
+      }
+
+      // Test webhook if provided
+      if (webhookUrl) {
+        const testSuccess = await integrationService.testDiscordWebhook(
+          webhookUrl
+        );
+        if (!testSuccess) {
+          throw new AppError('Failed to send test message to Discord webhook', 400);
+        }
+      }
+
+      const integration = await integrationService.upsertTenantIntegration(
         tenantId,
-        dateFrom ? new Date(dateFrom as string) : undefined,
-        dateTo ? new Date(dateTo as string) : undefined
+        {
+          discordEnabled: true,
+          discordWebhookUrl: webhookUrl,
+          discordBotToken: botToken,
+          discordGuildId: guildId,
+          notifyOnNewOrder: notifyOnNewOrder ?? true,
+          notifyOnPaymentSuccess: notifyOnPaymentSuccess ?? true,
+          notifyOnPaymentFailed: notifyOnPaymentFailed ?? true,
+          notifyOnOrderReady: notifyOnOrderReady ?? false,
+          notifyOnAICall: notifyOnAICall ?? false,
+          dailyReportEnabled: dailyReportEnabled ?? false,
+          dailyReportTime: dailyReportTime,
+        }
       );
-      return res.status(200).json({ success: true, data: result });
+
+      logger.info('Discord integration configured', { tenantId });
+
+      res.json({
+        success: true,
+        message: 'Discord integration configured successfully',
+        integration: {
+          ...integration,
+          discordBotToken: integration.discordBotToken ? '••••••••' : null,
+        },
+      });
     } catch (error) {
       next(error);
     }
   }
 
-  async exportCalls(req: AuthRequest, res: Response, next: NextFunction) {
+  /**
+   * Handle Whop webhook
+   * POST /api/integrations/whop/webhook
+   */
+  async handleWhopWebhook(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
-      const { dateFrom, dateTo } = req.query;
-      const result = await googleSheetsService.exportCalls(
+      const signature = req.headers['x-whop-signature'] as string;
+      const tenantId = req.headers['x-tenant-id'] as string;
+
+      if (!tenantId) {
+        throw new AppError('Tenant ID header is required', 400);
+      }
+
+      const integration = await integrationService.getTenantIntegration(
+        tenantId
+      );
+
+      if (!integration || !integration.whopWebhookSecret) {
+        throw new AppError('Whop integration not configured', 400);
+      }
+
+      const payload = JSON.stringify(req.body);
+      const isValid = WhopService.verifyWebhookSignature(
+        payload,
+        signature,
+        integration.whopWebhookSecret
+      );
+
+      if (!isValid) {
+        throw new AppError('Invalid webhook signature', 401);
+      }
+
+      const result = await integrationService.handleWhopWebhook(
         tenantId,
-        dateFrom ? new Date(dateFrom as string) : undefined,
-        dateTo ? new Date(dateTo as string) : undefined
+        req.body
       );
-      return res.status(200).json({ success: true, data: result });
-    } catch (error) {
-      next(error);
-    }
-  }
 
-  async disconnectSheets(req: AuthRequest, res: Response, next: NextFunction) {
-    try {
-      const tenantId = req.tenantId!;
-      await googleSheetsService.disconnect(tenantId);
-      return res.status(200).json({ success: true, message: 'Disconnected' });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  // Google Calendar
-  async getCalendarAuthUrl(req: AuthRequest, res: Response, next: NextFunction) {
-    try {
-      const tenantId = req.tenantId!;
-      const url = await googleCalendarService.getAuthUrl(tenantId);
-      return res.status(200).json({ success: true, data: { url } });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async listCalendars(req: AuthRequest, res: Response, next: NextFunction) {
-    try {
-      const tenantId = req.tenantId!;
-      const calendars = await googleCalendarService.listCalendars(tenantId);
-      return res.status(200).json({ success: true, data: calendars });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async createCalendarEvent(req: AuthRequest, res: Response, next: NextFunction) {
-    try {
-      const tenantId = req.tenantId!;
-      const { bookingId } = req.body;
-      const result = await googleCalendarService.createEventFromBooking(bookingId, tenantId);
-      return res.status(200).json({ success: true, data: result });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async getUpcomingEvents(req: AuthRequest, res: Response, next: NextFunction) {
-    try {
-      const tenantId = req.tenantId!;
-      const { days } = req.query;
-      const events = await googleCalendarService.getUpcomingEvents(
-        tenantId,
-        days ? parseInt(days as string) : 7
-      );
-      return res.status(200).json({ success: true, data: events });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async syncAllBookings(req: AuthRequest, res: Response, next: NextFunction) {
-    try {
-      const tenantId = req.tenantId!;
-      const results = await googleCalendarService.syncAllBookings(tenantId);
-      return res.status(200).json({ success: true, data: results });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async disconnectCalendar(req: AuthRequest, res: Response, next: NextFunction) {
-    try {
-      const tenantId = req.tenantId!;
-      await googleCalendarService.disconnect(tenantId);
-      return res.status(200).json({ success: true, message: 'Disconnected' });
+      res.json({ received: true, ...result });
     } catch (error) {
       next(error);
     }
   }
 }
 
-export default new IntegrationsController();
+export const integrationsController = new IntegrationsController();

@@ -3,6 +3,7 @@ import logger from '../../config/logger';
 import { AppError } from '../../middleware/error.middleware';
 import nodemailer from 'nodemailer';
 import stripeService from '../../services/stripe.service';
+import { integrationService } from '../../services/integration.service';
 
 interface CreateOrderData {
   tenantId: string;
@@ -79,6 +80,11 @@ export class OrdersService {
 
       // Update service stock quantities
       await this.updateStock(data.tenantId, data.items);
+
+      // Send Discord notification (non-blocking)
+      integrationService.handleOrderCreated(order).catch((err) =>
+        logger.error('Failed to send Discord notification for new order', err)
+      );
 
       return order;
     } catch (error) {
@@ -215,6 +221,13 @@ export class OrdersService {
         });
       }
 
+      // Send Discord notification when order is ready (non-blocking)
+      if (data.status === 'ready') {
+        integrationService.handleOrderReady(updated).catch((err) =>
+          logger.error('Failed to send Discord notification for ready order', err)
+        );
+      }
+
       logger.info('Order updated successfully', { orderId: id, tenantId });
 
       return updated;
@@ -319,6 +332,11 @@ export class OrdersService {
       const order = await prisma.order.findUnique({ where: { id: orderId } });
       if (order) {
         await this.sendOrderConfirmation(order);
+
+        // Send Discord notification & grant access (non-blocking)
+        integrationService.handlePaymentSuccess(order).catch((err) =>
+          logger.error('Failed to handle payment success in integrations', err)
+        );
       }
 
       return order;
