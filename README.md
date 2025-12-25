@@ -9,7 +9,7 @@
 - 📅 **Booking System** - Smart scheduling with Google Calendar sync
 - 🛒 **Order Management** - Full e-commerce with Stripe payments
 - 📊 **Analytics** - Detailed insights and call logs
-- 🔗 **Integrations** - Google Sheets, Calendar, Email, SMS
+- 🔗 **Integrations** - Google Sheets, Calendar, Email, SMS, Discord, Whop
 
 ## 🚀 Quick Start
 
@@ -50,6 +50,7 @@ Server: `http://localhost:5000`
 - [Quick Start](./QUICKSTART.md)
 - [AI Agent Setup](./AI_AGENT_SETUP.md)
 - [Google APIs Setup](./GOOGLE_APIS_SETUP.md)
+- [Discord & Whop Integrations](./INTEGRATIONS.md)
 
 ## 🧪 Test AI
 

@@ -4,6 +4,7 @@ import { AppError } from '../../middleware/error.middleware';
 import logger from '../../config/logger';
 import prisma from '../../config/database';
 import ordersService from '../orders/orders.service';
+import { integrationService } from '../../services/integration.service';
 
 // ==========================================
 // PAYMENTS CONTROLLER
@@ -380,7 +381,20 @@ export class PaymentsController {
         amount: paymentIntent.amount,
       });
 
-      // TODO: Notify admin about failed payment
+      // Send Discord notification if order exists
+      const orderId = paymentIntent.metadata?.orderId;
+      if (orderId) {
+        const order = await prisma.order.findUnique({
+          where: { id: orderId },
+        });
+
+        if (order) {
+          integrationService.handlePaymentFailed(order).catch((err) =>
+            logger.error('Failed to send Discord notification for payment failure', err)
+          );
+        }
+      }
+
       // TODO: Send failed payment email to customer
     } catch (error) {
       logger.error('Handle payment failed error', { error });
