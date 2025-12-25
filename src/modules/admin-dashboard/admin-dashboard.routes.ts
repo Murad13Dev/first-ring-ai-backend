@@ -184,6 +184,24 @@ const adminDashboardService = {
     });
   },
 
+  // Get tenant orders (for admin to send payment links)
+  async getTenantOrders(tenantId: string, paymentStatus?: string) {
+    const where: any = { tenantId };
+
+    // Filter by payment status if provided (e.g., 'pending')
+    if (paymentStatus) {
+      where.paymentStatus = paymentStatus;
+    }
+
+    const orders = await prisma.order.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 50, // Limit to recent 50 orders
+    });
+
+    return orders;
+  },
+
   // Get pending approval users
   async getPendingApprovalUsers(page: number = 1, limit: number = 20) {
     const [users, total] = await Promise.all([
@@ -625,6 +643,20 @@ const adminDashboardController = {
     }
   },
 
+  async getTenantOrders(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { tenantId } = req.params;
+      const { paymentStatus } = req.query;
+      const orders = await adminDashboardService.getTenantOrders(
+        tenantId,
+        paymentStatus as string
+      );
+      res.json({ success: true, data: { orders } });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async getPendingApprovalUsers(req: Request, res: Response, next: NextFunction) {
     try {
       const { page = 1, limit = 20 } = req.query;
@@ -685,6 +717,7 @@ const adminDashboardController = {
 router.get('/overview', adminDashboardController.getOverview);
 router.get('/tenants', adminDashboardController.getTenants);
 router.get('/tenants/:tenantId', adminDashboardController.getTenantDetails);
+router.get('/tenants/:tenantId/orders', adminDashboardController.getTenantOrders);
 router.put('/tenants/:tenantId/status', adminDashboardController.updateTenantStatus);
 router.get('/analytics/revenue', adminDashboardController.getRevenueAnalytics);
 router.get('/analytics/calls', adminDashboardController.getCallAnalytics);
