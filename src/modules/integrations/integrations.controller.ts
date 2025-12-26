@@ -1,9 +1,10 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
+import { AuthRequest } from '../../middleware/auth.middleware';
 import { integrationService } from '../../services/integration.service';
 import { WhopService } from '../../services/whop.service';
 import { DiscordService } from '../../services/discord.service';
-import { AppError } from '../../middleware/errorHandler';
-import { logger } from '../../utils/logger';
+import { AppError } from '../../middleware/error.middleware';
+import logger from '../../config/logger';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -14,7 +15,7 @@ export class IntegrationsController {
    * GET /api/integrations
    */
   async getIntegration(
-    req: Request,
+    req: AuthRequest,
     res: Response,
     next: NextFunction
   ): Promise<void> {
@@ -58,7 +59,7 @@ export class IntegrationsController {
    * POST /api/integrations/discord/configure
    */
   async configureDiscord(
-    req: Request,
+    req: AuthRequest,
     res: Response,
     next: NextFunction
   ): Promise<void> {
@@ -129,11 +130,47 @@ export class IntegrationsController {
   }
 
   /**
+   * Test Discord webhook
+   * POST /api/integrations/discord/test
+   */
+  async testDiscordWebhook(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const { webhookUrl } = req.body;
+
+      if (!webhookUrl) {
+        throw new AppError('Webhook URL is required', 400);
+      }
+
+      // Validate webhook URL format
+      if (!DiscordService.isValidWebhookUrl(webhookUrl)) {
+        throw new AppError('Invalid Discord webhook URL', 400);
+      }
+
+      const success = await integrationService.testDiscordWebhook(webhookUrl);
+
+      if (success) {
+        res.json({
+          success: true,
+          message: 'Discord webhook test successful',
+        });
+      } else {
+        throw new AppError('Failed to send test message to Discord webhook', 400);
+      }
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Handle Whop webhook
    * POST /api/integrations/whop/webhook
    */
   async handleWhopWebhook(
-    req: Request,
+    req: AuthRequest,
     res: Response,
     next: NextFunction
   ): Promise<void> {

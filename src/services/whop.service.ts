@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import crypto from 'crypto';
-import { logger } from '../utils/logger';
+import logger from '../config/logger';
 
 /**
  * Whop Integration Service

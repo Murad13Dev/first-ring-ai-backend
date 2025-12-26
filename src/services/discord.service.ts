@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { logger } from '../utils/logger';
+import logger from '../config/logger';
 import { Order } from '@prisma/client';
 
 /**
