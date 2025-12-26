@@ -1,7 +1,7 @@
 import express from 'express';
 import { integrationsController } from './integrations.controller';
-import { authenticateToken } from '../../middleware/auth';
-import { tenantIsolation } from '../../middleware/tenantIsolation';
+import { authenticateToken } from '../../middleware/auth.middleware';
+import { tenantIsolation } from '../../middleware/tenant.middleware';
 
 const router = express.Router();
 

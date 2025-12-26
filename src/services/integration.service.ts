@@ -1,5 +1,5 @@
 import { PrismaClient, Order, TenantIntegration, AccessGrant } from '@prisma/client';
-import { logger } from '../utils/logger';
+import logger from '../config/logger';
 import { DiscordService } from './discord.service';
 import { WhopService } from './whop.service';
 
