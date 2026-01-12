@@ -134,6 +134,32 @@ export class LeadsController {
       next(error);
     }
   }
+
+  /**
+   * Resend payment link to tenant
+   * POST /api/leads/payment-link/resend
+   */
+  async resendPaymentLink(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { tenantId, email } = req.body;
+
+      if (!tenantId || !email) {
+        return res.status(400).json({
+          success: false,
+          message: 'tenantId and email are required',
+        });
+      }
+
+      await leadsService.resendPaymentLinkForTenant(tenantId, email);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Payment link has been sent successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new LeadsController();
