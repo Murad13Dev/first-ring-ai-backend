@@ -1,6 +1,11 @@
 import { Router } from 'express';
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../../config/database';
+import {
+  calculateOverageCharges,
+  calculateUsagePercentage,
+  getUsageStatus
+} from '../../utils/billing.utils';
 
 const router = Router();
 
@@ -39,6 +44,38 @@ const customerDashboardService = {
       }),
     ]);
 
+    // Calculate overage if usage exists
+    const usageData = usage || {
+      callMinutes: 0,
+      callCount: 0,
+      callMinutesLimit: subscription?.plan?.callMinutes || 0,
+      callCountLimit: subscription?.plan?.maxCalls || 0,
+      overageMinutes: 0,
+      overageCharges: 0,
+    };
+
+    let overageInfo = null;
+    if (subscription?.plan && usageData.callMinutes > 0) {
+      const overageRate = subscription.plan.overageRatePerMinute || 0;
+      const overageCalc = calculateOverageCharges(
+        usageData.callMinutes,
+        subscription.plan.callMinutes,
+        overageRate
+      );
+
+      overageInfo = {
+        ...overageCalc,
+        usagePercentage: calculateUsagePercentage(
+          usageData.callMinutes,
+          subscription.plan.callMinutes
+        ),
+        usageStatus: getUsageStatus(
+          usageData.callMinutes,
+          subscription.plan.callMinutes
+        ),
+      };
+    }
+
     return {
       subscription,
       stats: {
@@ -46,12 +83,8 @@ const customerDashboardService = {
         bookingsThisMonth,
         ordersThisMonth,
       },
-      usage: usage || {
-        callMinutes: 0,
-        callCount: 0,
-        callMinutesLimit: subscription?.plan?.callMinutes || 0,
-        callCountLimit: subscription?.plan?.maxCalls || 0,
-      },
+      usage: usageData,
+      overage: overageInfo,
     };
   },
 

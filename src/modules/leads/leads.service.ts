@@ -5,6 +5,7 @@ import nodemailer from 'nodemailer';
 import sgMail from '@sendgrid/mail';
 import twilioProvisioningService from '../../services/twilio-provisioning.service';
 import retellProvisioningService from '../../services/retell-provisioning.service';
+import stripeService from '../../services/stripe.service';
 
 interface CreateLeadData {
   source: string;
@@ -439,6 +440,22 @@ export class LeadsService {
       // Don't fail if agent provisioning fails
     }
 
+    // Generate and send payment link for subscription
+    try {
+      logger.info('Generating payment link for new tenant', {
+        tenantId: tenant.id,
+        plan: tenant.plan,
+      });
+
+      await this.generateAndSendPaymentLink(tenant, lead);
+    } catch (error) {
+      logger.error('Failed to generate payment link for new tenant', {
+        error,
+        tenantId: tenant.id,
+      });
+      // Don't fail if payment link generation fails
+    }
+
     // Send welcome email
     try {
       await this.sendWelcomeEmail(lead, tenant, tempPassword);
@@ -463,10 +480,11 @@ export class LeadsService {
       else if (data.callVolume >= 10) score += 10;
     }
 
-    // Selected plan (20 points)
-    if (data.selectedPlan === 'enterprise') score += 20;
-    else if (data.selectedPlan === 'pro') score += 15;
-    else if (data.selectedPlan === 'basic') score += 10;
+    // Selected plan (30 points max)
+    if (data.selectedPlan === 'executive') score += 30;
+    else if (data.selectedPlan === 'enterprise') score += 25;
+    else if (data.selectedPlan === 'professional' || data.selectedPlan === 'pro') score += 15;
+    else if (data.selectedPlan === 'starter' || data.selectedPlan === 'basic') score += 10;
 
     // Urgency (20 points)
     if (data.urgency === 'immediate') score += 20;
@@ -608,6 +626,139 @@ export class LeadsService {
     } catch (error) {
       logger.error('Lead confirmation error', { error });
       throw error; // Re-throw to be caught by retry mechanism
+    }
+  }
+
+  /**
+   * Generate payment link and send to tenant
+   */
+  private async generateAndSendPaymentLink(tenant: any, lead: any) {
+    try {
+      // Map plan slug to Stripe price ID
+      const stripePriceMap: Record<string, string> = {
+        starter: process.env.STRIPE_PRICE_ID_STARTER || '',
+        professional: process.env.STRIPE_PRICE_ID_PROFESSIONAL || '',
+        enterprise: process.env.STRIPE_PRICE_ID_ENTERPRISE || '',
+        executive: process.env.STRIPE_PRICE_ID_EXECUTIVE || '',
+      };
+
+      const priceId = stripePriceMap[tenant.plan];
+
+      if (!priceId) {
+        logger.warn('No Stripe price ID configured for plan', {
+          plan: tenant.plan,
+          tenantId: tenant.id,
+        });
+        return;
+      }
+
+      // Create Stripe checkout session
+      const checkout = await stripeService.createSubscriptionCheckout({
+        tenantId: tenant.id,
+        customerEmail: tenant.email,
+        customerName: tenant.name,
+        priceId,
+        trialDays: 0, // No trial, immediate payment required
+        metadata: {
+          leadId: lead.id,
+          plan: tenant.plan,
+          source: 'lead_conversion',
+        },
+        successUrl: `${process.env.FRONTEND_URL}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${process.env.FRONTEND_URL}/subscription/cancel`,
+      });
+
+      logger.info('Payment checkout created for new tenant', {
+        tenantId: tenant.id,
+        sessionId: checkout.sessionId,
+        checkoutUrl: checkout.checkoutUrl,
+      });
+
+      // Store checkout URL in tenant (optional, for reference)
+      await prisma.tenant.update({
+        where: { id: tenant.id },
+        data: {
+          subscriptionStatus: 'pending_payment',
+          // Note: subscriptionId field can store checkout session ID temporarily
+          subscriptionId: checkout.sessionId,
+        },
+      });
+
+      // Send payment link email
+      const planDetails: Record<string, { name: string; price: string; features: string[] }> = {
+        starter: {
+          name: 'Starter Plan',
+          price: '$500/month',
+          features: ['1 AI phone line', '1,000 monthly minutes', 'Email support'],
+        },
+        professional: {
+          name: 'Professional Plan',
+          price: '$1,500/month',
+          features: ['3 AI phone lines', '3,000 monthly minutes', 'Priority support', 'CRM integration'],
+        },
+        enterprise: {
+          name: 'Enterprise Plan',
+          price: '$3,000/month',
+          features: ['10 AI phone lines', '6,000 monthly minutes', 'Dedicated onboarding', 'SLA support'],
+        },
+        executive: {
+          name: 'Executive Plan',
+          price: '$5,000/month',
+          features: ['Unlimited phone lines', '12,000 monthly minutes', 'Account manager', 'White-label'],
+        },
+      };
+
+      const plan = planDetails[tenant.plan] || planDetails.starter;
+
+      const html = `
+        <h2>💳 Complete Your Subscription</h2>
+
+        <p>Dear ${lead.contactName},</p>
+
+        <p>Thank you for choosing First Ring AI! Your account has been created and is ready to go.</p>
+
+        <p>To activate your <strong>${plan.name}</strong> subscription, please complete your payment:</p>
+
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">${plan.name}</h3>
+          <p style="font-size: 24px; color: #667eea; margin: 10px 0;"><strong>${plan.price}</strong></p>
+
+          <h4>Included:</h4>
+          <ul style="padding-left: 20px;">
+            ${plan.features.map(f => `<li>${f}</li>`).join('')}
+          </ul>
+        </div>
+
+        <p style="text-align: center; margin: 30px 0;">
+          <a href="${checkout.checkoutUrl}"
+             style="background: #667eea; color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: bold; display: inline-block;">
+            Complete Payment →
+          </a>
+        </p>
+
+        <p style="background: #e3f2fd; padding: 15px; border-left: 4px solid #2196f3; margin: 20px 0;">
+          <strong>ℹ️ Secure Payment:</strong> All payments are processed securely through Stripe. Your card information is never stored on our servers.
+        </p>
+
+        <p><small>This payment link expires in 24 hours. If you need assistance, please contact us at ${process.env.SALES_EMAIL}</small></p>
+
+        <p>Best regards,<br>
+        The First Ring AI Team</p>
+      `;
+
+      await this.sendEmail({
+        to: tenant.email,
+        subject: `Complete Your ${plan.name} Subscription - First Ring AI`,
+        html,
+      });
+
+      logger.info('Payment link email sent', {
+        tenantId: tenant.id,
+        email: tenant.email,
+      });
+    } catch (error) {
+      logger.error('Generate and send payment link error', { error });
+      throw error;
     }
   }
 

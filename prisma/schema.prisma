@@ -801,17 +801,22 @@ model Promotion {
 // ==========================================
 model Plan {
   id          String   @id @default(uuid())
-  slug        String   @unique // starter, professional, enterprise
+  slug        String   @unique // starter, professional, enterprise, executive
   name        String
   description String?
 
-  price       Float    // Monthly price
-  yearlyPrice Float?   // Yearly price (discounted)
+  price       Float    // Monthly price (USD)
+  yearlyPrice Float?   // Yearly price (discounted) - DEPRECATED, keeping for backwards compatibility
 
   // Limits
-  callMinutes    Int   // Monthly call minutes
-  maxCalls       Int   // Max calls per month
-  maxUsers       Int   @default(1)
+  callMinutes             Int      // Monthly call minutes included
+  maxCalls                Int      // Max calls per month (legacy field)
+  maxUsers                Int      @default(1)
+  maxPhoneLines           Int?     // Number of AI phone lines (1, 3, 10, null for unlimited)
+  hasUnlimitedPhoneLines  Boolean  @default(false) // True for Executive plan
+
+  // Overage Billing
+  overageRatePerMinute    Float?   // Cost per minute beyond callMinutes limit ($0.50-$0.75)
 
   // Features
   features    Json?    // Array of feature strings
@@ -881,6 +886,10 @@ model UsageRecord {
   // Limits from plan
   callMinutesLimit Int
   callCountLimit   Int
+
+  // Overage tracking
+  overageMinutes   Int   @default(0)  // Minutes beyond limit
+  overageCharges   Float @default(0)  // Charges for overage usage
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

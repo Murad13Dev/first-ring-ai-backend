@@ -344,17 +344,79 @@ export class PaymentsController {
 
       // Update tenant subscription status if needed
       if (session.mode === 'subscription') {
+        const stripeSubscriptionId = session.subscription as string;
+
+        // Get plan from metadata or tenant
+        const planSlug = session.metadata?.plan || session.subscription_data?.metadata?.plan;
+
+        // Retrieve Stripe subscription details
+        const stripeSubscription = await stripeService.getSubscription(stripeSubscriptionId);
+
+        // Find plan in database
+        let plan = null;
+        if (planSlug) {
+          plan = await prisma.plan.findUnique({
+            where: { slug: planSlug },
+          });
+        }
+
+        // Update tenant status
         await prisma.tenant.update({
           where: { id: tenantId },
           data: {
             subscriptionStatus: 'active',
-            subscriptionId: session.subscription,
+            subscriptionId: stripeSubscriptionId,
+            plan: planSlug || undefined,
+            trialEndsAt: null, // Clear trial if it was set
+            currentPeriodEnd: stripeSubscription.current_period_end
+              ? new Date(stripeSubscription.current_period_end * 1000)
+              : undefined,
           },
+        });
+
+        // Create or update Subscription record
+        if (plan) {
+          const periodStart = new Date(stripeSubscription.current_period_start * 1000);
+          const periodEnd = new Date(stripeSubscription.current_period_end * 1000);
+
+          await prisma.subscription.upsert({
+            where: { tenantId },
+            update: {
+              planId: plan.id,
+              status: 'active',
+              billingCycle: 'monthly',
+              currentPeriodStart: periodStart,
+              currentPeriodEnd: periodEnd,
+              cancelAtPeriodEnd: false,
+              squareSubscriptionId: stripeSubscriptionId, // Reusing Square field for Stripe
+            },
+            create: {
+              tenantId,
+              planId: plan.id,
+              status: 'active',
+              billingCycle: 'monthly',
+              currentPeriodStart: periodStart,
+              currentPeriodEnd: periodEnd,
+              cancelAtPeriodEnd: false,
+              squareSubscriptionId: stripeSubscriptionId, // Reusing Square field for Stripe
+            },
+          });
+
+          logger.info('Subscription record created/updated', {
+            tenantId,
+            planId: plan.id,
+            subscriptionId: stripeSubscriptionId,
+          });
+        }
+
+        logger.info('Tenant subscription activated', {
+          tenantId,
+          subscriptionId: stripeSubscriptionId,
+          plan: planSlug,
         });
       }
 
       // TODO: Send confirmation email to customer
-      // TODO: Record payment in database
     } catch (error) {
       logger.error('Handle checkout completed error', { error });
     }
