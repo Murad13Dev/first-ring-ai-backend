@@ -939,6 +939,53 @@ export class LeadsService {
       `Failed to send email after ${maxRetries} attempts: ${lastError.message}`
     );
   }
+
+  /**
+   * Resend payment link for existing tenant
+   */
+  async resendPaymentLinkForTenant(tenantId: string, email: string) {
+    try {
+      // Get tenant
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: tenantId },
+      });
+
+      if (!tenant) {
+        throw new AppError('Tenant not found', 404);
+      }
+
+      // Check if tenant already has active subscription
+      if (tenant.subscriptionStatus === 'active') {
+        throw new AppError('Tenant already has an active subscription', 400);
+      }
+
+      // Get lead for contact info (if exists)
+      const lead = await prisma.lead.findFirst({
+        where: { email: tenant.email },
+      });
+
+      // Create mock lead object if not found
+      const leadData = lead || {
+        contactName: tenant.name,
+        email: tenant.email,
+        businessName: tenant.name,
+        selectedPlan: tenant.plan,
+      };
+
+      // Generate and send payment link
+      await this.generateAndSendPaymentLink(tenant, leadData);
+
+      logger.info('Payment link resent successfully', {
+        tenantId,
+        email,
+      });
+
+      return { message: 'Payment link sent successfully' };
+    } catch (error) {
+      logger.error('Resend payment link error', { error });
+      throw error;
+    }
+  }
 }
 
 export default new LeadsService();
