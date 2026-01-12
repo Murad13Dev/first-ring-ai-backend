@@ -346,11 +346,8 @@ export class PaymentsController {
       if (session.mode === 'subscription') {
         const stripeSubscriptionId = session.subscription as string;
 
-        // Get plan from metadata or tenant
-        const planSlug = session.metadata?.plan || session.subscription_data?.metadata?.plan;
-
-        // Retrieve Stripe subscription details
-        const stripeSubscription = await stripeService.getSubscription(stripeSubscriptionId);
+        // Get plan from metadata
+        const planSlug = session.metadata?.plan;
 
         // Find plan in database
         let plan = null;
@@ -368,16 +365,15 @@ export class PaymentsController {
             subscriptionId: stripeSubscriptionId,
             plan: planSlug || undefined,
             trialEndsAt: null, // Clear trial if it was set
-            currentPeriodEnd: stripeSubscription.current_period_end
-              ? new Date(stripeSubscription.current_period_end * 1000)
-              : undefined,
           },
         });
 
         // Create or update Subscription record
         if (plan) {
-          const periodStart = new Date(stripeSubscription.current_period_start * 1000);
-          const periodEnd = new Date(stripeSubscription.current_period_end * 1000);
+          // Get current date and add 30 days for period end (default)
+          const periodStart = new Date();
+          const periodEnd = new Date();
+          periodEnd.setDate(periodEnd.getDate() + 30);
 
           await prisma.subscription.upsert({
             where: { tenantId },
