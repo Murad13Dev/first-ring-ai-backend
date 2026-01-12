@@ -463,10 +463,11 @@ export class LeadsService {
       else if (data.callVolume >= 10) score += 10;
     }
 
-    // Selected plan (20 points)
-    if (data.selectedPlan === 'enterprise') score += 20;
-    else if (data.selectedPlan === 'pro') score += 15;
-    else if (data.selectedPlan === 'basic') score += 10;
+    // Selected plan (30 points max)
+    if (data.selectedPlan === 'executive') score += 30;
+    else if (data.selectedPlan === 'enterprise') score += 25;
+    else if (data.selectedPlan === 'professional' || data.selectedPlan === 'pro') score += 15;
+    else if (data.selectedPlan === 'starter' || data.selectedPlan === 'basic') score += 10;
 
     // Urgency (20 points)
     if (data.urgency === 'immediate') score += 20;
