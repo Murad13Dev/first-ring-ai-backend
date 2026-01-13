@@ -6,7 +6,7 @@
 
 -- Insert Starter Plan
 INSERT INTO "Plan" (
-  id, slug, name, description, price, "yearlyPrice", "callMinutes", "maxCalls", "maxUsers",
+  id, slug, name, description, price, "yearlyPrice", "stripeProductId", "callMinutes", "maxCalls", "maxUsers",
   "maxPhoneLines", "hasUnlimitedPhoneLines", "overageRatePerMinute", features,
   "isActive", "isPopular", "createdAt", "updatedAt"
 ) VALUES (
@@ -16,6 +16,7 @@ INSERT INTO "Plan" (
   'Designed for small businesses. One AI phone line with essential features.',
   500,
   NULL,
+  'prod_TmUFzafP1HCW08',
   1000,
   2000,
   1,
@@ -32,6 +33,7 @@ ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
   description = EXCLUDED.description,
   price = EXCLUDED.price,
+  "stripeProductId" = EXCLUDED."stripeProductId",
   "callMinutes" = EXCLUDED."callMinutes",
   "maxPhoneLines" = EXCLUDED."maxPhoneLines",
   "hasUnlimitedPhoneLines" = EXCLUDED."hasUnlimitedPhoneLines",
@@ -41,7 +43,7 @@ ON CONFLICT (slug) DO UPDATE SET
 
 -- Insert Professional Plan
 INSERT INTO "Plan" (
-  id, slug, name, description, price, "yearlyPrice", "callMinutes", "maxCalls", "maxUsers",
+  id, slug, name, description, price, "yearlyPrice", "stripeProductId", "callMinutes", "maxCalls", "maxUsers",
   "maxPhoneLines", "hasUnlimitedPhoneLines", "overageRatePerMinute", features,
   "isActive", "isPopular", "createdAt", "updatedAt"
 ) VALUES (
@@ -51,6 +53,7 @@ INSERT INTO "Plan" (
   'Designed for growing businesses. Up to three AI phone lines with advanced features.',
   1500,
   NULL,
+  'prod_TmUI3uuw8nKYvr',
   3000,
   6000,
   5,
@@ -67,6 +70,7 @@ ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
   description = EXCLUDED.description,
   price = EXCLUDED.price,
+  "stripeProductId" = EXCLUDED."stripeProductId",
   "callMinutes" = EXCLUDED."callMinutes",
   "maxPhoneLines" = EXCLUDED."maxPhoneLines",
   "hasUnlimitedPhoneLines" = EXCLUDED."hasUnlimitedPhoneLines",
@@ -77,7 +81,7 @@ ON CONFLICT (slug) DO UPDATE SET
 
 -- Insert Enterprise Plan
 INSERT INTO "Plan" (
-  id, slug, name, description, price, "yearlyPrice", "callMinutes", "maxCalls", "maxUsers",
+  id, slug, name, description, price, "yearlyPrice", "stripeProductId", "callMinutes", "maxCalls", "maxUsers",
   "maxPhoneLines", "hasUnlimitedPhoneLines", "overageRatePerMinute", features,
   "isActive", "isPopular", "createdAt", "updatedAt"
 ) VALUES (
@@ -87,6 +91,7 @@ INSERT INTO "Plan" (
   'Built for multi-location businesses and clinics. Up to ten AI phone lines.',
   3000,
   NULL,
+  'prod_TmULjPlu2aqieY',
   6000,
   12000,
   20,
@@ -103,6 +108,7 @@ ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
   description = EXCLUDED.description,
   price = EXCLUDED.price,
+  "stripeProductId" = EXCLUDED."stripeProductId",
   "callMinutes" = EXCLUDED."callMinutes",
   "maxPhoneLines" = EXCLUDED."maxPhoneLines",
   "hasUnlimitedPhoneLines" = EXCLUDED."hasUnlimitedPhoneLines",
@@ -112,7 +118,7 @@ ON CONFLICT (slug) DO UPDATE SET
 
 -- Insert Executive Plan
 INSERT INTO "Plan" (
-  id, slug, name, description, price, "yearlyPrice", "callMinutes", "maxCalls", "maxUsers",
+  id, slug, name, description, price, "yearlyPrice", "stripeProductId", "callMinutes", "maxCalls", "maxUsers",
   "maxPhoneLines", "hasUnlimitedPhoneLines", "overageRatePerMinute", features,
   "isActive", "isPopular", "createdAt", "updatedAt"
 ) VALUES (
@@ -122,6 +128,7 @@ INSERT INTO "Plan" (
   'For high-volume operators and brands. Unlimited AI phone lines with full customization.',
   5000,
   NULL,
+  'prod_TmUMC9AweLww7l',
   12000,
   24000,
   50,
@@ -138,6 +145,7 @@ ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
   description = EXCLUDED.description,
   price = EXCLUDED.price,
+  "stripeProductId" = EXCLUDED."stripeProductId",
   "callMinutes" = EXCLUDED."callMinutes",
   "maxPhoneLines" = EXCLUDED."maxPhoneLines",
   "hasUnlimitedPhoneLines" = EXCLUDED."hasUnlimitedPhoneLines",
@@ -146,6 +154,6 @@ ON CONFLICT (slug) DO UPDATE SET
   "updatedAt" = NOW();
 
 -- Verify the results
-SELECT slug, name, price, "callMinutes", "maxPhoneLines", "hasUnlimitedPhoneLines", "overageRatePerMinute", "isPopular"
+SELECT slug, name, price, "stripeProductId", "callMinutes", "maxPhoneLines", "hasUnlimitedPhoneLines", "overageRatePerMinute", "isPopular"
 FROM "Plan"
 ORDER BY price;

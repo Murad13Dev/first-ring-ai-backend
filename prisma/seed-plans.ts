@@ -12,6 +12,7 @@ async function seedPlans() {
       description: 'Designed for small businesses. One AI phone line with essential features.',
       price: 500,
       yearlyPrice: null, // Monthly billing only
+      stripeProductId: 'prod_TmUFzafP1HCW08',
       callMinutes: 1000,
       maxCalls: 2000, // Legacy field
       maxUsers: 1,
@@ -35,6 +36,7 @@ async function seedPlans() {
       description: 'Designed for growing businesses. Up to three AI phone lines with advanced features.',
       price: 1500,
       yearlyPrice: null, // Monthly billing only
+      stripeProductId: 'prod_TmUI3uuw8nKYvr',
       callMinutes: 3000,
       maxCalls: 6000, // Legacy field
       maxUsers: 5,
@@ -58,6 +60,7 @@ async function seedPlans() {
       description: 'Built for multi-location businesses and clinics. Up to ten AI phone lines.',
       price: 3000,
       yearlyPrice: null, // Monthly billing only
+      stripeProductId: 'prod_TmULjPlu2aqieY',
       callMinutes: 6000,
       maxCalls: 12000, // Legacy field
       maxUsers: 20,
@@ -82,6 +85,7 @@ async function seedPlans() {
       description: 'For high-volume operators and brands. Unlimited AI phone lines with full customization.',
       price: 5000,
       yearlyPrice: null, // Monthly billing only
+      stripeProductId: 'prod_TmUMC9AweLww7l',
       callMinutes: 12000,
       maxCalls: 24000, // Legacy field
       maxUsers: 50,
