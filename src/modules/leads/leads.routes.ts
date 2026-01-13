@@ -263,6 +263,56 @@ router.get('/stats', authenticateAdmin, leadsController.getLeadStats);
 
 /**
  * @swagger
+ * /api/leads/payment-link/resend:
+ *   post:
+ *     summary: Resend payment link to tenant (admin only)
+ *     description: Resend payment link for tenants with pending_payment status
+ *     tags: [Leads]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - tenantId
+ *               - email
+ *             properties:
+ *               tenantId:
+ *                 type: string
+ *                 format: uuid
+ *                 example: 550e8400-e29b-41d4-a716-446655440000
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: customer@example.com
+ *     responses:
+ *       200:
+ *         description: Payment link sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Payment link has been sent successfully
+ *       400:
+ *         description: Bad request - Tenant already has active subscription
+ *       404:
+ *         description: Tenant not found
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/payment-link/resend', authenticateAdmin, leadsController.resendPaymentLink);
+
+/**
+ * @swagger
  * /api/leads/{id}:
  *   get:
  *     summary: Get lead by ID (admin only)
@@ -448,55 +498,5 @@ router.delete('/:id', authenticateAdmin, leadsController.deleteLead);
  *         description: Unauthorized
  */
 router.post('/:id/convert', authenticateAdmin, leadsController.convertToTenant);
-
-/**
- * @swagger
- * /api/leads/payment-link/resend:
- *   post:
- *     summary: Resend payment link to tenant (admin only)
- *     description: Resend payment link for tenants with pending_payment status
- *     tags: [Leads]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - tenantId
- *               - email
- *             properties:
- *               tenantId:
- *                 type: string
- *                 format: uuid
- *                 example: 550e8400-e29b-41d4-a716-446655440000
- *               email:
- *                 type: string
- *                 format: email
- *                 example: customer@example.com
- *     responses:
- *       200:
- *         description: Payment link sent successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Payment link has been sent successfully
- *       400:
- *         description: Bad request - Tenant already has active subscription
- *       404:
- *         description: Tenant not found
- *       401:
- *         description: Unauthorized
- */
-router.post('/payment-link/resend', authenticateAdmin, leadsController.resendPaymentLink);
 
 export default router;
