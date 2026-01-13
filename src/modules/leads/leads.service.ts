@@ -632,8 +632,20 @@ export class LeadsService {
   /**
    * Generate payment link and send to tenant
    */
-  private async generateAndSendPaymentLink(tenant: any, lead: any) {
+  private async generateAndSendPaymentLink(tenant: any, lead: any, planFromDb?: any) {
     try {
+      // Get plan from database if not provided
+      let plan = planFromDb;
+      if (!plan) {
+        plan = await prisma.plan.findUnique({
+          where: { slug: tenant.plan },
+        });
+      }
+
+      if (!plan) {
+        throw new AppError(`Plan not found: ${tenant.plan}`, 404);
+      }
+
       // Map plan slug to Stripe price ID
       const stripePriceMap: Record<string, string> = {
         starter: process.env.STRIPE_PRICE_ID_STARTER || '',
@@ -684,31 +696,34 @@ export class LeadsService {
         },
       });
 
-      // Send payment link email
-      const planDetails: Record<string, { name: string; price: string; features: string[] }> = {
-        starter: {
-          name: 'Starter Plan',
-          price: '$500/month',
-          features: ['1 AI phone line', '1,000 monthly minutes', 'Email support'],
-        },
-        professional: {
-          name: 'Professional Plan',
-          price: '$1,500/month',
-          features: ['3 AI phone lines', '3,000 monthly minutes', 'Priority support', 'CRM integration'],
-        },
-        enterprise: {
-          name: 'Enterprise Plan',
-          price: '$3,000/month',
-          features: ['10 AI phone lines', '6,000 monthly minutes', 'Dedicated onboarding', 'SLA support'],
-        },
-        executive: {
-          name: 'Executive Plan',
-          price: '$5,000/month',
-          features: ['Unlimited phone lines', '12,000 monthly minutes', 'Account manager', 'White-label'],
-        },
-      };
+      // Build plan features from database
+      const features: string[] = [];
 
-      const plan = planDetails[tenant.plan] || planDetails.starter;
+      // Phone lines
+      if (plan.hasUnlimitedPhoneLines) {
+        features.push('Unlimited AI phone lines');
+      } else if (plan.maxPhoneLines) {
+        features.push(`${plan.maxPhoneLines} AI phone line${plan.maxPhoneLines > 1 ? 's' : ''}`);
+      }
+
+      // Call minutes
+      features.push(`${plan.callMinutes.toLocaleString()} monthly minutes`);
+
+      // Overage rate
+      if (plan.overageRatePerMinute) {
+        features.push(`$${plan.overageRatePerMinute}/minute overage`);
+      }
+
+      // Additional features from plan.features JSON
+      if (plan.features && Array.isArray(plan.features)) {
+        features.push(...plan.features);
+      }
+
+      const planInfo = {
+        name: plan.name,
+        price: `$${plan.price}/month`,
+        features,
+      };
 
       const html = `
         <h2>💳 Complete Your Subscription</h2>
@@ -717,15 +732,15 @@ export class LeadsService {
 
         <p>Thank you for choosing First Ring AI! Your account has been created and is ready to go.</p>
 
-        <p>To activate your <strong>${plan.name}</strong> subscription, please complete your payment:</p>
+        <p>To activate your <strong>${planInfo.name}</strong> subscription, please complete your payment:</p>
 
         <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3 style="margin-top: 0;">${plan.name}</h3>
-          <p style="font-size: 24px; color: #667eea; margin: 10px 0;"><strong>${plan.price}</strong></p>
+          <h3 style="margin-top: 0;">${planInfo.name}</h3>
+          <p style="font-size: 24px; color: #667eea; margin: 10px 0;"><strong>${planInfo.price}</strong></p>
 
           <h4>Included:</h4>
           <ul style="padding-left: 20px;">
-            ${plan.features.map(f => `<li>${f}</li>`).join('')}
+            ${planInfo.features.map(f => `<li>${f}</li>`).join('')}
           </ul>
         </div>
 
@@ -748,7 +763,7 @@ export class LeadsService {
 
       await this.sendEmail({
         to: tenant.email,
-        subject: `Complete Your ${plan.name} Subscription - First Ring AI`,
+        subject: `Complete Your ${planInfo.name} Subscription - First Ring AI`,
         html,
       });
 
@@ -945,7 +960,7 @@ export class LeadsService {
    */
   async resendPaymentLinkForTenant(tenantId: string, email: string) {
     try {
-      // Get tenant
+      // Get tenant with plan details
       const tenant = await prisma.tenant.findUnique({
         where: { id: tenantId },
       });
@@ -957,6 +972,15 @@ export class LeadsService {
       // Check if tenant already has active subscription
       if (tenant.subscriptionStatus === 'active') {
         throw new AppError('Tenant already has an active subscription', 400);
+      }
+
+      // Get plan details from database
+      const plan = await prisma.plan.findUnique({
+        where: { slug: tenant.plan },
+      });
+
+      if (!plan) {
+        throw new AppError(`Plan not found: ${tenant.plan}`, 404);
       }
 
       // Get lead for contact info (if exists)
@@ -972,12 +996,14 @@ export class LeadsService {
         selectedPlan: tenant.plan,
       };
 
-      // Generate and send payment link
-      await this.generateAndSendPaymentLink(tenant, leadData);
+      // Generate and send payment link with plan details
+      await this.generateAndSendPaymentLink(tenant, leadData, plan);
 
       logger.info('Payment link resent successfully', {
         tenantId,
         email,
+        plan: plan.name,
+        price: plan.price,
       });
 
       return { message: 'Payment link sent successfully' };
