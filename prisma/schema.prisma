@@ -811,6 +811,9 @@ model Plan {
   price       Float    // Monthly price (USD)
   yearlyPrice Float?   // Yearly price (discounted) - DEPRECATED, keeping for backwards compatibility
 
+  // Stripe Integration
+  stripeProductId String?  // Stripe product ID (e.g., prod_xxx)
+
   // Limits
   callMinutes             Int      // Monthly call minutes included
   maxCalls                Int      // Max calls per month (legacy field)
