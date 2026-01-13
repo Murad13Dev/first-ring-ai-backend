@@ -12,6 +12,7 @@
     "prisma:migrate:prod": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
+    "seed:plans": "ts-node prisma/seed-plans.ts",
     "cleanup": "ts-node scripts/cleanup-test-data.ts",
     "test": "jest",
     "test:watch": "jest --watch",
