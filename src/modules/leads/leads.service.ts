@@ -656,16 +656,11 @@ export class LeadsService {
 
       const priceId = stripePriceMap[tenant.plan];
 
-      if (!priceId) {
-        logger.warn('No Stripe price ID configured for plan', {
-          plan: tenant.plan,
-          tenantId: tenant.id,
-        });
-        return;
-      }
+      let checkout: { sessionId: string; checkoutUrl: string } | null = null;
 
-      // Create Stripe checkout session
-      const checkout = await stripeService.createSubscriptionCheckout({
+      // Create Stripe checkout session if price ID is configured
+      if (priceId) {
+        checkout = await stripeService.createSubscriptionCheckout({
         tenantId: tenant.id,
         customerEmail: tenant.email,
         customerName: tenant.name,
@@ -676,25 +671,31 @@ export class LeadsService {
           plan: tenant.plan,
           source: 'lead_conversion',
         },
-        successUrl: `${process.env.FRONTEND_URL}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${process.env.FRONTEND_URL}/subscription/cancel`,
-      });
+          successUrl: `${process.env.FRONTEND_URL}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+          cancelUrl: `${process.env.FRONTEND_URL}/subscription/cancel`,
+        });
 
-      logger.info('Payment checkout created for new tenant', {
-        tenantId: tenant.id,
-        sessionId: checkout.sessionId,
-        checkoutUrl: checkout.checkoutUrl,
-      });
+        logger.info('Payment checkout created for new tenant', {
+          tenantId: tenant.id,
+          sessionId: checkout.sessionId,
+          checkoutUrl: checkout.checkoutUrl,
+        });
 
-      // Store checkout URL in tenant (optional, for reference)
-      await prisma.tenant.update({
-        where: { id: tenant.id },
-        data: {
-          subscriptionStatus: 'pending_payment',
-          // Note: subscriptionId field can store checkout session ID temporarily
-          subscriptionId: checkout.sessionId,
-        },
-      });
+        // Store checkout URL in tenant (optional, for reference)
+        await prisma.tenant.update({
+          where: { id: tenant.id },
+          data: {
+            subscriptionStatus: 'pending_payment',
+            // Note: subscriptionId field can store checkout session ID temporarily
+            subscriptionId: checkout.sessionId,
+          },
+        });
+      } else {
+        logger.warn('No Stripe price ID configured for plan - email will be sent without payment link', {
+          plan: tenant.plan,
+          tenantId: tenant.id,
+        });
+      }
 
       // Build plan features from database
       const features: string[] = [];
@@ -725,25 +726,8 @@ export class LeadsService {
         features,
       };
 
-      const html = `
-        <h2>💳 Complete Your Subscription</h2>
-
-        <p>Dear ${lead.contactName},</p>
-
-        <p>Thank you for choosing First Ring AI! Your account has been created and is ready to go.</p>
-
-        <p>To activate your <strong>${planInfo.name}</strong> subscription, please complete your payment:</p>
-
-        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3 style="margin-top: 0;">${planInfo.name}</h3>
-          <p style="font-size: 24px; color: #667eea; margin: 10px 0;"><strong>${planInfo.price}</strong></p>
-
-          <h4>Included:</h4>
-          <ul style="padding-left: 20px;">
-            ${planInfo.features.map(f => `<li>${f}</li>`).join('')}
-          </ul>
-        </div>
-
+      // Build email HTML with or without payment link
+      const paymentSection = checkout ? `
         <p style="text-align: center; margin: 30px 0;">
           <a href="${checkout.checkoutUrl}"
              style="background: #667eea; color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: bold; display: inline-block;">
@@ -756,6 +740,34 @@ export class LeadsService {
         </p>
 
         <p><small>This payment link expires in 24 hours. If you need assistance, please contact us at ${process.env.SALES_EMAIL}</small></p>
+      ` : `
+        <p style="background: #fff3cd; padding: 15px; border-left: 4px solid #ffa726; margin: 20px 0;">
+          <strong>⚠️ Payment Setup Pending:</strong> We're currently configuring your payment options. Our team will contact you shortly at ${tenant.email} to complete the setup.
+        </p>
+
+        <p>If you have any questions, please contact us at ${process.env.SALES_EMAIL || 'support@firstring.ai'}</p>
+      `;
+
+      const html = `
+        <h2>💳 Complete Your Subscription</h2>
+
+        <p>Dear ${lead.contactName},</p>
+
+        <p>Thank you for choosing First Ring AI! Your account has been created and is ready to go.</p>
+
+        <p>To activate your <strong>${planInfo.name}</strong> subscription${checkout ? ', please complete your payment' : ', we will help you get started'}:</p>
+
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">${planInfo.name}</h3>
+          <p style="font-size: 24px; color: #667eea; margin: 10px 0;"><strong>${planInfo.price}</strong></p>
+
+          <h4>Included:</h4>
+          <ul style="padding-left: 20px;">
+            ${planInfo.features.map(f => `<li>${f}</li>`).join('')}
+          </ul>
+        </div>
+
+        ${paymentSection}
 
         <p>Best regards,<br>
         The First Ring AI Team</p>
