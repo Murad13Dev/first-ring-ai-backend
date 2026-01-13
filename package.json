@@ -63,7 +63,7 @@
     "@types/jest": "^29.5.11",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.9",
-    "@types/node": "^20.19.27",
+    "@types/node": "^20.19.28",
     "@types/nodemailer": "^6.4.21",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.6",

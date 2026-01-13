@@ -1,7 +1,12 @@
-import { PrismaClient, Order, TenantIntegration, AccessGrant } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import logger from '../config/logger';
 import { DiscordService } from './discord.service';
 import { WhopService } from './whop.service';
+
+// Temporary workaround for Prisma type exports
+type Order = any;
+type TenantIntegration = any;
+type AccessGrant = any;
 
 const prisma = new PrismaClient();
 

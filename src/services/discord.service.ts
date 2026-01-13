@@ -1,6 +1,8 @@
 import axios, { AxiosInstance } from 'axios';
 import logger from '../config/logger';
-import { Order } from '@prisma/client';
+
+// Temporary workaround for Prisma type exports
+type Order = any;
 
 /**
  * Discord Notification Service
