@@ -101,6 +101,9 @@ model User {
   approvedAt    DateTime?
   approvedBy    String?  // AdminUser ID who approved
 
+  // Relations
+  certifiedRep  CertifiedRep?  // User can be a Certified Rep
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -1174,4 +1177,93 @@ model WhopProduct {
   @@index([tenantId])
   @@index([whopProductId])
   @@map("whop_products")
+}
+
+// ==========================================
+// CERTIFIED REP PROGRAM
+// ==========================================
+
+model CertifiedRep {
+  id          String   @id @default(uuid())
+  userId      String   @unique  // First Ring AI user account
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Whop Integration
+  whopMemberId      String?  @unique  // Whop membership ID
+  whopProductId     String?           // $997 product ID
+  whopSubscriptionId String?          // Active subscription
+
+  // Status
+  status            String   @default("pending")
+  // "pending" | "active" | "suspended" | "cancelled"
+
+  // Discord Access
+  discordUserId     String?  @unique
+  discordRoleId     String?  // Role assigned
+  discordRoleName   String?  // Role name (e.g., "Certified Rep")
+  accessGrantedAt   DateTime?
+  accessRevokedAt   DateTime?
+
+  // Payment
+  subscriptionActive Boolean  @default(false)
+  lastPaymentAt      DateTime?
+  paymentFailedAt    DateTime?
+
+  // Performance Tracking
+  totalClients       Int      @default(0)
+  activeClients      Int      @default(0)
+  totalRevenue       Float    @default(0)
+  lifetimeValue      Float    @default(0)
+
+  // Clients managed by this rep
+  clients           RepClient[]
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+  @@index([whopMemberId])
+  @@index([status])
+  @@index([subscriptionActive])
+  @@map("certified_reps")
+}
+
+model RepClient {
+  id              String   @id @default(uuid())
+  repId           String
+  rep             CertifiedRep @relation(fields: [repId], references: [id], onDelete: Cascade)
+
+  // Client Info
+  clientName      String
+  clientEmail     String
+  clientPhone     String?
+  businessType    String?  // restaurant, med_spa, law_firm, etc.
+
+  // Pricing (what rep charges)
+  setupFee        Float?
+  monthlyFee      Float?
+  currency        String   @default("USD")
+
+  // Status
+  status          String   @default("prospect")
+  // "prospect" | "demo_scheduled" | "proposal_sent" | "active" | "churned"
+
+  // Conversion
+  tenantId        String?  @unique  // If converted to actual tenant
+  convertedAt     DateTime?
+
+  // Notes
+  notes           String?  @db.Text
+
+  // Deal tracking
+  dealValue       Float?   // Total contract value
+  closeDate       DateTime?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([repId])
+  @@index([status])
+  @@index([tenantId])
+  @@map("rep_clients")
 }
