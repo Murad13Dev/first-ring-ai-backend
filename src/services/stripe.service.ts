@@ -188,8 +188,8 @@ class StripeService {
       // Create or get customer
       const customer = await this.findOrCreateCustomer(customerEmail, customerName);
 
-      // Create checkout session
-      const session = await this.stripe.checkout.sessions.create({
+      // Build checkout session config
+      const sessionConfig: any = {
         customer: customer.id,
         payment_method_types: ['card'],
         line_items: [
@@ -202,7 +202,6 @@ class StripeService {
         success_url: successUrl || `${process.env.FRONTEND_URL}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: cancelUrl || `${process.env.FRONTEND_URL}/subscription/cancel`,
         subscription_data: {
-          trial_period_days: trialDays,
           metadata: {
             tenantId,
             ...metadata,
@@ -212,7 +211,16 @@ class StripeService {
           tenantId,
           ...metadata,
         },
-      });
+      };
+
+      // Only add trial_period_days if it's greater than 0
+      // Stripe requires minimum 1 day, doesn't accept 0
+      if (trialDays && trialDays > 0) {
+        sessionConfig.subscription_data.trial_period_days = trialDays;
+      }
+
+      // Create checkout session
+      const session = await this.stripe.checkout.sessions.create(sessionConfig);
 
       logger.info('Subscription checkout created', {
         sessionId: session.id,
