@@ -593,27 +593,69 @@ export class LeadsService {
   private async sendLeadConfirmation(lead: any) {
     try {
       const html = `
-        <h2>Your request has been received! ✅</h2>
+        <div style="font-family: 'Inter', system-ui, -apple-system, sans-serif; background:#F3F4F6; padding:24px;">
+          <div style="max-width:640px; margin:0 auto; background:#FFFFFF; border-radius:16px; padding:24px 28px; border:1px solid #E5E7EB; color:#0F172A; line-height:1.6;">
 
-        <p>Dear ${lead.contactName},</p>
+            <!-- First Ring AI header -->
+            <div style="text-align:center; margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid #E5E7EB;">
+              <p style="margin:0; font-size:12px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:#20C896;">
+                First Ring AI
+              </p>
+            </div>
 
-        <p>Thank you for your interest in First Ring AI!</p>
+            <h2 style="margin:0 0 16px 0; font-size:20px; font-weight:700; color:#0F172A;">
+              Your request has been received
+            </h2>
 
-        <p>Your request has been successfully recorded and our team will contact you within 24 hours.</p>
+            <p style="margin:0 0 10px 0;">
+              Dear ${lead.contactName},
+            </p>
 
-        <h3>Request details:</h3>
-        <ul>
-          <li><strong>Business:</strong> ${lead.businessName}</li>
-          <li><strong>Selected plan:</strong> ${lead.selectedPlan.toUpperCase()}</li>
-          <li><strong>Email:</strong> ${lead.email}</li>
-          <li><strong>Phone:</strong> ${lead.phone}</li>
-        </ul>
+            <p style="margin:0 0 10px 0;">
+              Thank you for your interest in <strong style="color:#20C896;">First Ring AI</strong>.
+            </p>
 
-        <p>If you have urgent questions, please contact us:</p>
-        <p>📧 ${process.env.SALES_EMAIL}</p>
+            <p style="margin:0 0 16px 0;">
+              Your request has been successfully recorded and our team will contact you within 24 hours.
+            </p>
 
-        <p>Best regards,<br>
-        First Ring AI Team</p>
+            <h3 style="margin:0 0 8px 0; font-size:16px; font-weight:700; color:#0F172A;">
+              Request details
+            </h3>
+            <div
+              style="
+                margin:8px 0 20px 0;
+                padding:14px 16px;
+                border-radius:12px;
+                background:#DDF2D3;
+                border:1px solid #20C896;
+                font-size:13px;
+                color:#0F172A;
+              "
+            >
+              <ul style="margin:0; padding-left:18px; list-style-type:disc;">
+                <li><strong>Business:</strong> ${lead.businessName}</li>
+                <li><strong>Selected plan:</strong> ${String(lead.selectedPlan || '').toUpperCase()}</li>
+                <li><strong>Email:</strong> ${lead.email}</li>
+                <li><strong>Phone:</strong> ${lead.phone}</li>
+              </ul>
+            </div>
+
+            <p style="margin:0 0 8px 0; font-size:13px; color:#4B5563;">
+              If you have urgent questions, please contact us at:
+            </p>
+            <p style="margin:0 0 16px 0; font-size:13px;">
+              <a href="mailto:${process.env.SALES_EMAIL}" style="color:#20C896; text-decoration:none;">
+                ${process.env.SALES_EMAIL}
+              </a>
+            </p>
+
+            <p style="margin:16px 0 0 0; font-size:13px; color:#0F172A;">
+              Best regards,<br />
+              <strong style="color:#20C896;">First Ring AI Team</strong>
+            </p>
+          </div>
+        </div>
       `;
 
       await this.sendEmail({
@@ -727,50 +769,119 @@ export class LeadsService {
       };
 
       // Build email HTML with or without payment link
-      const paymentSection = checkout ? `
-        <p style="text-align: center; margin: 30px 0;">
-          <a href="${checkout.checkoutUrl}"
-             style="background: #667eea; color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: bold; display: inline-block;">
-            Complete Payment →
-          </a>
-        </p>
+      const paymentSection = checkout
+        ? `
+          <div style="margin:24px 0;">
+            <p style="text-align:center; margin:0 0 16px 0;">
+              <a
+                href="${checkout.checkoutUrl}"
+                style="
+                  display:inline-block;
+                  background:#20C896;
+                  color:#FFFFFF;
+                  padding:14px 28px;
+                  border-radius:999px;
+                  text-decoration:none;
+                  font-size:14px;
+                  font-weight:600;
+                "
+              >
+                Complete payment
+              </a>
+            </p>
 
-        <p style="background: #e3f2fd; padding: 15px; border-left: 4px solid #2196f3; margin: 20px 0;">
-          <strong>ℹ️ Secure Payment:</strong> All payments are processed securely through Stripe. Your card information is never stored on our servers.
-        </p>
+            <div
+              style="
+                margin:16px 0 8px 0;
+                padding:12px 14px;
+                border-radius:8px;
+                border-left:4px solid #20C896;
+                background:#F3F4F6;
+                font-size:13px;
+                color:#0F172A;
+              "
+            >
+              <strong style="display:block; margin-bottom:4px;">Secure payment</strong>
+              All payments are processed securely through Stripe. Your card information is never stored on our servers.
+            </div>
 
-        <p><small>This payment link expires in 24 hours. If you need assistance, please contact us at ${process.env.SALES_EMAIL}</small></p>
-      ` : `
-        <p style="background: #fff3cd; padding: 15px; border-left: 4px solid #ffa726; margin: 20px 0;">
-          <strong>⚠️ Payment Setup Pending:</strong> We're currently configuring your payment options. Our team will contact you shortly at ${tenant.email} to complete the setup.
-        </p>
+            <p style="margin:4px 0 0 0; font-size:12px; color:#6B7280;">
+              This payment link expires in 24 hours. If you need assistance, please contact us at
+              <a href="mailto:${process.env.SALES_EMAIL}" style="color:#20C896; text-decoration:none;">
+                ${process.env.SALES_EMAIL}
+              </a>.
+            </p>
+          </div>
+        `
+        : `
+          <div
+            style="
+              margin:20px 0;
+              padding:12px 14px;
+              border-radius:8px;
+              border-left:4px solid #20C896;
+              background:#F9FAFB;
+              font-size:13px;
+              color:#0F172A;
+            "
+          >
+            <strong style="display:block; margin-bottom:4px;">Payment setup pending</strong>
+            We are currently configuring your payment options. Our team will contact you shortly at ${tenant.email} to complete the setup.
+          </div>
 
-        <p>If you have any questions, please contact us at ${process.env.SALES_EMAIL || 'support@firstring.ai'}</p>
-      `;
+          <p style="margin:8px 0 0 0; font-size:13px; color:#4B5563;">
+            If you have any questions, please contact us at
+            <a href="mailto:${process.env.SALES_EMAIL || 'support@firstring.ai'}" style="color:#20C896; text-decoration:none;">
+              ${process.env.SALES_EMAIL || 'support@firstring.ai'}
+            </a>.
+          </p>
+        `;
 
       const html = `
-        <h2>💳 Complete Your Subscription</h2>
+        <div style="font-family: 'Inter', system-ui, -apple-system, sans-serif; background:#F3F4F6; padding:24px;">
+          <div style="max-width:640px; margin:0 auto; background:#FFFFFF; border-radius:16px; padding:24px 28px; border:1px solid #E5E7EB; color:#0F172A; line-height:1.6;">
 
-        <p>Dear ${lead.contactName},</p>
+            <!-- First Ring AI header -->
+            <div style="text-align:center; margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid #E5E7EB;">
+              <p style="margin:0; font-size:12px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:#20C896;">
+                First Ring AI
+              </p>
+            </div>
 
-        <p>Thank you for choosing First Ring AI! Your account has been created and is ready to go.</p>
+            <h2 style="margin:0 0 16px 0; font-size:20px; font-weight:700; color:#0F172A;">
+              Complete your subscription
+            </h2>
 
-        <p>To activate your <strong>${planInfo.name}</strong> subscription${checkout ? ', please complete your payment' : ', we will help you get started'}:</p>
+            <p style="margin:0 0 10px 0;">
+              Dear ${lead.contactName},
+            </p>
 
-        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3 style="margin-top: 0;">${planInfo.name}</h3>
-          <p style="font-size: 24px; color: #667eea; margin: 10px 0;"><strong>${planInfo.price}</strong></p>
+            <p style="margin:0 0 10px 0;">
+              Thank you for choosing <strong style="color:#20C896;">First Ring AI</strong>! Your account has been created and is ready to go.
+            </p>
 
-          <h4>Included:</h4>
-          <ul style="padding-left: 20px;">
-            ${planInfo.features.map(f => `<li>${f}</li>`).join('')}
-          </ul>
+            <p style="margin:0 0 16px 0;">
+              To activate your <strong>${planInfo.name}</strong> subscription${checkout ? ', please complete your payment' : ', we will help you get started'}:
+            </p>
+
+            <div style="margin:16px 0 20px 0; padding:18px 20px; border-radius:12px; background:#DDF2D3; border:1px solid #20C896;">
+              <h3 style="margin:0 0 8px 0; font-size:18px; font-weight:700; color:#0F172A;">${planInfo.name}</h3>
+              <p style="margin:0 0 12px 0; font-size:24px; font-weight:700; color:#20C896;">${planInfo.price}</p>
+
+              <h4 style="margin:0 0 6px 0; font-size:14px; font-weight:600; color:#0F172A;">Included:</h4>
+              <ul style="margin:0; padding-left:18px; font-size:13px; color:#0F172A;">
+                ${planInfo.features.map(f => `<li style="margin:4px 0;">${f}</li>`).join('')}
+              </ul>
+            </div>
+
+            ${paymentSection}
+
+            <p style="margin:16px 0 0 0; font-size:13px; color:#0F172A;">
+              Best regards,<br />
+              <strong style="color:#20C896;">The First Ring AI Team</strong>
+            </p>
+          </div>
         </div>
-
-        ${paymentSection}
-
-        <p>Best regards,<br>
-        The First Ring AI Team</p>
       `;
 
       await this.sendEmail({
@@ -798,7 +909,14 @@ export class LeadsService {
         <div style="font-family: 'Inter', system-ui, -apple-system, sans-serif; background:#F3F4F6; padding:24px;">
           <div style="max-width:640px; margin:0 auto; background:#FFFFFF; border-radius:16px; padding:24px 28px; border:1px solid #E5E7EB; color:#0F172A; line-height:1.6;">
 
-            <h2 style="margin:0 0 16px 0; font-size:22px; font-weight:700; color:#0F172A;">
+            <!-- First Ring AI header -->
+            <div style="text-align:center; margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid #E5E7EB;">
+              <p style="margin:0; font-size:12px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:#20C896;">
+                First Ring AI
+              </p>
+            </div>
+
+            <h2 style="margin:0 0 16px 0; font-size:20px; font-weight:700; color:#0F172A;">
               Welcome, ${tenant.name}!
             </h2>
 
@@ -828,8 +946,8 @@ export class LeadsService {
                 <tr>
                   <td style="padding:4px 0; width:110px; font-weight:600;">Dashboard</td>
                   <td style="padding:4px 0;">
-                    <a href="${process.env.FRONTEND_URL}" style="color:#20C896; text-decoration:none;">
-                      ${process.env.FRONTEND_URL}
+                    <a href="https://firstring.ai/signin" style="color:#20C896; text-decoration:none;">
+                      https://firstring.ai/signin
                     </a>
                   </td>
                 </tr>
@@ -903,7 +1021,7 @@ export class LeadsService {
 
             <p style="margin:24px 0 28px 0;">
               <a
-                href="${process.env.FRONTEND_URL}"
+                href="https://firstring.ai/signin"
                 style="
                   display:inline-block;
                   background:#20C896;
