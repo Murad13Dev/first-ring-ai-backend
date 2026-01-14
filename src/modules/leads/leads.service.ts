@@ -798,7 +798,14 @@ export class LeadsService {
         <div style="font-family: 'Inter', system-ui, -apple-system, sans-serif; background:#F3F4F6; padding:24px;">
           <div style="max-width:640px; margin:0 auto; background:#FFFFFF; border-radius:16px; padding:24px 28px; border:1px solid #E5E7EB; color:#0F172A; line-height:1.6;">
 
-            <h2 style="margin:0 0 16px 0; font-size:22px; font-weight:700; color:#0F172A;">
+            <!-- First Ring AI header -->
+            <div style="text-align:center; margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid #E5E7EB;">
+              <p style="margin:0; font-size:12px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:#20C896;">
+                First Ring AI
+              </p>
+            </div>
+
+            <h2 style="margin:0 0 16px 0; font-size:20px; font-weight:700; color:#0F172A;">
               Welcome, ${tenant.name}!
             </h2>
 
@@ -828,8 +835,8 @@ export class LeadsService {
                 <tr>
                   <td style="padding:4px 0; width:110px; font-weight:600;">Dashboard</td>
                   <td style="padding:4px 0;">
-                    <a href="${process.env.FRONTEND_URL}" style="color:#20C896; text-decoration:none;">
-                      ${process.env.FRONTEND_URL}
+                    <a href="https://firstring.ai/signin" style="color:#20C896; text-decoration:none;">
+                      https://firstring.ai/signin
                     </a>
                   </td>
                 </tr>
@@ -903,7 +910,7 @@ export class LeadsService {
 
             <p style="margin:24px 0 28px 0;">
               <a
-                href="${process.env.FRONTEND_URL}"
+                href="https://firstring.ai/signin"
                 style="
                   display:inline-block;
                   background:#20C896;
