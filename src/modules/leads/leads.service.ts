@@ -593,27 +593,69 @@ export class LeadsService {
   private async sendLeadConfirmation(lead: any) {
     try {
       const html = `
-        <h2>Your request has been received! ✅</h2>
+        <div style="font-family: 'Inter', system-ui, -apple-system, sans-serif; background:#F3F4F6; padding:24px;">
+          <div style="max-width:640px; margin:0 auto; background:#FFFFFF; border-radius:16px; padding:24px 28px; border:1px solid #E5E7EB; color:#0F172A; line-height:1.6;">
 
-        <p>Dear ${lead.contactName},</p>
+            <!-- First Ring AI header -->
+            <div style="text-align:center; margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid #E5E7EB;">
+              <p style="margin:0; font-size:12px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:#20C896;">
+                First Ring AI
+              </p>
+            </div>
 
-        <p>Thank you for your interest in First Ring AI!</p>
+            <h2 style="margin:0 0 16px 0; font-size:20px; font-weight:700; color:#0F172A;">
+              Your request has been received
+            </h2>
 
-        <p>Your request has been successfully recorded and our team will contact you within 24 hours.</p>
+            <p style="margin:0 0 10px 0;">
+              Dear ${lead.contactName},
+            </p>
 
-        <h3>Request details:</h3>
-        <ul>
-          <li><strong>Business:</strong> ${lead.businessName}</li>
-          <li><strong>Selected plan:</strong> ${lead.selectedPlan.toUpperCase()}</li>
-          <li><strong>Email:</strong> ${lead.email}</li>
-          <li><strong>Phone:</strong> ${lead.phone}</li>
-        </ul>
+            <p style="margin:0 0 10px 0;">
+              Thank you for your interest in <strong style="color:#20C896;">First Ring AI</strong>.
+            </p>
 
-        <p>If you have urgent questions, please contact us:</p>
-        <p>📧 ${process.env.SALES_EMAIL}</p>
+            <p style="margin:0 0 16px 0;">
+              Your request has been successfully recorded and our team will contact you within 24 hours.
+            </p>
 
-        <p>Best regards,<br>
-        First Ring AI Team</p>
+            <h3 style="margin:0 0 8px 0; font-size:16px; font-weight:700; color:#0F172A;">
+              Request details
+            </h3>
+            <div
+              style="
+                margin:8px 0 20px 0;
+                padding:14px 16px;
+                border-radius:12px;
+                background:#DDF2D3;
+                border:1px solid #20C896;
+                font-size:13px;
+                color:#0F172A;
+              "
+            >
+              <ul style="margin:0; padding-left:18px; list-style-type:disc;">
+                <li><strong>Business:</strong> ${lead.businessName}</li>
+                <li><strong>Selected plan:</strong> ${String(lead.selectedPlan || '').toUpperCase()}</li>
+                <li><strong>Email:</strong> ${lead.email}</li>
+                <li><strong>Phone:</strong> ${lead.phone}</li>
+              </ul>
+            </div>
+
+            <p style="margin:0 0 8px 0; font-size:13px; color:#4B5563;">
+              If you have urgent questions, please contact us at:
+            </p>
+            <p style="margin:0 0 16px 0; font-size:13px;">
+              <a href="mailto:${process.env.SALES_EMAIL}" style="color:#20C896; text-decoration:none;">
+                ${process.env.SALES_EMAIL}
+              </a>
+            </p>
+
+            <p style="margin:16px 0 0 0; font-size:13px; color:#0F172A;">
+              Best regards,<br />
+              <strong style="color:#20C896;">First Ring AI Team</strong>
+            </p>
+          </div>
+        </div>
       `;
 
       await this.sendEmail({
