@@ -459,6 +459,46 @@ class StripeService {
       throw new AppError('Failed to list prices', 500);
     }
   }
+
+  /**
+   * Create price for existing product
+   */
+  async createPriceForProduct(params: {
+    productId: string;
+    amount: number; // in cents
+    currency?: string;
+    interval: 'month' | 'year';
+    intervalCount?: number;
+  }) {
+    try {
+      const { productId, amount, currency = 'usd', interval, intervalCount = 1 } = params;
+
+      // Create price for existing product
+      const price = await this.stripe.prices.create({
+        product: productId,
+        currency,
+        unit_amount: amount,
+        recurring: {
+          interval,
+          interval_count: intervalCount,
+        },
+      });
+
+      logger.info('Price created for existing product', {
+        priceId: price.id,
+        productId,
+        amount,
+      });
+
+      return {
+        priceId: price.id,
+        productId,
+      };
+    } catch (error) {
+      logger.error('Create price for product error', { error });
+      throw new AppError('Failed to create price for product', 500);
+    }
+  }
 }
 
 export default new StripeService();
