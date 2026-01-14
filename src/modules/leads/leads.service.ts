@@ -795,44 +795,143 @@ export class LeadsService {
   private async sendWelcomeEmail(lead: any, tenant: any, tempPassword: string) {
     try {
       const html = `
-        <h2>🎉 Welcome, ${tenant.name}!</h2>
+        <div style="font-family: 'Inter', system-ui, -apple-system, sans-serif; background:#F3F4F6; padding:24px;">
+          <div style="max-width:640px; margin:0 auto; background:#FFFFFF; border-radius:16px; padding:24px 28px; border:1px solid #E5E7EB; color:#0F172A; line-height:1.6;">
 
-        <p>Dear ${lead.contactName},</p>
+            <h2 style="margin:0 0 16px 0; font-size:22px; font-weight:700; color:#0F172A;">
+              Welcome, ${tenant.name}!
+            </h2>
 
-        <p>Welcome to First Ring AI platform! Your account has been activated.</p>
+            <p style="margin:0 0 10px 0;">
+              Dear ${lead.contactName},
+            </p>
 
-        <h3>🔐 Login credentials:</h3>
-        <table style="background: #f5f5f5; padding: 20px; border-radius: 8px;">
-          <tr><td><strong>Dashboard:</strong></td><td><a href="${process.env.FRONTEND_URL}">${process.env.FRONTEND_URL}</a></td></tr>
-          <tr><td><strong>Email:</strong></td><td>${lead.email}</td></tr>
-          <tr><td><strong>Temporary password:</strong></td><td><code style="background: #fff; padding: 4px 8px; border-radius: 4px;">${tempPassword}</code></td></tr>
-        </table>
+            <p style="margin:0 0 16px 0;">
+              Welcome to the <strong style="color:#20C896;">First Ring AI</strong> platform. Your account has been activated and is ready to use.
+            </p>
 
-        <p style="background: #fff3cd; padding: 15px; border-left: 4px solid #ffa726; margin: 20px 0;">
-          <strong>⚠️ Important:</strong> Change your password after first login!
-        </p>
+            <h3 style="margin:0 0 10px 0; font-size:16px; font-weight:700; color:#0F172A;">
+              Login credentials
+            </h3>
 
-        <h3>🚀 Next steps:</h3>
-        <ol>
-          <li>Login to Dashboard</li>
-          <li>Complete Setup Wizard (5 minutes)</li>
-          <li>Add your services/menu</li>
-          <li>Add your FAQs</li>
-          <li>Test your AI agent</li>
-        </ol>
+            <!-- Карта с логином -->
+            <div
+              style="
+                margin:12px 0 20px 0;
+                padding:18px 20px;
+                border-radius:12px;
+                background:#DDF2D3;
+                border:1px solid #20C896;
+              "
+            >
+              <table cellpadding="0" cellspacing="0" style="width:100%; font-size:13px; color:#0F172A;">
+                <tr>
+                  <td style="padding:4px 0; width:110px; font-weight:600;">Dashboard</td>
+                  <td style="padding:4px 0;">
+                    <a href="${process.env.FRONTEND_URL}" style="color:#20C896; text-decoration:none;">
+                      ${process.env.FRONTEND_URL}
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0; font-weight:600; vertical-align:top;">Email</td>
+                  <td style="padding:8px 0;">
+                    <span
+                      style="
+                        display:inline-block;
+                        padding:6px 12px;
+                        border-radius:999px;
+                        background:#FFFFFF;
+                        border:1px solid #E5E7EB;
+                        font-size:14px;
+                        font-weight:600;
+                        color:#0F172A;
+                      "
+                    >
+                      ${lead.email}
+                    </span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0; font-weight:600; vertical-align:top;">Temporary password</td>
+                  <td style="padding:8px 0;">
+                    <span
+                      style="
+                        display:inline-block;
+                        padding:6px 14px;
+                        border-radius:8px;
+                        background:#0F172A;
+                        color:#FFFFFF;
+                        font-size:14px;
+                        letter-spacing:0.04em;
+                        font-family:'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+                      "
+                    >
+                      ${tempPassword}
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </div>
 
-        <p style="margin-top: 30px;">
-          <a href="${process.env.FRONTEND_URL}"
-             style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
-            Go to Dashboard
-          </a>
-        </p>
+            <!-- Важное уведомление -->
+            <div
+              style="
+                margin:20px 0;
+                padding:12px 14px;
+                border-radius:8px;
+                border-left:4px solid #20C896;
+                background:#F9FAFB;
+                font-size:13px;
+                color:#0F172A;
+              "
+            >
+              <strong style="display:block; margin-bottom:4px;">Important</strong>
+              Please change your password immediately after your first login.
+            </div>
 
-        <p style="margin-top: 40px;">Need help?<br>
-        📧 ${process.env.SALES_EMAIL}</p>
+            <h3 style="margin:16px 0 8px 0; font-size:16px; font-weight:700; color:#0F172A;">
+              Next steps
+            </h3>
+            <ol style="margin:0 0 20px 20px; padding:0; font-size:13px; color:#4B5563;">
+              <li>Log in to your dashboard.</li>
+              <li>Complete the setup wizard (about 5 minutes).</li>
+              <li>Add your services or menu.</li>
+              <li>Add your FAQs.</li>
+              <li>Test your AI agent with a few calls.</li>
+            </ol>
 
-        <p>Best regards,<br>
-        First Ring AI Team</p>
+            <p style="margin:24px 0 28px 0;">
+              <a
+                href="${process.env.FRONTEND_URL}"
+                style="
+                  display:inline-block;
+                  background:#20C896;
+                  color:#FFFFFF;
+                  padding:12px 24px;
+                  border-radius:999px;
+                  text-decoration:none;
+                  font-size:14px;
+                  font-weight:600;
+                "
+              >
+                Go to dashboard
+              </a>
+            </p>
+
+            <p style="margin:0 0 8px 0; font-size:13px; color:#4B5563;">
+              Need help?<br />
+              <a href="mailto:${process.env.SALES_EMAIL}" style="color:#20C896; text-decoration:none;">
+                ${process.env.SALES_EMAIL}
+              </a>
+            </p>
+
+            <p style="margin:16px 0 0 0; font-size:13px; color:#0F172A;">
+              Best regards,<br />
+              <strong style="color:#20C896;">First Ring AI Team</strong>
+            </p>
+          </div>
+        </div>
       `;
 
       await this.sendEmail({
