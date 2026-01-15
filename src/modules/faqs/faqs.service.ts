@@ -401,7 +401,7 @@ export class FAQsService {
       'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
       'should', 'can', 'may', 'might', 'must', 'shall', 'it', 'that', 'this',
       'these', 'those', 'i', 'you', 'he', 'she', 'we', 'they', 'what', 'when',
-      'where', 'why', 'how', 'nə', 'necə', 'harada', 'niyə', 'kim',
+      'where', 'why', 'how', 'who', 'which', 'whom',
     ];
 
     // Extract words

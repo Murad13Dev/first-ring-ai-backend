@@ -106,7 +106,7 @@ const router = Router();
  *                 example: 0.94
  *               aiNotes:
  *                 type: string
- *                 description: AI-generated summary
+ *                 description: Automated call summary
  *     responses:
  *       201:
  *         description: Lead created successfully

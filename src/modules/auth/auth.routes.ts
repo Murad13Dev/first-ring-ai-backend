@@ -25,7 +25,7 @@ const router = Router();
  *               email:
  *                 type: string
  *                 format: email
- *                 example: user@pizzahouse.az
+ *                 example: user@pizzahouse.com
  *               password:
  *                 type: string
  *                 format: password
@@ -33,7 +33,7 @@ const router = Router();
  *                 example: SecurePass123!
  *               name:
  *                 type: string
- *                 example: Rəşad Məmmədov
+ *                 example: John Doe
  *               tenantId:
  *                 type: string
  *                 format: uuid
@@ -95,7 +95,7 @@ router.post('/register', authController.register);
  *               email:
  *                 type: string
  *                 format: email
- *                 example: user@pizzahouse.az
+ *                 example: user@pizzahouse.com
  *               password:
  *                 type: string
  *                 format: password
@@ -295,7 +295,7 @@ router.get('/verify-email/:token', authController.verifyEmail);
  *               email:
  *                 type: string
  *                 format: email
- *                 example: user@pizzahouse.az
+ *                 example: user@pizzahouse.com
  *     responses:
  *       200:
  *         description: Verification email resent

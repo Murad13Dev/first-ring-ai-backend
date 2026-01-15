@@ -355,7 +355,7 @@ Always be helpful, professional, and customer-focused.`,
   private getBeginMessage(tenantName: string, language: string): string {
     const messages: Record<string, string> = {
       'en-US': `Hello! Thank you for calling ${tenantName}. How may I assist you today?`,
-      'az-AZ': `Salam! ${tenantName} şirkətinə zəng etdiyiniz üçün təşəkkür edirəm. Sizə necə kömək edə bilərəm?`,
+      'az-AZ': `Hello! Thank you for calling ${tenantName}. How can I help you today?`,
       'es-ES': `¡Hola! Gracias por llamar a ${tenantName}. ¿Cómo puedo ayudarle hoy?`,
       'ru-RU': `Здравствуйте! Спасибо за звонок в ${tenantName}. Чем могу вам помочь?`,
     };

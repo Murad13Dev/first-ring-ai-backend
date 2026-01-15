@@ -3,154 +3,154 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function cleanupTestData() {
-  console.log('🧹 Test məlumatlarını təmizləməyə başlayırıq...\n');
+  console.log('🧹 Starting test data cleanup...\n');
 
   try {
-    // Əvvəlcə statistika göstərək
-    console.log('📊 Əvvəlki vəziyyət:');
+    // Show statistics first
+    console.log('📊 Current state:');
     await showStats();
     console.log('\n');
 
-    // Əminlik üçün təsdiq tələb edək (production-da)
+    // Ask for confirmation (for production)
     if (process.env.NODE_ENV === 'production') {
-      console.log('⚠️  XƏBƏRDARLIQ: Production mühitində işləyirsiniz!');
-      console.log('Bu əməliyyat bütün test məlumatlarını silir.');
-      console.log('Davam etmək üçün NODE_ENV=development təyin edin.\n');
+      console.log('⚠️  WARNING: Running in production environment!');
+      console.log('This operation will delete all test data.');
+      console.log('Set NODE_ENV=development to continue.\n');
       process.exit(1);
     }
 
-    console.log('🗑️  Məlumatları silməyə başlayırıq...\n');
+    console.log('🗑️  Deleting data...\n');
 
-    // 1. İlk öncə child record-ları siləlim
-    console.log('1️⃣  InvoiceItem-ləri silik...');
+    // 1. First delete child records
+    console.log('1️⃣  Deleting InvoiceItems...');
     await prisma.invoiceItem.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('2️⃣  Invoice-ləri silik...');
+    console.log('2️⃣  Deleting Invoices...');
     await prisma.invoice.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('3️⃣  BusinessTypeFunction-ları silik...');
+    console.log('3️⃣  Deleting BusinessTypeFunctions...');
     await prisma.businessTypeFunction.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('4️⃣  UsageRecord-ları silik...');
+    console.log('4️⃣  Deleting UsageRecords...');
     await prisma.usageRecord.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('5️⃣  Notification-ları silik...');
+    console.log('5️⃣  Deleting Notifications...');
     await prisma.notification.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('6️⃣  AnalyticsEvent-ləri silik...');
+    console.log('6️⃣  Deleting AnalyticsEvents...');
     await prisma.analyticsEvent.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('7️⃣  ChatMessage-ları silik...');
+    console.log('7️⃣  Deleting ChatMessages...');
     await prisma.chatMessage.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('8️⃣  ChatSession-ları silik...');
+    console.log('8️⃣  Deleting ChatSessions...');
     await prisma.chatSession.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('9️⃣  FollowUpJob-ları silik...');
+    console.log('9️⃣  Deleting FollowUpJobs...');
     await prisma.followUpJob.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('🔟 FollowUpConfig-ləri silik...');
+    console.log('🔟 Deleting FollowUpConfigs...');
     await prisma.followUpConfig.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('1️⃣1️⃣ QRCode-ları silik...');
+    console.log('1️⃣1️⃣ Deleting QRCodes...');
     await prisma.qRCode.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('1️⃣2️⃣ Callback-ları silik...');
+    console.log('1️⃣2️⃣ Deleting Callbacks...');
     await prisma.callback.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('1️⃣3️⃣ Message-ları silik...');
+    console.log('1️⃣3️⃣ Deleting Messages...');
     await prisma.message.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('1️⃣4️⃣ CallLog-ları silik...');
+    console.log('1️⃣4️⃣ Deleting CallLogs...');
     await prisma.callLog.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('1️⃣5️⃣ Product-ları silik...');
+    console.log('1️⃣5️⃣ Deleting Products...');
     await prisma.product.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('1️⃣6️⃣ MenuItem-ləri silik...');
+    console.log('1️⃣6️⃣ Deleting MenuItems...');
     await prisma.menuItem.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('1️⃣7️⃣ Promotion-ları silik...');
+    console.log('1️⃣7️⃣ Deleting Promotions...');
     await prisma.promotion.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('1️⃣8️⃣ Customer-ləri silik...');
+    console.log('1️⃣8️⃣ Deleting Customers...');
     await prisma.customer.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('1️⃣9️⃣ Call-ları silik...');
+    console.log('1️⃣9️⃣ Deleting Calls...');
     await prisma.call.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('2️⃣0️⃣ Order-ləri silik...');
+    console.log('2️⃣0️⃣ Deleting Orders...');
     await prisma.order.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('2️⃣1️⃣ Booking-ləri silik...');
+    console.log('2️⃣1️⃣ Deleting Bookings...');
     await prisma.booking.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('2️⃣2️⃣ FAQ-ları silik...');
+    console.log('2️⃣2️⃣ Deleting FAQs...');
     await prisma.fAQ.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('2️⃣3️⃣ Service-ləri silik...');
+    console.log('2️⃣3️⃣ Deleting Services...');
     await prisma.service.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('2️⃣4️⃣ Subscription-ları silik...');
+    console.log('2️⃣4️⃣ Deleting Subscriptions...');
     await prisma.subscription.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('2️⃣5️⃣ User-ləri silik...');
+    console.log('2️⃣5️⃣ Deleting Users...');
     await prisma.user.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('2️⃣6️⃣ Tenant-ları silik...');
+    console.log('2️⃣6️⃣ Deleting Tenants...');
     await prisma.tenant.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('2️⃣7️⃣ ActivityLog-ları silik...');
+    console.log('2️⃣7️⃣ Deleting ActivityLogs...');
     await prisma.activityLog.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('2️⃣8️⃣ Lead-ləri silik...');
+    console.log('2️⃣8️⃣ Deleting Leads...');
     await prisma.lead.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    console.log('2️⃣9️⃣ AdminUser-ləri silik...');
+    console.log('2️⃣9️⃣ Deleting AdminUsers...');
     await prisma.adminUser.deleteMany({});
-    console.log('   ✅ Tamamlandı');
+    console.log('   ✅ Completed');
 
-    // BusinessType və Plan-ları saxlayırıq (sistem məlumatları)
-    console.log('\n💡 Qeyd: BusinessType və Plan saxlanılır (sistem məlumatları)');
-    console.log('   Əgər bunları da silmək istəyirsinizsə, aşağıdakı kodu açın:\n');
+    // Keep BusinessType and Plan (system data)
+    console.log('\n💡 Note: BusinessType and Plan are preserved (system data)');
+    console.log('   To delete these as well, uncomment the following lines:\n');
     console.log('   // await prisma.businessType.deleteMany({});');
     console.log('   // await prisma.plan.deleteMany({});\n');
 
-    // Nəticəni göstərək
-    console.log('\n📊 Yeni vəziyyət:');
+    // Show results
+    console.log('\n📊 New state:');
     await showStats();
 
-    console.log('\n✅ Test məlumatları uğurla təmizləndi!');
+    console.log('\n✅ Test data cleaned successfully!');
   } catch (error) {
-    console.error('\n❌ Xəta baş verdi:', error);
+    console.error('\n❌ Error occurred:', error);
     throw error;
   } finally {
     await prisma.$disconnect();
@@ -201,15 +201,15 @@ async function showStats() {
   }
 }
 
-// Əgər birbaşa çalışdırılırsa
+// If running directly
 if (require.main === module) {
   cleanupTestData()
     .then(() => {
-      console.log('\n👋 Script tamamlandı!');
+      console.log('\n👋 Script completed!');
       process.exit(0);
     })
     .catch((error) => {
-      console.error('\n💥 Fatal xəta:', error);
+      console.error('\n💥 Fatal error:', error);
       process.exit(1);
     });
 }
