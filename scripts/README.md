@@ -1,109 +1,109 @@
-# Test Məlumatlarını Təmizləmə Skripti
+# Test Data Cleanup Script
 
-## İstifadə
+## Usage
 
-Test məlumatlarını təmizləmək üçün:
+To clean up test data:
 
 ```bash
 npm run cleanup
 ```
 
-və ya birbaşa:
+or directly:
 
 ```bash
 ts-node scripts/cleanup-test-data.ts
 ```
 
-## Nə silinir?
+## What gets deleted?
 
-Bu skript aşağıdakı bütün məlumatları silir:
+This script deletes all of the following data:
 
-- ✅ **Tenant-lar** və onların istifadəçiləri
-- ✅ **Lead-lər** (potensial müştərilər)
-- ✅ **Booking-lər** (rezervasiyalar)
-- ✅ **Order-lər** (sifarişlər)
-- ✅ **Call-lar** (zəng qeydləri)
-- ✅ **Service-lər** (xidmətlər/menyular)
-- ✅ **FAQ-lar**
-- ✅ **Customer-lər** (müştəri məlumatları)
-- ✅ **ChatSession** və **ChatMessage-lar**
-- ✅ **Invoice** və **InvoiceItem-lər**
-- ✅ **Subscription-lar**
-- ✅ **Product-lar** və **MenuItem-lər**
-- ✅ **Promotion-lar**
-- ✅ **QRCode-lar**
-- ✅ **Message-lar**
-- ✅ **Callback-lar**
-- ✅ **FollowUp** məlumatları
-- ✅ **UsageRecord-lar**
-- ✅ **Notification-lar**
-- ✅ **AnalyticsEvent-lər**
-- ✅ **ActivityLog-lar**
-- ✅ **AdminUser-lər**
-- ✅ **BusinessTypeFunction-lar**
+- ✅ **Tenants** and their users
+- ✅ **Leads** (potential customers)
+- ✅ **Bookings** (reservations)
+- ✅ **Orders**
+- ✅ **Calls** (call logs)
+- ✅ **Services** (services/menus)
+- ✅ **FAQs**
+- ✅ **Customers** (customer data)
+- ✅ **ChatSessions** and **ChatMessages**
+- ✅ **Invoices** and **InvoiceItems**
+- ✅ **Subscriptions**
+- ✅ **Products** and **MenuItems**
+- ✅ **Promotions**
+- ✅ **QR Codes**
+- ✅ **Messages**
+- ✅ **Callbacks**
+- ✅ **FollowUp** data
+- ✅ **UsageRecords**
+- ✅ **Notifications**
+- ✅ **AnalyticsEvents**
+- ✅ **ActivityLogs**
+- ✅ **AdminUsers**
+- ✅ **BusinessTypeFunctions**
 
-## Nə saxlanılır?
+## What is preserved?
 
-Aşağıdakı sistem məlumatları **saxlanılır**:
+The following system data is **preserved**:
 
-- 🔒 **BusinessType-lar** (restaurant, hotel, medical, və s.)
-- 🔒 **Plan-lar** (Starter, Professional, Enterprise)
+- 🔒 **BusinessTypes** (restaurant, hotel, medical, etc.)
+- 🔒 **Plans** (Starter, Professional, Enterprise)
 
-### Əgər bunları da silmək istəyirsinizsə:
+### To delete these as well:
 
-`scripts/cleanup-test-data.ts` faylını açın və aşağıdakı sətirləri aktiv edin:
+Open `scripts/cleanup-test-data.ts` and uncomment the following lines:
 
 ```typescript
 // await prisma.businessType.deleteMany({});
 // await prisma.plan.deleteMany({});
 ```
 
-## Təhlükəsizlik
+## Safety
 
-- ⚠️ **Production mühitində** skript işləməyəcək (NODE_ENV=production)
-- ✅ Yalnız **development** mühitində işləyir
-- 📊 Skript əvvəl və sonra statistika göstərir
+- ⚠️ Script **will not run** in **production** environment (NODE_ENV=production)
+- ✅ Only works in **development** environment
+- 📊 Script shows statistics before and after
 
-## Nümunə çıxış
+## Sample output
 
 ```
-🧹 Test məlumatlarını təmizləməyə başlayırıq...
+🧹 Starting test data cleanup...
 
-📊 Əvvəlki vəziyyət:
+📊 Current state:
    📦 Tenant              : 3
    📦 User                : 5
    📦 Booking             : 12
    ...
 
-🗑️  Məlumatları silməyə başlayırıq...
+🗑️  Deleting data...
 
-1️⃣  InvoiceItem-ləri silik...
-   ✅ Tamamlandı
+1️⃣  Deleting InvoiceItems...
+   ✅ Completed
 ...
 
-📊 Yeni vəziyyət:
+📊 New state:
    ✅ Tenant              : 0
    ✅ User                : 0
    ✅ Booking             : 0
    ...
 
-✅ Test məlumatları uğurla təmizləndi!
+✅ Test data cleaned successfully!
 ```
 
-## Xəbərdarlıq
+## Warning
 
-⚠️ **Bu əməliyyat geri qaytarıla bilməz!** Məlumatları silməzdən əvvəl əmin olun ki, backup aldınız.
+⚠️ **This operation cannot be undone!** Make sure you have a backup before deleting data.
 
-## Verilənlər bazasını sıfırdan qurmaq
+## Reset database from scratch
 
-Əgər verilənlər bazasını tamamilə sıfırdan qurmaq istəyirsinizsə:
+If you want to completely reset the database from scratch:
 
 ```bash
-# 1. Verilənlər bazasını sıfırla
+# 1. Reset database
 npm run prisma:migrate:reset
 
-# 2. Sistem məlumatlarını yüklə (BusinessTypes və Plans)
-# Backend-i işə salın və bu endpoint-ləri çağırın:
+# 2. Load system data (BusinessTypes and Plans)
+# Start the backend and call these endpoints:
 # POST /api/business-types/seed
 # POST /api/subscriptions/plans/seed
 ```
