@@ -280,18 +280,18 @@ const options: swaggerJsdoc.Options = {
             },
             question: {
               type: 'string',
-              example: 'Siz neçədə açılırsınız?',
+              example: 'What time do you open?',
             },
             answer: {
               type: 'string',
-              example: 'Biz hər gün səhər 10-dan gecə 11-ə qədər açıqıq',
+              example: 'We are open every day from 10 AM to 11 PM',
             },
             keywords: {
               type: 'array',
               items: {
                 type: 'string',
               },
-              example: ['açılış', 'saat', 'hours'],
+              example: ['opening', 'hours', 'time'],
             },
             category: {
               type: 'string',
