@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Tenant məlumatlarını göstərir (manual setup üçün)
+ * Display tenant information (for manual setup)
  */
 
 const { PrismaClient } = require('@prisma/client');
@@ -21,17 +21,17 @@ async function listTenants() {
     });
 
     console.log('\n╔════════════════════════════════════════════════════════════════╗');
-    console.log('║          RETELL AI MANUAL SETUP - TENANT SİYAHISI             ║');
+    console.log('║          RETELL AI MANUAL SETUP - TENANT LIST                 ║');
     console.log('╚════════════════════════════════════════════════════════════════╝\n');
 
     if (tenants.length === 0) {
-      console.log('❌ Heç bir tenant tapılmadı.\n');
-      console.log('Yeni tenant yaratmaq üçün:');
+      console.log('❌ No tenants found.\n');
+      console.log('To create a new tenant:');
       console.log('  POST /api/tenants/create\n');
       return;
     }
 
-    console.log(`📊 Cəmi ${tenants.length} tenant tapıldı:\n`);
+    console.log(`📊 Total ${tenants.length} tenant(s) found:\n`);
 
     tenants.forEach((tenant, index) => {
       const hasPhone = tenant.twilioNumber ? '✅' : '❌';
@@ -40,30 +40,30 @@ async function listTenants() {
       console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
       console.log(`${index + 1}. ${tenant.name}`);
       console.log(`   Business Type: ${tenant.businessType}`);
-      console.log(`   ${hasPhone} Twilio Number: ${tenant.twilioNumber || 'YET YOXDUR'}`);
-      console.log(`   ${hasAgent} Retell Agent: ${tenant.retellAgentId || 'YET YARADILMAYIB'}`);
+      console.log(`   ${hasPhone} Twilio Number: ${tenant.twilioNumber || 'NOT CONFIGURED'}`);
+      console.log(`   ${hasAgent} Retell Agent: ${tenant.retellAgentId || 'NOT CREATED'}`);
       console.log(`   Tenant ID: ${tenant.id}`);
       console.log('');
 
-      // Manual setup üçün status
+      // Status for manual setup
       if (tenant.twilioNumber && tenant.retellAgentId) {
-        console.log('   📋 MANUAL SETUP LAZIMDIR:');
-        console.log(`      1. Retell Dashboard-a get`);
-        console.log(`      2. Phone Number əlavə et: ${tenant.twilioNumber}`);
-        console.log(`      3. Agent seç: ${tenant.retellAgentId}`);
-        console.log(`      4. Twilio webhook yenilə\n`);
+        console.log('   📋 MANUAL SETUP REQUIRED:');
+        console.log(`      1. Go to Retell Dashboard`);
+        console.log(`      2. Add Phone Number: ${tenant.twilioNumber}`);
+        console.log(`      3. Select Agent: ${tenant.retellAgentId}`);
+        console.log(`      4. Update Twilio webhook\n`);
       } else if (!tenant.twilioNumber) {
-        console.log('   ⚠️  Twilio phone number lazımdır!\n');
+        console.log('   ⚠️  Twilio phone number required!\n');
       } else if (!tenant.retellAgentId) {
-        console.log('   ⚠️  Retell agent yaratmaq lazımdır!\n');
+        console.log('   ⚠️  Retell agent needs to be created!\n');
       }
     });
 
     console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
-    console.log('📖 Ətraflı təlimat: RETELL_MANUAL_SETUP.md\n');
+    console.log('📖 Detailed instructions: RETELL_MANUAL_SETUP.md\n');
 
   } catch (error) {
-    console.error('❌ Xəta:', error.message);
+    console.error('❌ Error:', error.message);
   } finally {
     await prisma.$disconnect();
   }
