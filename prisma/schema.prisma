@@ -1275,3 +1275,38 @@ model RepClient {
   @@index([tenantId])
   @@map("rep_clients")
 }
+
+// ==========================================
+// BLOG POSTS (for marketing website)
+// ==========================================
+model BlogPost {
+  id        String   @id @default(uuid())
+  title     String
+  content   String   @db.Text
+  excerpt   String?  @db.Text
+  author    String
+  category  String   @default("News") // News, Updates, Partnerships, Features
+  image     String?  @db.Text // base64 or URL
+  featured  Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([featured])
+  @@index([createdAt])
+  @@map("blog_posts")
+}
+
+// ==========================================
+// PARTNER LOGOS (for marketing website)
+// ==========================================
+model PartnerLogo {
+  id        String   @id @default(uuid())
+  image     String   @db.Text // base64 image
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("partner_logos")
+}
