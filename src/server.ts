@@ -31,6 +31,8 @@ import analyticsRoutes from './modules/analytics/analytics.routes';
 import notificationsRoutes from './modules/notifications/notifications.routes';
 import paymentsRoutes from './modules/payments/payments.routes';
 import certifiedRepsRoutes from './modules/certified-reps/certified-reps.routes';
+import blogRoutes from './modules/blog/blog.routes';
+import partnerLogosRoutes from './modules/partner-logos/partner-logos.routes';
 
 // Load environment variables
 dotenv.config();
@@ -138,6 +140,8 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/certified-reps', certifiedRepsRoutes);
+app.use('/api/blog', blogRoutes);
+app.use('/api/blog', partnerLogosRoutes);
 
 // ==========================================
 // ERROR HANDLING
