@@ -505,6 +505,76 @@ export class AuthService {
       throw error;
     }
   }
+
+  /**
+   * Verify OTP and set password
+   * Used after admin converts lead to tenant
+   */
+  async verifyOTPAndSetPassword(data: { token: string; otp: string; password: string }) {
+    try {
+      // Validate password length
+      if (data.password.length < 8) {
+        throw new AppError('Password must be at least 8 characters long', 400);
+      }
+
+      // Find user with verification token
+      const user = await prisma.user.findFirst({
+        where: {
+          verificationToken: data.token,
+        },
+      });
+
+      if (!user) {
+        throw new AppError('Invalid or expired setup link', 400);
+      }
+
+      // Check if OTP exists
+      if (!user.temporaryPassword) {
+        throw new AppError('No verification code found for this account', 400);
+      }
+
+      // Check if OTP expired
+      if (!user.temporaryPasswordExpires || user.temporaryPasswordExpires < new Date()) {
+        throw new AppError('Verification code has expired', 400);
+      }
+
+      // Check if OTP already used
+      if (user.temporaryPasswordUsed) {
+        throw new AppError('This verification code has already been used', 400);
+      }
+
+      // Verify OTP
+      const isOTPValid = await bcrypt.compare(data.otp, user.temporaryPassword);
+
+      if (!isOTPValid) {
+        throw new AppError('Invalid verification code', 400);
+      }
+
+      // Hash new password
+      const passwordHash = await bcrypt.hash(data.password, 10);
+
+      // Update user with new password and mark OTP as used
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          passwordHash,
+          temporaryPassword: null,
+          temporaryPasswordExpires: null,
+          temporaryPasswordUsed: true,
+          verificationToken: null, // Clear setup token
+        },
+      });
+
+      logger.info('Password set successfully via OTP', { userId: user.id, email: user.email });
+
+      return {
+        message: 'Password set successfully! You can now log in with your new password.',
+      };
+    } catch (error) {
+      logger.error('Verify OTP and set password error', { error });
+      throw error;
+    }
+  }
 }
 
 export default new AuthService();

@@ -96,6 +96,11 @@ model User {
   verificationToken String?
   verificationTokenExpires DateTime?
 
+  // One-Time Password (OTP) for password setup
+  temporaryPassword String?
+  temporaryPasswordExpires DateTime?
+  temporaryPasswordUsed Boolean @default(false)
+
   // Admin Approval
   adminApproved Boolean  @default(false)
   approvedAt    DateTime?

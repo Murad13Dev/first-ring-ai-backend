@@ -314,10 +314,19 @@ export class LeadsService {
         },
       });
 
-      // Generate random password
-      const tempPassword = this.generateTempPassword();
+      // Generate 6-digit OTP for password setup
+      const otp = this.generateOTP();
       const bcrypt = require('bcryptjs');
-      const passwordHash = await bcrypt.hash(tempPassword, 10);
+      const crypto = require('crypto');
+
+      // Hash OTP for storage
+      const otpHash = await bcrypt.hash(otp, 10);
+
+      // Generate verification token for the setup link
+      const setupToken = crypto.randomBytes(32).toString('hex');
+
+      // Create placeholder password (user will set real password after OTP verification)
+      const placeholderPassword = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
 
       // Create user
       const user = await prisma.user.create({
@@ -325,11 +334,16 @@ export class LeadsService {
           tenantId: tenant.id,
           email: lead.email,
           name: lead.contactName,
-          passwordHash,
+          passwordHash: placeholderPassword, // Placeholder until user sets real password
           role: 'owner',
           emailVerified: true, // Auto-verify converted leads
           adminApproved: true, // Auto-approve converted leads
           approvedAt: new Date(),
+          // OTP fields
+          temporaryPassword: otpHash,
+          temporaryPasswordExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+          temporaryPasswordUsed: false,
+          verificationToken: setupToken, // Reuse this field for setup token
         },
       });
 
@@ -350,7 +364,7 @@ export class LeadsService {
 
       // Start async provisioning in background (fire-and-forget)
       // This prevents 504 timeout on slow Twilio/Retell API calls
-      this.provisionServicesAsync(tenant, lead, tempPassword).catch((error) => {
+      this.provisionServicesAsync(tenant, lead, otp, setupToken).catch((error) => {
         logger.error('Background provisioning failed', {
           error,
           tenantId: tenant.id,
@@ -361,7 +375,8 @@ export class LeadsService {
       return {
         tenant,
         user,
-        tempPassword,
+        otp, // Return OTP for testing/debugging (remove in production)
+        setupToken,
       };
     } catch (error) {
       logger.error('Convert lead to tenant error', { error });
@@ -376,7 +391,8 @@ export class LeadsService {
   private async provisionServicesAsync(
     tenant: any,
     lead: any,
-    tempPassword: string
+    otp: string,
+    setupToken: string
   ): Promise<void> {
     // Auto-provision Twilio phone number
     try {
@@ -456,11 +472,11 @@ export class LeadsService {
       // Don't fail if payment link generation fails
     }
 
-    // Send welcome email
+    // Send OTP email for password setup
     try {
-      await this.sendWelcomeEmail(lead, tenant, tempPassword);
+      await this.sendOTPSetupEmail(lead, tenant, otp, setupToken);
     } catch (error) {
-      logger.error('Failed to send welcome email for converted lead', {
+      logger.error('Failed to send OTP setup email for converted lead', {
         error,
         tenantId: tenant.id,
       });
@@ -1075,6 +1091,160 @@ export class LeadsService {
       password += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return password;
+  }
+
+  /**
+   * Generate 6-digit OTP
+   */
+  private generateOTP(): string {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  /**
+   * Send OTP setup email to new tenant
+   */
+  private async sendOTPSetupEmail(lead: any, tenant: any, otp: string, setupToken: string) {
+    try {
+      const setupUrl = `${process.env.FRONTEND_URL}/setup-account?token=${setupToken}`;
+
+      const html = `
+        <div style="font-family: 'Inter', system-ui, -apple-system, sans-serif; background:#F3F4F6; padding:24px;">
+          <div style="max-width:640px; margin:0 auto; background:#FFFFFF; border-radius:16px; padding:24px 28px; border:1px solid #E5E7EB; color:#0F172A; line-height:1.6;">
+
+            <!-- First Ring AI header -->
+            <div style="text-align:center; margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid #E5E7EB;">
+              <p style="margin:0; font-size:12px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:#20C896;">
+                First Ring AI
+              </p>
+            </div>
+
+            <h2 style="margin:0 0 16px 0; font-size:20px; font-weight:700; color:#0F172A;">
+              Your account is ready!
+            </h2>
+
+            <p style="margin:0 0 10px 0;">
+              Dear ${lead.contactName},
+            </p>
+
+            <p style="margin:0 0 16px 0;">
+              Welcome to <strong style="color:#20C896;">First Ring AI</strong>! Your account for <strong>${tenant.name}</strong> has been created and approved.
+            </p>
+
+            <p style="margin:0 0 16px 0;">
+              To complete your account setup and create your password, please use the verification code below:
+            </p>
+
+            <!-- OTP Code Card -->
+            <div
+              style="
+                margin:20px 0 24px 0;
+                padding:24px;
+                border-radius:12px;
+                background:#DDF2D3;
+                border:2px solid #20C896;
+                text-align:center;
+              "
+            >
+              <p style="margin:0 0 8px 0; font-size:13px; font-weight:600; color:#0F172A; text-transform:uppercase; letter-spacing:0.05em;">
+                Your verification code
+              </p>
+              <div
+                style="
+                  display:inline-block;
+                  padding:16px 32px;
+                  border-radius:8px;
+                  background:#FFFFFF;
+                  border:1px solid #E5E7EB;
+                  margin:8px 0;
+                "
+              >
+                <span
+                  style="
+                    font-size:32px;
+                    font-weight:700;
+                    color:#0F172A;
+                    letter-spacing:0.15em;
+                    font-family:'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+                  "
+                >
+                  ${otp}
+                </span>
+              </div>
+              <p style="margin:8px 0 0 0; font-size:12px; color:#4B5563;">
+                This code expires in 24 hours and can only be used once.
+              </p>
+            </div>
+
+            <p style="margin:20px 0 16px 0; text-align:center;">
+              <a
+                href="${setupUrl}"
+                style="
+                  display:inline-block;
+                  background:#20C896;
+                  color:#FFFFFF;
+                  padding:14px 28px;
+                  border-radius:999px;
+                  text-decoration:none;
+                  font-size:14px;
+                  font-weight:600;
+                "
+              >
+                Set up your password
+              </a>
+            </p>
+
+            <!-- Important notice -->
+            <div
+              style="
+                margin:20px 0;
+                padding:12px 14px;
+                border-radius:8px;
+                border-left:4px solid #20C896;
+                background:#F9FAFB;
+                font-size:13px;
+                color:#0F172A;
+              "
+            >
+              <strong style="display:block; margin-bottom:4px;">Important</strong>
+              For security reasons, this verification code can only be used once. After you set your password, this code will no longer be valid.
+            </div>
+
+            <h3 style="margin:24px 0 8px 0; font-size:16px; font-weight:700; color:#0F172A;">
+              What's next?
+            </h3>
+            <ol style="margin:0 0 20px 20px; padding:0; font-size:13px; color:#4B5563;">
+              <li>Click the button above to open the setup page</li>
+              <li>Enter your verification code: <strong>${otp}</strong></li>
+              <li>Create a secure password for your account</li>
+              <li>Start using First Ring AI!</li>
+            </ol>
+
+            <p style="margin:20px 0 8px 0; font-size:13px; color:#4B5563;">
+              Need help? Contact our support team:<br />
+              <a href="mailto:${process.env.SUPPORT_EMAIL || 'support@firstring.ai'}" style="color:#20C896; text-decoration:none;">
+                ${process.env.SUPPORT_EMAIL || 'support@firstring.ai'}
+              </a>
+            </p>
+
+            <p style="margin:16px 0 0 0; font-size:13px; color:#0F172A;">
+              Best regards,<br />
+              <strong style="color:#20C896;">The First Ring AI Team</strong>
+            </p>
+          </div>
+        </div>
+      `;
+
+      await this.sendEmail({
+        to: lead.email,
+        subject: 'Set up your password - First Ring AI',
+        html,
+      });
+
+      logger.info('OTP setup email sent', { tenantId: tenant.id, email: lead.email });
+    } catch (error) {
+      logger.error('OTP setup email error', { error });
+      // Don't throw - email sending is not critical
+    }
   }
 
   /**
