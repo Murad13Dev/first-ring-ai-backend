@@ -373,6 +373,62 @@ router.post('/set-password', authController.setPassword);
 
 /**
  * @swagger
+ * /api/auth/verify-otp-and-set-password:
+ *   post:
+ *     summary: Verify OTP and set password (for converted leads)
+ *     description: Allows users to verify their one-time password and set a permanent password after admin converts their lead
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *               - otp
+ *               - password
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: Setup token from email link
+ *                 example: a1b2c3d4e5f6...
+ *               otp:
+ *                 type: string
+ *                 pattern: '^\d{6}$'
+ *                 description: 6-digit verification code from email
+ *                 example: "485721"
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 8
+ *                 description: New password (min 8 characters)
+ *                 example: SecurePass123!
+ *     responses:
+ *       200:
+ *         description: Password set successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Password set successfully! You can now log in with your new password.
+ *       400:
+ *         description: Invalid request, OTP, or token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post('/verify-otp-and-set-password', authController.verifyOTPAndSetPassword);
+
+/**
+ * @swagger
  * /api/auth/logout:
  *   post:
  *     summary: Logout user (client-side token removal)

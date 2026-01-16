@@ -242,6 +242,49 @@ export class AuthController {
       next(error);
     }
   }
+
+  /**
+   * Verify OTP and set password
+   * POST /api/auth/verify-otp-and-set-password
+   */
+  async verifyOTPAndSetPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token, otp, password } = req.body;
+
+      // Validation
+      if (!token || !otp || !password) {
+        return res.status(400).json({
+          success: false,
+          message: 'Token, verification code, and password are required',
+        });
+      }
+
+      // OTP validation (must be 6 digits)
+      if (!/^\d{6}$/.test(otp)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Verification code must be 6 digits',
+        });
+      }
+
+      // Password strength validation
+      if (password.length < 8) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password must be at least 8 characters long',
+        });
+      }
+
+      const result = await authService.verifyOTPAndSetPassword({ token, otp, password });
+
+      return res.status(200).json({
+        success: true,
+        message: result.message,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new AuthController();
