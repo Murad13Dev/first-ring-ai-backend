@@ -575,6 +575,138 @@ export class AuthService {
       throw error;
     }
   }
+
+  /**
+   * Step 1: Verify OTP only (separate from password setting)
+   * POST /api/auth/verify-otp
+   */
+  async verifyOTP(data: { token: string; otp: string }) {
+    try {
+      // Find user with verification token
+      const user = await prisma.user.findFirst({
+        where: {
+          verificationToken: data.token,
+        },
+      });
+
+      if (!user) {
+        throw new AppError('Invalid or expired setup link', 400);
+      }
+
+      // Check if OTP exists
+      if (!user.temporaryPassword) {
+        throw new AppError('No verification code found for this account', 400);
+      }
+
+      // Check if OTP expired
+      if (!user.temporaryPasswordExpires || user.temporaryPasswordExpires < new Date()) {
+        throw new AppError('Verification code has expired', 400);
+      }
+
+      // Check if OTP already used
+      if (user.temporaryPasswordUsed) {
+        throw new AppError('This verification code has already been used', 400);
+      }
+
+      // Verify OTP
+      const isOTPValid = await bcrypt.compare(data.otp, user.temporaryPassword);
+
+      if (!isOTPValid) {
+        throw new AppError('Invalid verification code', 400);
+      }
+
+      // Generate a temporary session token for password setup (valid for 15 minutes)
+      const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+      const sessionToken = jwt.sign(
+        {
+          userId: user.id,
+          purpose: 'password-setup',
+          otpVerified: true,
+        },
+        JWT_SECRET,
+        { expiresIn: '15m' }
+      );
+
+      logger.info('OTP verified successfully', { userId: user.id, email: user.email });
+
+      return {
+        message: 'Verification code confirmed successfully',
+        sessionToken,
+      };
+    } catch (error) {
+      logger.error('Verify OTP error', { error });
+      throw error;
+    }
+  }
+
+  /**
+   * Step 2: Set password after OTP verification
+   * POST /api/auth/set-password-after-otp
+   */
+  async setPasswordAfterOTP(data: { sessionToken: string; password: string }) {
+    try {
+      // Validate password length
+      if (data.password.length < 8) {
+        throw new AppError('Password must be at least 8 characters long', 400);
+      }
+
+      // Verify session token
+      const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+      let decoded: any;
+
+      try {
+        decoded = jwt.verify(data.sessionToken, JWT_SECRET);
+      } catch (err) {
+        throw new AppError('Invalid or expired session token', 400);
+      }
+
+      // Check token purpose
+      if (decoded.purpose !== 'password-setup' || !decoded.otpVerified) {
+        throw new AppError('Invalid session token', 400);
+      }
+
+      // Find user
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.userId },
+      });
+
+      if (!user) {
+        throw new AppError('User not found', 404);
+      }
+
+      // Check if OTP already used (double-check for security)
+      if (user.temporaryPasswordUsed) {
+        throw new AppError('This verification code has already been used', 400);
+      }
+
+      // Hash new password
+      const passwordHash = await bcrypt.hash(data.password, 10);
+
+      // Update user with new password and mark OTP as used
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          passwordHash,
+          temporaryPassword: null,
+          temporaryPasswordExpires: null,
+          temporaryPasswordUsed: true,
+          verificationToken: null, // Clear setup token
+        },
+      });
+
+      logger.info('Password set successfully after OTP verification', {
+        userId: user.id,
+        email: user.email
+      });
+
+      return {
+        message: 'Password set successfully! You can now log in with your new password.',
+      };
+    } catch (error) {
+      logger.error('Set password after OTP error', { error });
+      throw error;
+    }
+  }
 }
 
 export default new AuthService();

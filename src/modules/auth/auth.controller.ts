@@ -285,6 +285,79 @@ export class AuthController {
       next(error);
     }
   }
+
+  /**
+   * Step 1: Verify OTP only (separate endpoint)
+   * POST /api/auth/verify-otp
+   */
+  async verifyOTP(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token, otp } = req.body;
+
+      // Validation
+      if (!token || !otp) {
+        return res.status(400).json({
+          success: false,
+          message: 'Token and verification code are required',
+        });
+      }
+
+      // OTP validation (must be 6 digits)
+      if (!/^\d{6}$/.test(otp)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Verification code must be 6 digits',
+        });
+      }
+
+      const result = await authService.verifyOTP({ token, otp });
+
+      return res.status(200).json({
+        success: true,
+        message: result.message,
+        data: {
+          sessionToken: result.sessionToken,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Step 2: Set password after OTP verification
+   * POST /api/auth/set-password-after-otp
+   */
+  async setPasswordAfterOTP(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { sessionToken, password } = req.body;
+
+      // Validation
+      if (!sessionToken || !password) {
+        return res.status(400).json({
+          success: false,
+          message: 'Session token and password are required',
+        });
+      }
+
+      // Password strength validation
+      if (password.length < 8) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password must be at least 8 characters long',
+        });
+      }
+
+      const result = await authService.setPasswordAfterOTP({ sessionToken, password });
+
+      return res.status(200).json({
+        success: true,
+        message: result.message,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new AuthController();

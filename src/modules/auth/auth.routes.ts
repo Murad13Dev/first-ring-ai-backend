@@ -429,6 +429,112 @@ router.post('/verify-otp-and-set-password', authController.verifyOTPAndSetPasswo
 
 /**
  * @swagger
+ * /api/auth/verify-otp:
+ *   post:
+ *     summary: Step 1 - Verify OTP only (separate from password setting)
+ *     description: Verifies the 6-digit OTP code and returns a session token for password setup
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *               - otp
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: Setup token from email link
+ *                 example: a1b2c3d4e5f6...
+ *               otp:
+ *                 type: string
+ *                 pattern: '^\d{6}$'
+ *                 description: 6-digit verification code from email
+ *                 example: "843946"
+ *     responses:
+ *       200:
+ *         description: OTP verified successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Verification code confirmed successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     sessionToken:
+ *                       type: string
+ *                       description: Temporary session token (valid for 15 minutes) for password setup
+ *                       example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *       400:
+ *         description: Invalid or expired OTP/token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post('/verify-otp', authController.verifyOTP);
+
+/**
+ * @swagger
+ * /api/auth/set-password-after-otp:
+ *   post:
+ *     summary: Step 2 - Set password after OTP verification
+ *     description: Sets a new password using the session token received from OTP verification
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - sessionToken
+ *               - password
+ *             properties:
+ *               sessionToken:
+ *                 type: string
+ *                 description: Session token from verify-otp response
+ *                 example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 8
+ *                 description: New password (min 8 characters)
+ *                 example: SecurePass123!
+ *     responses:
+ *       200:
+ *         description: Password set successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Password set successfully! You can now log in with your new password.
+ *       400:
+ *         description: Invalid session token or password
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post('/set-password-after-otp', authController.setPasswordAfterOTP);
+
+/**
+ * @swagger
  * /api/auth/logout:
  *   post:
  *     summary: Logout user (client-side token removal)
