@@ -139,50 +139,62 @@ export class RetellProvisioningService {
 
   /**
    * Update existing agent configuration
+   * Accepts either typed CreateAgentOptions or raw Retell API update data
    */
   async updateAgent(
     agentId: string,
-    updates: Partial<CreateAgentOptions>
+    updates: Partial<CreateAgentOptions> | Record<string, any>
   ): Promise<void> {
     try {
       if (!this.retellApiKey) {
         throw new AppError('Retell API key not configured', 500);
       }
 
-      const updateData: any = {};
+      let updateData: any = {};
 
-      if (updates.tenantName) {
-        updateData.agent_name = `${updates.tenantName} AI Agent`;
-      }
+      // Check if updates contain CreateAgentOptions fields (typed approach)
+      if ('tenantName' in updates || 'businessType' in updates || 'language' in updates) {
+        const typedUpdates = updates as Partial<CreateAgentOptions>;
 
-      if (updates.language) {
-        updateData.language = updates.language;
-        updateData.voice_id = this.getDefaultVoiceId(updates.language);
-      }
-
-      if (updates.businessType && updates.tenantName) {
-        updateData.general_prompt = this.generateSystemPrompt(
-          updates.tenantName,
-          updates.businessType,
-          updates.language || 'en-US'
-        );
-        updateData.boosted_keywords = this.getBusinessKeywords(
-          updates.businessType
-        );
-      }
-
-      await axios.patch(
-        `${this.retellApiUrl}/update-agent/${agentId}`,
-        updateData,
-        {
-          headers: {
-            Authorization: `Bearer ${this.retellApiKey}`,
-            'Content-Type': 'application/json',
-          },
+        if (typedUpdates.tenantName) {
+          updateData.agent_name = `${typedUpdates.tenantName} AI Agent`;
         }
-      );
 
-      logger.info('Retell agent updated successfully', { agentId });
+        if (typedUpdates.language) {
+          updateData.language = typedUpdates.language;
+          updateData.voice_id = this.getDefaultVoiceId(typedUpdates.language);
+        }
+
+        if (typedUpdates.businessType && typedUpdates.tenantName) {
+          updateData.general_prompt = this.generateSystemPrompt(
+            typedUpdates.tenantName,
+            typedUpdates.businessType,
+            typedUpdates.language || 'en-US'
+          );
+          updateData.boosted_keywords = this.getBusinessKeywords(
+            typedUpdates.businessType
+          );
+        }
+      } else {
+        // Raw Retell API data (custom config approach)
+        updateData = updates;
+      }
+
+      // Only make API call if there's data to update
+      if (Object.keys(updateData).length > 0) {
+        await axios.patch(
+          `${this.retellApiUrl}/update-agent/${agentId}`,
+          updateData,
+          {
+            headers: {
+              Authorization: `Bearer ${this.retellApiKey}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        logger.info('Retell agent updated successfully', { agentId, updates: updateData });
+      }
     } catch (error: any) {
       logger.error('Update Retell agent error', {
         error: error.response?.data || error.message,

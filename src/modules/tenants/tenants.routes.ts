@@ -84,4 +84,18 @@ router.put('/:id/subscription', authenticateAdmin, tenantsController.updateSubsc
  */
 router.put('/:id/language', authenticateToken, checkWhopSubscription, injectSubscriptionStatus, languageController.setTenantLanguage);
 
+/**
+ * @route   GET /api/tenants/:id/agent-config
+ * @desc    Get AI agent configuration
+ * @access  Admin or Tenant owner
+ */
+router.get('/:id/agent-config', authenticateToken, checkWhopSubscription, injectSubscriptionStatus, tenantsController.getAgentConfig);
+
+/**
+ * @route   PATCH /api/tenants/:id/agent-config
+ * @desc    Update AI agent configuration
+ * @access  Admin or Tenant owner
+ */
+router.patch('/:id/agent-config', authenticateToken, checkWhopSubscription, injectSubscriptionStatus, tenantsController.updateAgentConfig);
+
 export default router;

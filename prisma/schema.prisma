@@ -48,7 +48,15 @@ model Tenant {
   
   // Settings
   settings        Json?    // Additional settings
-  
+
+  // AI Agent Customization
+  customAgentName     String?   // Custom name for AI agent (default: "{tenantName} AI Agent")
+  customAgentPrompt   String?   @db.Text  // Custom system prompt (overrides default)
+  agentVoiceGender    String?   // "male" | "female" (affects voice selection)
+  agentVoiceId        String?   // Specific Retell voice ID (overrides default)
+  agentTemperature    Float?    // LLM temperature 0.0-1.0 (default: 0.7)
+  enabledTools        Json?     // Array of enabled tool names ["booking", "ordering", "faq"]
+
   // Relations
   users           User[]
   services        Service[]
