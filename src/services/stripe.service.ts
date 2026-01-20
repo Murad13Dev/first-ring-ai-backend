@@ -169,6 +169,7 @@ class StripeService {
     customerName?: string;
     priceId: string; // Stripe price ID for the plan
     trialDays?: number;
+    setupFeeAmount?: number; // Setup fee in cents (e.g., 100 = $1.00)
     metadata?: Record<string, string>;
     successUrl?: string;
     cancelUrl?: string;
@@ -180,6 +181,7 @@ class StripeService {
         customerName,
         priceId,
         trialDays,
+        setupFeeAmount,
         metadata = {},
         successUrl,
         cancelUrl,
@@ -188,16 +190,34 @@ class StripeService {
       // Create or get customer
       const customer = await this.findOrCreateCustomer(customerEmail, customerName);
 
+      // Build line items
+      const lineItems: any[] = [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ];
+
+      // Add setup fee as one-time line item
+      if (setupFeeAmount && setupFeeAmount > 0) {
+        lineItems.push({
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'Setup Fee',
+              description: 'One-time account setup fee',
+            },
+            unit_amount: setupFeeAmount,
+          },
+          quantity: 1,
+        });
+      }
+
       // Build checkout session config
       const sessionConfig: any = {
         customer: customer.id,
         payment_method_types: ['card'],
-        line_items: [
-          {
-            price: priceId,
-            quantity: 1,
-          },
-        ],
+        line_items: lineItems,
         mode: 'subscription',
         success_url: successUrl || `${process.env.FRONTEND_URL}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: cancelUrl || `${process.env.FRONTEND_URL}/subscription/cancel`,
@@ -209,6 +229,7 @@ class StripeService {
         },
         metadata: {
           tenantId,
+          setupFeeAmount: setupFeeAmount ? setupFeeAmount.toString() : '0',
           ...metadata,
         },
       };
@@ -226,6 +247,7 @@ class StripeService {
         sessionId: session.id,
         tenantId,
         priceId,
+        setupFeeAmount,
       });
 
       return {

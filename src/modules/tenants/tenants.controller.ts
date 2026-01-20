@@ -306,6 +306,46 @@ export class TenantsController {
       next(error);
     }
   }
+
+  /**
+   * Get AI agent configuration
+   * GET /api/tenants/:id/agent-config
+   */
+  async getAgentConfig(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+
+      const config = await tenantsService.getAgentConfig(id);
+
+      return res.status(200).json({
+        success: true,
+        data: config,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Update AI agent configuration
+   * PATCH /api/tenants/:id/agent-config
+   */
+  async updateAgentConfig(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const config = req.body;
+
+      const result = await tenantsService.updateAgentConfig(id, config);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Agent configuration updated successfully',
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new TenantsController();

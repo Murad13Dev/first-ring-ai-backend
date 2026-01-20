@@ -2,11 +2,14 @@ import express from 'express';
 import { integrationsController } from './integrations.controller';
 import { authenticateToken } from '../../middleware/auth.middleware';
 import { tenantIsolation } from '../../middleware/tenant.middleware';
+import { checkWhopSubscription, injectSubscriptionStatus } from '../../middleware/whop-subscription.middleware';
 
 const router = express.Router();
 
-// Apply authentication and tenant isolation to all routes
+// Apply authentication, Whop subscription check, and tenant isolation to all routes
 router.use(authenticateToken);
+router.use(checkWhopSubscription);
+router.use(injectSubscriptionStatus);
 router.use(tenantIsolation);
 
 /**

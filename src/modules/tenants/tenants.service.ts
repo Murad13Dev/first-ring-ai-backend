@@ -694,6 +694,288 @@ export class TenantsService {
       throw error;
     }
   }
+
+  /**
+   * Get AI agent configuration
+   */
+  async getAgentConfig(tenantId: string) {
+    try {
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: {
+          id: true,
+          name: true,
+          businessType: true,
+          retellAgentId: true,
+          customAgentName: true,
+          customAgentPrompt: true,
+          agentVoiceGender: true,
+          agentVoiceId: true,
+          agentTemperature: true,
+          enabledTools: true,
+        },
+      });
+
+      if (!tenant) {
+        throw new AppError('Tenant not found', 404);
+      }
+
+      // Get available voice options
+      const voiceOptions = this.getVoiceOptions();
+
+      // Get available tools
+      const availableTools = this.getAvailableTools();
+
+      return {
+        config: {
+          customAgentName: tenant.customAgentName,
+          customAgentPrompt: tenant.customAgentPrompt,
+          agentVoiceGender: tenant.agentVoiceGender || 'male',
+          agentVoiceId: tenant.agentVoiceId,
+          agentTemperature: tenant.agentTemperature || 0.7,
+          enabledTools: tenant.enabledTools || ['booking', 'ordering', 'faq', 'check_availability'],
+        },
+        defaults: {
+          agentName: `${tenant.name} AI Agent`,
+          voiceGender: 'male',
+          temperature: 0.7,
+          enabledTools: ['booking', 'ordering', 'faq', 'check_availability'],
+        },
+        options: {
+          voices: voiceOptions,
+          tools: availableTools,
+          temperatureRange: { min: 0.0, max: 1.0, step: 0.1 },
+        },
+      };
+    } catch (error) {
+      logger.error('Get agent config error', { error });
+      throw error;
+    }
+  }
+
+  /**
+   * Update AI agent configuration
+   */
+  async updateAgentConfig(
+    tenantId: string,
+    config: {
+      customAgentName?: string;
+      customAgentPrompt?: string;
+      agentVoiceGender?: 'male' | 'female';
+      agentVoiceId?: string;
+      agentTemperature?: number;
+      enabledTools?: string[];
+    }
+  ) {
+    try {
+      // Validate temperature
+      if (config.agentTemperature !== undefined) {
+        if (config.agentTemperature < 0.0 || config.agentTemperature > 1.0) {
+          throw new AppError('Temperature must be between 0.0 and 1.0', 400);
+        }
+      }
+
+      // Validate voice gender
+      if (config.agentVoiceGender && !['male', 'female'].includes(config.agentVoiceGender)) {
+        throw new AppError('Voice gender must be "male" or "female"', 400);
+      }
+
+      // Validate tools
+      const availableTools = ['booking', 'ordering', 'faq', 'check_availability', 'end_call'];
+      if (config.enabledTools) {
+        const invalidTools = config.enabledTools.filter(tool => !availableTools.includes(tool));
+        if (invalidTools.length > 0) {
+          throw new AppError(`Invalid tools: ${invalidTools.join(', ')}`, 400);
+        }
+      }
+
+      // Update tenant
+      const tenant = await prisma.tenant.update({
+        where: { id: tenantId },
+        data: {
+          customAgentName: config.customAgentName,
+          customAgentPrompt: config.customAgentPrompt,
+          agentVoiceGender: config.agentVoiceGender,
+          agentVoiceId: config.agentVoiceId,
+          agentTemperature: config.agentTemperature,
+          enabledTools: config.enabledTools as any,
+        },
+      });
+
+      // Update Retell AI agent if exists
+      if (tenant.retellAgentId) {
+        try {
+          await this.syncAgentConfigToRetell(tenant);
+        } catch (retellError) {
+          logger.error('Failed to sync config to Retell AI', { error: retellError });
+          // Don't fail the request - config is saved in DB
+        }
+      }
+
+      logger.info('Agent configuration updated', { tenantId });
+
+      return {
+        customAgentName: tenant.customAgentName,
+        customAgentPrompt: tenant.customAgentPrompt,
+        agentVoiceGender: tenant.agentVoiceGender,
+        agentVoiceId: tenant.agentVoiceId,
+        agentTemperature: tenant.agentTemperature,
+        enabledTools: tenant.enabledTools,
+      };
+    } catch (error) {
+      logger.error('Update agent config error', { error });
+      throw error;
+    }
+  }
+
+  /**
+   * Sync tenant agent config to Retell AI
+   */
+  private async syncAgentConfigToRetell(tenant: any) {
+    if (!tenant.retellAgentId) {
+      return;
+    }
+
+    // Prepare update data for Retell
+    const updateData: any = {};
+
+    // Agent name
+    if (tenant.customAgentName) {
+      updateData.agent_name = tenant.customAgentName;
+    }
+
+    // System prompt
+    if (tenant.customAgentPrompt) {
+      updateData.general_prompt = tenant.customAgentPrompt;
+    }
+
+    // Voice selection
+    if (tenant.agentVoiceId) {
+      updateData.voice_id = tenant.agentVoiceId;
+    } else if (tenant.agentVoiceGender) {
+      // Select voice based on gender
+      updateData.voice_id = tenant.agentVoiceGender === 'female'
+        ? '11labs-Emily'
+        : '11labs-Adrian';
+    }
+
+    // Temperature
+    if (tenant.agentTemperature !== null && tenant.agentTemperature !== undefined) {
+      updateData.temperature = tenant.agentTemperature;
+    }
+
+    // Tools (filter based on enabled tools)
+    if (tenant.enabledTools) {
+      const enabledTools = tenant.enabledTools as string[];
+      updateData.general_tools = this.buildToolsConfig(tenant.id, enabledTools);
+    }
+
+    // Update Retell agent
+    await retellProvisioningService.updateAgent(tenant.retellAgentId, updateData);
+  }
+
+  /**
+   * Build tools configuration for Retell
+   */
+  private buildToolsConfig(tenantId: string, enabledTools: string[]) {
+    const allTools = [
+      {
+        type: 'end_call',
+        name: 'end_call',
+        description: 'End the call when conversation is complete',
+      },
+      {
+        type: 'custom',
+        name: 'check_availability',
+        url: `${process.env.API_URL}/api/retell/functions/${tenantId}`,
+        description: 'Check service or product availability',
+      },
+      {
+        type: 'custom',
+        name: 'book_appointment',
+        url: `${process.env.API_URL}/api/retell/functions/${tenantId}`,
+        description: 'Book an appointment or reservation',
+      },
+      {
+        type: 'custom',
+        name: 'create_order',
+        url: `${process.env.API_URL}/api/retell/functions/${tenantId}`,
+        description: 'Create a new order',
+      },
+      {
+        type: 'custom',
+        name: 'answer_faq',
+        url: `${process.env.API_URL}/api/retell/functions/${tenantId}`,
+        description: 'Answer frequently asked questions',
+      },
+    ];
+
+    // Map tool names to internal names
+    const toolNameMap: Record<string, string> = {
+      'booking': 'book_appointment',
+      'ordering': 'create_order',
+      'faq': 'answer_faq',
+      'check_availability': 'check_availability',
+      'end_call': 'end_call',
+    };
+
+    // Filter tools based on enabled list
+    const mappedToolNames = enabledTools.map(tool => toolNameMap[tool] || tool);
+    return allTools.filter(tool => mappedToolNames.includes(tool.name));
+  }
+
+  /**
+   * Get available voice options
+   */
+  private getVoiceOptions() {
+    return {
+      male: [
+        { id: '11labs-Adrian', name: 'Adrian (English)', language: 'en-US', provider: '11labs' },
+        { id: '11labs-Mateo', name: 'Mateo (Spanish)', language: 'es-ES', provider: '11labs' },
+        { id: '11labs-Hans', name: 'Hans (German)', language: 'de-DE', provider: '11labs' },
+        { id: '11labs-Ricardo', name: 'Ricardo (Portuguese)', language: 'pt-BR', provider: '11labs' },
+        { id: 'openai-alloy', name: 'Alloy (Multi-language)', language: 'multi', provider: 'openai' },
+      ],
+      female: [
+        { id: '11labs-Emily', name: 'Emily (English)', language: 'en-GB', provider: '11labs' },
+        { id: '11labs-Amelie', name: 'Amelie (French)', language: 'fr-FR', provider: '11labs' },
+        { id: '11labs-Alessandra', name: 'Alessandra (Italian)', language: 'it-IT', provider: '11labs' },
+        { id: 'openai-nova', name: 'Nova (Multi-language)', language: 'multi', provider: 'openai' },
+      ],
+    };
+  }
+
+  /**
+   * Get available tools
+   */
+  private getAvailableTools() {
+    return [
+      {
+        id: 'booking',
+        name: 'Booking & Appointments',
+        description: 'Allow customers to book appointments or reservations',
+        icon: '📅',
+      },
+      {
+        id: 'ordering',
+        name: 'Order Placement',
+        description: 'Enable customers to place orders for products or services',
+        icon: '🛒',
+      },
+      {
+        id: 'faq',
+        name: 'FAQ Answers',
+        description: 'Answer frequently asked questions about your business',
+        icon: '❓',
+      },
+      {
+        id: 'check_availability',
+        name: 'Check Availability',
+        description: 'Check availability of services, products, or time slots',
+        icon: '✅',
+      },
+    ];
+  }
 }
 
 export default new TenantsService();

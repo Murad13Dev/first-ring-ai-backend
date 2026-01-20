@@ -3,6 +3,7 @@ import tenantsController from './tenants.controller';
 import languageController from './language.controller';
 import { authenticateToken, authenticateAdmin } from '../../middleware/auth.middleware';
 import { tenantIsolation } from '../../middleware/tenant.middleware';
+import { checkWhopSubscription, injectSubscriptionStatus } from '../../middleware/whop-subscription.middleware';
 
 const router = Router();
 
@@ -32,28 +33,28 @@ router.get('/stats/all', authenticateAdmin, tenantsController.getAllTenantsStats
  * @desc    Get supported languages
  * @access  Private
  */
-router.get('/languages', authenticateToken, languageController.getSupportedLanguages);
+router.get('/languages', authenticateToken, checkWhopSubscription, injectSubscriptionStatus, languageController.getSupportedLanguages);
 
 /**
  * @route   POST /api/tenants/languages/test
  * @desc    Test translation
  * @access  Private
  */
-router.post('/languages/test', authenticateToken, languageController.testTranslation);
+router.post('/languages/test', authenticateToken, checkWhopSubscription, injectSubscriptionStatus, languageController.testTranslation);
 
 /**
  * @route   GET /api/tenants/:id
  * @desc    Get tenant by ID
  * @access  Admin or Tenant owner
  */
-router.get('/:id', authenticateToken, tenantsController.getTenantById);
+router.get('/:id', authenticateToken, checkWhopSubscription, injectSubscriptionStatus, tenantsController.getTenantById);
 
 /**
  * @route   PUT /api/tenants/:id
  * @desc    Update tenant
  * @access  Admin or Tenant owner
  */
-router.put('/:id', authenticateToken, tenantsController.updateTenant);
+router.put('/:id', authenticateToken, checkWhopSubscription, injectSubscriptionStatus, tenantsController.updateTenant);
 
 /**
  * @route   DELETE /api/tenants/:id
@@ -67,7 +68,7 @@ router.delete('/:id', authenticateAdmin, tenantsController.deleteTenant);
  * @desc    Get tenant statistics
  * @access  Admin or Tenant owner
  */
-router.get('/:id/stats', authenticateToken, tenantsController.getTenantStats);
+router.get('/:id/stats', authenticateToken, checkWhopSubscription, injectSubscriptionStatus, tenantsController.getTenantStats);
 
 /**
  * @route   PUT /api/tenants/:id/subscription
@@ -81,6 +82,20 @@ router.put('/:id/subscription', authenticateAdmin, tenantsController.updateSubsc
  * @desc    Set tenant default language
  * @access  Admin or Tenant owner
  */
-router.put('/:id/language', authenticateToken, languageController.setTenantLanguage);
+router.put('/:id/language', authenticateToken, checkWhopSubscription, injectSubscriptionStatus, languageController.setTenantLanguage);
+
+/**
+ * @route   GET /api/tenants/:id/agent-config
+ * @desc    Get AI agent configuration
+ * @access  Admin or Tenant owner
+ */
+router.get('/:id/agent-config', authenticateToken, checkWhopSubscription, injectSubscriptionStatus, tenantsController.getAgentConfig);
+
+/**
+ * @route   PATCH /api/tenants/:id/agent-config
+ * @desc    Update AI agent configuration
+ * @access  Admin or Tenant owner
+ */
+router.patch('/:id/agent-config', authenticateToken, checkWhopSubscription, injectSubscriptionStatus, tenantsController.updateAgentConfig);
 
 export default router;
