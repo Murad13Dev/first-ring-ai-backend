@@ -296,6 +296,145 @@ export const emailService = {
   },
 
   /**
+   * Send password change confirmation email
+   */
+  async sendPasswordChangeConfirmationEmail(to: string, name: string) {
+    try {
+      const loginUrl = `${process.env.FRONTEND_URL}/login`;
+      const supportEmail = process.env.SUPPORT_EMAIL || 'support@firstringai.com';
+
+      const mailOptions = {
+        from: process.env.EMAIL_FROM || 'noreply@firstringai.com',
+        to,
+        subject: 'Password Successfully Changed - First Ring AI',
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background-color: #10B981; color: white; padding: 30px; text-align: center; }
+              .content { padding: 30px; background-color: #f9f9f9; }
+              .button {
+                display: inline-block;
+                padding: 12px 30px;
+                background-color: #10B981;
+                color: white;
+                text-decoration: none;
+                border-radius: 5px;
+                margin: 20px 0;
+              }
+              .success-icon { font-size: 60px; margin: 10px 0; }
+              .info-box {
+                background-color: #D1FAE5;
+                border-left: 4px solid #10B981;
+                padding: 15px;
+                margin: 20px 0;
+                border-radius: 5px;
+              }
+              .warning-box {
+                background-color: #FEF3C7;
+                border-left: 4px solid #F59E0B;
+                padding: 15px;
+                margin: 20px 0;
+                border-radius: 5px;
+              }
+              .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <div class="success-icon">🔐</div>
+                <h1>Password Changed Successfully</h1>
+              </div>
+              <div class="content">
+                <h2>Hello ${name},</h2>
+                <p>Your password has been successfully changed.</p>
+
+                <div class="info-box">
+                  <strong>✓ Security Update Confirmed</strong>
+                  <p style="margin: 10px 0 0 0;">Your account password was updated on <strong>${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong></p>
+                </div>
+
+                <p>You can now log in to your account using your new password.</p>
+
+                <div style="text-align: center;">
+                  <a href="${loginUrl}" class="button">Log In to Your Account</a>
+                </div>
+
+                <div class="warning-box">
+                  <strong>⚠️ Didn't make this change?</strong>
+                  <p style="margin: 10px 0 0 0;">If you didn't change your password, please contact our support team immediately at <a href="mailto:${supportEmail}">${supportEmail}</a></p>
+                </div>
+
+                <h3>Security Tips:</h3>
+                <ul style="line-height: 2;">
+                  <li>Never share your password with anyone</li>
+                  <li>Use a unique password for each service</li>
+                  <li>Enable two-factor authentication when available</li>
+                  <li>Change your password regularly</li>
+                </ul>
+
+                <p style="margin-top: 30px;">Thank you for keeping your account secure!</p>
+              </div>
+              <div class="footer">
+                <p>&copy; 2025 First Ring AI. All rights reserved.</p>
+                <p>Never miss a call again!</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `,
+        text: `
+          Password Changed Successfully
+
+          Hello ${name},
+
+          Your password has been successfully changed.
+
+          Security Update Confirmed:
+          Your account password was updated on ${new Date().toLocaleString()}
+
+          You can now log in to your account using your new password.
+          Log in here: ${loginUrl}
+
+          DIDN'T MAKE THIS CHANGE?
+          If you didn't change your password, please contact our support team immediately at ${supportEmail}
+
+          Security Tips:
+          - Never share your password with anyone
+          - Use a unique password for each service
+          - Enable two-factor authentication when available
+          - Change your password regularly
+
+          Thank you for keeping your account secure!
+
+          First Ring AI - Never miss a call again!
+        `,
+      };
+
+      const info = await transporter.sendMail(mailOptions);
+      logger.info('✅ Password change confirmation email sent successfully', {
+        to,
+        name,
+        messageId: info.messageId,
+        response: info.response,
+      });
+      return { success: true, messageId: info.messageId };
+    } catch (error) {
+      logger.error('❌ Failed to send password change confirmation email', {
+        error: error instanceof Error ? error.message : String(error),
+        to,
+        name,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw error;
+    }
+  },
+
+  /**
    * Send account approval confirmation email
    */
   async sendApprovalConfirmationEmail(to: string, name: string) {

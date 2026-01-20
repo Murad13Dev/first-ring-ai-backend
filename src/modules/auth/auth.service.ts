@@ -694,6 +694,22 @@ export class AuthService {
         },
       });
 
+      // Send password change confirmation email
+      try {
+        await emailService.sendPasswordChangeConfirmationEmail(user.email, user.name);
+        logger.info('Password change confirmation email sent', {
+          userId: user.id,
+          email: user.email
+        });
+      } catch (emailError) {
+        // Log error but don't fail the request since password was already changed
+        logger.error('Failed to send password change confirmation email', {
+          userId: user.id,
+          email: user.email,
+          error: emailError
+        });
+      }
+
       logger.info('Password set successfully after OTP verification', {
         userId: user.id,
         email: user.email
