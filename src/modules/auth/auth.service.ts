@@ -159,10 +159,14 @@ export class AuthService {
 
       const { passwordHash, ...userWithoutPassword } = user;
 
+      // Check Whop subscription status (SOFT BLOCK approach)
+      const subscriptionStatus = await this.checkWhopSubscriptionStatus(user);
+
       return {
         user: userWithoutPassword,
         accessToken,
         refreshToken,
+        subscription: subscriptionStatus,
       };
     } catch (error) {
       logger.error('Login error', { error });
@@ -721,6 +725,85 @@ export class AuthService {
     } catch (error) {
       logger.error('Set password after OTP error', { error });
       throw error;
+    }
+  }
+
+  /**
+   * Check Whop subscription status for user (SOFT BLOCK approach)
+   * Returns subscription status object for login response
+   */
+  private async checkWhopSubscriptionStatus(user: any) {
+    try {
+      // If no Whop membership linked, return null (no subscription required yet)
+      if (!user.whopMembershipId) {
+        return null;
+      }
+
+      const now = new Date();
+
+      // CASE 1: Subscription is active
+      if (user.whopSubscriptionActive) {
+        // Check if approaching expiry (within 3 days)
+        if (user.whopSubscriptionExpiry) {
+          const daysUntilExpiry = Math.ceil(
+            (user.whopSubscriptionExpiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+          );
+
+          if (daysUntilExpiry <= 3 && daysUntilExpiry > 0) {
+            return {
+              status: 'active',
+              warning: `Your subscription expires in ${daysUntilExpiry} day(s). Please renew to avoid service interruption.`,
+              expiryDate: user.whopSubscriptionExpiry,
+            };
+          }
+        }
+
+        return {
+          status: 'active',
+          expiryDate: user.whopSubscriptionExpiry,
+        };
+      }
+
+      // CASE 2: Subscription expired - check grace period
+      if (user.whopGracePeriodEnds) {
+        const gracePeriodActive = now < user.whopGracePeriodEnds;
+
+        if (gracePeriodActive) {
+          const daysRemaining = Math.ceil(
+            (user.whopGracePeriodEnds.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+          );
+
+          return {
+            status: 'expired',
+            inGracePeriod: true,
+            warning: `⚠️ Your subscription has expired! You have ${daysRemaining} day(s) remaining to renew. After that, your access will be blocked.`,
+            gracePeriodEnds: user.whopGracePeriodEnds,
+            expiryDate: user.whopSubscriptionExpiry,
+          };
+        }
+      }
+
+      // CASE 3: HARD BLOCK - Grace period ended
+      logger.warn('User login blocked: Whop subscription expired', {
+        userId: user.id,
+        email: user.email,
+        expiryDate: user.whopSubscriptionExpiry,
+        gracePeriodEnds: user.whopGracePeriodEnds,
+      });
+
+      throw new AppError(
+        'Your subscription has expired. Please renew your Whop subscription to continue using First Ring AI.',
+        403,
+        'SUBSCRIPTION_EXPIRED'
+      );
+    } catch (error) {
+      // Re-throw AppError as-is
+      if (error instanceof AppError) {
+        throw error;
+      }
+      // Log other errors but don't block login
+      logger.error('Error checking Whop subscription status', { error, userId: user.id });
+      return null;
     }
   }
 }

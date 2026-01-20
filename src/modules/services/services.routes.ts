@@ -2,11 +2,12 @@ import { Router } from 'express';
 import servicesController from './services.controller';
 import { authenticateToken } from '../../middleware/auth.middleware';
 import { tenantIsolation } from '../../middleware/tenant.middleware';
+import { checkWhopSubscription, injectSubscriptionStatus } from '../../middleware/whop-subscription.middleware';
 
 const router = Router();
 
-// All routes require authentication and tenant isolation
-router.use(authenticateToken, tenantIsolation);
+// All routes require authentication, Whop subscription check, and tenant isolation
+router.use(authenticateToken, checkWhopSubscription, injectSubscriptionStatus, tenantIsolation);
 
 /**
  * @route   POST /api/services

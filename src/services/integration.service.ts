@@ -394,7 +394,7 @@ export class IntegrationService {
   }
 
   /**
-   * Handle Whop payment success - create order + grant Discord access
+   * Handle Whop payment success - create order + grant Discord access + activate subscription
    */
   private async handleWhopPaymentSuccess(
     integration: TenantIntegration,
@@ -403,6 +403,41 @@ export class IntegrationService {
     try {
       const membership = event.data.membership;
       const amount = event.data.amount / 100; // Convert cents to dollars
+
+      // Calculate subscription expiry (from membership.valid_until or assume 30 days)
+      const expiryDate = membership.valid_until
+        ? new Date(membership.valid_until * 1000) // Convert Unix timestamp to Date
+        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // Default: 30 days
+
+      // Update User subscription status
+      const tenantOwner = await prisma.user.findFirst({
+        where: {
+          tenantId: integration.tenantId,
+          role: 'owner',
+        },
+      });
+
+      if (tenantOwner) {
+        await prisma.user.update({
+          where: { id: tenantOwner.id },
+          data: {
+            whopMembershipId: membership.id,
+            whopProductId: membership.product_id,
+            whopSubscriptionId: membership.id,
+            whopSubscriptionActive: true,
+            whopSubscriptionExpiry: expiryDate,
+            whopLastCheckedAt: new Date(),
+            whopGracePeriodEnds: null, // Clear grace period
+          },
+        });
+
+        logger.info('User Whop subscription activated', {
+          userId: tenantOwner.id,
+          email: tenantOwner.email,
+          membershipId: membership.id,
+          expiryDate,
+        });
+      }
 
       // Create order in database
       const order = await prisma.order.create({
@@ -475,7 +510,7 @@ export class IntegrationService {
   }
 
   /**
-   * Handle Whop membership cancelled
+   * Handle Whop membership cancelled - start grace period
    */
   private async handleWhopMembershipCancelled(
     integration: TenantIntegration,
@@ -484,7 +519,36 @@ export class IntegrationService {
     try {
       const membership = event.data.membership;
 
-      // Find access grant
+      // Update User subscription status - start 7-day grace period
+      const tenantOwner = await prisma.user.findFirst({
+        where: {
+          tenantId: integration.tenantId,
+          role: 'owner',
+          whopMembershipId: membership.id,
+        },
+      });
+
+      if (tenantOwner) {
+        const gracePeriodEnds = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+
+        await prisma.user.update({
+          where: { id: tenantOwner.id },
+          data: {
+            whopSubscriptionActive: false,
+            whopGracePeriodEnds: gracePeriodEnds,
+            whopLastCheckedAt: new Date(),
+          },
+        });
+
+        logger.warn('User Whop subscription cancelled - grace period started', {
+          userId: tenantOwner.id,
+          email: tenantOwner.email,
+          membershipId: membership.id,
+          gracePeriodEnds,
+        });
+      }
+
+      // Find access grant and revoke Discord access
       const accessGrant = await prisma.accessGrant.findFirst({
         where: {
           integrationId: integration.id,
@@ -508,7 +572,7 @@ export class IntegrationService {
   }
 
   /**
-   * Handle Whop membership went invalid (expired)
+   * Handle Whop membership went invalid (expired) - start grace period
    */
   private async handleWhopMembershipInvalid(
     integration: TenantIntegration,
@@ -517,7 +581,36 @@ export class IntegrationService {
     try {
       const membership = event.data.membership;
 
-      // Find access grant
+      // Update User subscription status - start 7-day grace period
+      const tenantOwner = await prisma.user.findFirst({
+        where: {
+          tenantId: integration.tenantId,
+          role: 'owner',
+          whopMembershipId: membership.id,
+        },
+      });
+
+      if (tenantOwner) {
+        const gracePeriodEnds = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+
+        await prisma.user.update({
+          where: { id: tenantOwner.id },
+          data: {
+            whopSubscriptionActive: false,
+            whopGracePeriodEnds: gracePeriodEnds,
+            whopLastCheckedAt: new Date(),
+          },
+        });
+
+        logger.warn('User Whop subscription expired - grace period started', {
+          userId: tenantOwner.id,
+          email: tenantOwner.email,
+          membershipId: membership.id,
+          gracePeriodEnds,
+        });
+      }
+
+      // Find access grant and revoke Discord access
       const accessGrant = await prisma.accessGrant.findFirst({
         where: {
           integrationId: integration.id,

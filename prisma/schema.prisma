@@ -106,6 +106,15 @@ model User {
   approvedAt    DateTime?
   approvedBy    String?  // AdminUser ID who approved
 
+  // Whop Subscription (for Tenant Owners)
+  whopMembershipId       String?   @unique
+  whopProductId          String?
+  whopSubscriptionId     String?
+  whopSubscriptionActive Boolean   @default(false)
+  whopSubscriptionExpiry DateTime?
+  whopLastCheckedAt      DateTime?
+  whopGracePeriodEnds    DateTime? // 7-day grace period after expiry
+
   // Relations
   certifiedRep  CertifiedRep?  // User can be a Certified Rep
 
