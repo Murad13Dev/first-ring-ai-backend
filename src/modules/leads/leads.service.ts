@@ -334,6 +334,7 @@ export class LeadsService {
           tenantId: tenant.id,
           email: lead.email,
           name: lead.contactName,
+          phone: lead.phone,
           passwordHash: placeholderPassword, // Placeholder until user sets real password
           role: 'owner',
           emailVerified: true, // Auto-verify converted leads
