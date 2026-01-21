@@ -415,6 +415,8 @@ export class AuthService {
               id: true,
               name: true,
               businessType: true,
+              email: true,
+              phone: true,
               plan: true,
               subscriptionStatus: true,
             },
