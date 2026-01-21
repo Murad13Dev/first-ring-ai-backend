@@ -136,8 +136,7 @@ export const checkWhopSubscription = async (
 
     throw new AppError(
       'Your subscription has expired. Please renew your Whop subscription to continue using First Ring AI.',
-      403,
-      'SUBSCRIPTION_EXPIRED'
+      403
     );
   } catch (error) {
     next(error);
