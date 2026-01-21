@@ -10,6 +10,7 @@ interface RegisterData {
   email: string;
   password: string;
   name: string;
+  phone?: string;
   tenantId: string;
   role?: string;
 }
@@ -56,6 +57,7 @@ export class AuthService {
           email: data.email,
           passwordHash,
           name: data.name,
+          phone: data.phone,
           tenantId: data.tenantId,
           role: data.role || 'owner',
           verificationToken,
