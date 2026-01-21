@@ -793,8 +793,7 @@ export class AuthService {
 
       throw new AppError(
         'Your subscription has expired. Please renew your Whop subscription to continue using First Ring AI.',
-        403,
-        'SUBSCRIPTION_EXPIRED'
+        403
       );
     } catch (error) {
       // Re-throw AppError as-is
