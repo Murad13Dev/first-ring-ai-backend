@@ -11,6 +11,7 @@ Bu sənəd First Ring AI User Dashboard üçün mövcud olan bütün API endpoin
 - [Orders](#orders)
 - [Services](#services)
 - [FAQs](#faqs)
+- [AI Agent Configuration](#ai-agent-configuration)
 - [Calls](#calls)
 - [Subscriptions](#subscriptions)
 
@@ -1727,6 +1728,306 @@ Authorization: Bearer <access-token>
   }
 }
 ```
+
+---
+
+## 🤖 AI Agent Configuration
+
+AI Agent konfiqurasiyası tenant-ın AI asistentini fərdiləşdirməyə imkan verir. Retell AI ilə avtomatik sync olunur.
+
+### 1. Get Agent Configuration
+
+**GET** `/api/tenants/:tenantId/agent-config`
+
+Tenant-ın AI agent konfiqurasiyasını və mövcud seçimləri alır.
+
+**Headers:**
+```
+Authorization: Bearer <access-token>
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "config": {
+      "customAgentName": "Pizza House Virtual Assistant",
+      "customAgentPrompt": "You are a professional and friendly AI assistant for Pizza House, a popular Italian restaurant. You help customers with:\n- Making table reservations\n- Taking food orders\n- Answering questions about menu, hours, location\n- Providing information about delivery and catering\n\nBe warm, helpful, and efficient. Always confirm details before finalizing bookings or orders.",
+      "agentVoiceGender": "female",
+      "agentVoiceId": "11labs-Rachel",
+      "agentTemperature": 0.8,
+      "enabledTools": ["booking", "ordering", "faq", "check_availability"]
+    },
+    "defaults": {
+      "agentName": "Pizza House AI Agent",
+      "voiceGender": "male",
+      "temperature": 0.7,
+      "enabledTools": ["booking", "ordering", "faq", "check_availability"]
+    },
+    "options": {
+      "voices": [
+        {
+          "id": "11labs-Rachel",
+          "name": "Rachel",
+          "gender": "female",
+          "language": "en-US",
+          "preview": "https://..."
+        },
+        {
+          "id": "11labs-Adam",
+          "name": "Adam",
+          "gender": "male",
+          "language": "en-US",
+          "preview": "https://..."
+        }
+      ],
+      "tools": [
+        {
+          "name": "booking",
+          "description": "Handle table reservations and appointment scheduling",
+          "enabled": true
+        },
+        {
+          "name": "ordering",
+          "description": "Take food/product orders from customers",
+          "enabled": true
+        },
+        {
+          "name": "faq",
+          "description": "Answer frequently asked questions about the business",
+          "enabled": true
+        },
+        {
+          "name": "check_availability",
+          "description": "Check availability for bookings or services",
+          "enabled": true
+        },
+        {
+          "name": "end_call",
+          "description": "Politely end the conversation",
+          "enabled": false
+        }
+      ],
+      "temperatureRange": {
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.1,
+        "description": "Controls creativity: 0.0 = Conservative, 1.0 = Creative"
+      }
+    }
+  }
+}
+```
+
+**Errors:**
+- `404` - Tenant not found
+
+---
+
+### 2. Update Agent Configuration
+
+**PATCH** `/api/tenants/:tenantId/agent-config`
+
+AI agent konfiqurasiyasını yeniləyir və Retell AI-a sync edir.
+
+**Headers:**
+```
+Authorization: Bearer <access-token>
+```
+
+**Request Body:**
+```json
+{
+  "customAgentName": "Pizza House Virtual Assistant",
+  "customAgentPrompt": "You are a professional and friendly AI assistant for Pizza House, a popular Italian restaurant in downtown Baku.\n\nYour responsibilities:\n- Answer questions about menu, prices, and specials\n- Take table reservations (confirm date, time, party size, name, phone)\n- Process delivery orders (confirm items, address, payment method)\n- Provide information about business hours, location, and parking\n- Handle customer complaints professionally\n\nPersonality:\n- Warm and welcoming\n- Patient and helpful\n- Professional but not robotic\n- Use simple, clear language\n\nImportant:\n- Always repeat back important details for confirmation\n- If unsure, offer to transfer to a staff member\n- Mention current promotions when relevant",
+  "agentVoiceGender": "female",
+  "agentVoiceId": "11labs-Rachel",
+  "agentTemperature": 0.75,
+  "enabledTools": ["booking", "ordering", "faq", "check_availability"]
+}
+```
+
+**Request Body Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `customAgentName` | string | No | Agent adı (default: "{TenantName} AI Agent") |
+| `customAgentPrompt` | string | No | AI davranış prompt-u (system prompt) |
+| `agentVoiceGender` | string | No | Səs cinsi: "male" or "female" |
+| `agentVoiceId` | string | No | Spesifik voice ID (11labs-Rachel, etc.) |
+| `agentTemperature` | number | No | Yaradıcılıq səviyyəsi (0.0 - 1.0) |
+| `enabledTools` | array | No | Aktiv funksiyalar listası |
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Agent configuration updated successfully",
+  "data": {
+    "customAgentName": "Pizza House Virtual Assistant",
+    "customAgentPrompt": "You are a professional and friendly AI assistant...",
+    "agentVoiceGender": "female",
+    "agentVoiceId": "11labs-Rachel",
+    "agentTemperature": 0.75,
+    "enabledTools": ["booking", "ordering", "faq", "check_availability"]
+  }
+}
+```
+
+**Errors:**
+- `400` - Invalid temperature (must be 0.0 - 1.0)
+- `400` - Invalid voice gender (must be "male" or "female")
+- `400` - Invalid tools (must be from available tools list)
+- `404` - Tenant not found
+
+**Note:**
+- Dəyişikliklər avtomatik olaraq Retell AI-a sync olunur
+- Əgər Retell sync uğursuz olarsa, dəyişikliklər database-də saxlanır amma warning log edilir
+
+---
+
+### Available Tools
+
+| Tool Name | Description | Use Case |
+|-----------|-------------|----------|
+| `booking` | Table reservations & appointments | Restaurants, salons, clinics |
+| `ordering` | Food/product orders | Restaurants, retail |
+| `faq` | Answer common questions | All business types |
+| `check_availability` | Check booking availability | Restaurants, hotels, services |
+| `end_call` | Politely end conversation | All business types |
+
+---
+
+### Agent Temperature Guide
+
+**Temperature** yaradıcılıq və randomness-i idarə edir:
+
+| Range | Behavior | Best For | Example |
+|-------|----------|----------|---------|
+| **0.0 - 0.3** | Çox konservativ, deterministic | Legal, medical, formal | "Your reservation is confirmed for..." |
+| **0.4 - 0.6** | Balanslaşdırılmış, professional | Most businesses | "Great! I've booked that for you..." |
+| **0.7 - 0.9** | Natural, conversational | Casual restaurants, retail | "Awesome! You're all set for dinner on Friday!" |
+| **1.0** | Çox yaradıcı, unpredictable | Not recommended | Risky - can hallucinate |
+
+**Tövsiyə:**
+- Restaurant/Service: **0.7**
+- Professional services: **0.5**
+- Healthcare/Legal: **0.3**
+
+---
+
+### Custom Prompt Best Practices
+
+#### ✅ Yaxşı Prompt Nümunəsi:
+
+```
+You are a friendly AI assistant for "Bella Vista Restaurant", an upscale Italian restaurant.
+
+RESPONSIBILITIES:
+- Take table reservations (date, time, party size, name, phone, special requests)
+- Answer menu questions (ingredients, prices, portions, dietary options)
+- Provide business information (hours: Mon-Sat 11am-11pm, location, parking)
+- Handle delivery orders within 5km radius ($3.99 fee)
+
+PERSONALITY:
+- Professional but warm
+- Patient and helpful
+- Use simple, clear language
+- Avoid slang
+
+IMPORTANT RULES:
+- Always repeat back reservation details for confirmation
+- Ask about allergies for food orders
+- If you don't know something, say so and offer to transfer
+- Mention daily specials when taking orders
+
+CURRENT PROMOTIONS:
+- 20% off lunch Mon-Fri 11am-3pm
+- Free dessert for birthdays (mention ID required)
+```
+
+#### ❌ Pis Prompt Nümunələri:
+
+**Çox qısa:**
+```
+You are a restaurant AI. Take orders and reservations.
+```
+*Problem: Yetərincə kontekst yoxdur*
+
+**Çox uzun/qarışıq:**
+```
+You are an AI and you work for this restaurant and sometimes customers call and...
+[3 paragraphs of rambling text]
+```
+*Problem: Fokus itir, AI qarışır*
+
+**Kontradiktiv:**
+```
+Be very formal and professional. Also be super casual and fun!
+```
+*Problem: Ziddiyyətli təlimatlar*
+
+---
+
+### Retell AI Sync
+
+Konfiqurasiya dəyişdirildikdə avtomatik sync olunur:
+
+1. **Database-ə yazılır** (həmişə)
+2. **Retell AI API-a göndərilir** (əgər `retellAgentId` varsa)
+3. Sync uğursuz olarsa:
+   - Dəyişikliklər DB-də saxlanır ✅
+   - Error log edilir 📝
+   - User-ə warning görsənmir (background process)
+
+**Testing:**
+Dəyişiklikləri test etmək üçün:
+1. Agent config update edin
+2. 1-2 dəqiqə gözləyin (sync üçün)
+3. Test zəngi edin tenant phone-a
+4. Yeni prompt/voice/behavior test edin
+
+---
+
+### Example: Complete Configuration Flow
+
+#### Step 1: Get Current Config
+```bash
+curl -X GET https://api.firstring.ai/api/tenants/tenant_123/agent-config \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+#### Step 2: Review Options
+```json
+{
+  "options": {
+    "voices": [...],
+    "tools": [...],
+    "temperatureRange": {...}
+  }
+}
+```
+
+#### Step 3: Update Configuration
+```bash
+curl -X PATCH https://api.firstring.ai/api/tenants/tenant_123/agent-config \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customAgentName": "Bella Vista Assistant",
+    "customAgentPrompt": "You are a friendly AI assistant...",
+    "agentVoiceGender": "female",
+    "agentVoiceId": "11labs-Rachel",
+    "agentTemperature": 0.7,
+    "enabledTools": ["booking", "ordering", "faq"]
+  }'
+```
+
+#### Step 4: Verify & Test
+- Config database-də saxlanılır ✅
+- Retell AI-a sync olunur ✅
+- Test zəngi edərək yoxlayın 📞
 
 ---
 
