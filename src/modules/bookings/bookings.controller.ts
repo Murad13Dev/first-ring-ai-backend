@@ -64,6 +64,13 @@ export class BookingsController {
         limit: limit ? parseInt(limit as string) : undefined,
       });
 
+      // Prevent caching to ensure fresh booking data
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
+
       return res.status(200).json({
         success: true,
         data: result,
@@ -79,6 +86,13 @@ export class BookingsController {
       const tenantId = req.tenantId!;
 
       const booking = await bookingsService.getBookingById(id, tenantId);
+
+      // Prevent caching to ensure fresh booking data
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
 
       return res.status(200).json({
         success: true,
@@ -227,6 +241,13 @@ export class BookingsController {
         dateFrom ? new Date(dateFrom as string) : undefined,
         dateTo ? new Date(dateTo as string) : undefined
       );
+
+      // Prevent caching to ensure fresh booking statistics
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
 
       return res.status(200).json({
         success: true,
