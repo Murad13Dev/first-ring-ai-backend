@@ -321,47 +321,42 @@ export class BookingsService {
     duration: number,
     excludeBookingId?: string
   ): Promise<boolean> {
-    try {
-      const startTime = new Date(dateTime);
-      const endTime = new Date(dateTime.getTime() + duration * 60000);
+    const startTime = new Date(dateTime);
+    const endTime = new Date(dateTime.getTime() + duration * 60000);
 
-      // Check for overlapping bookings
-      const where: any = {
-        tenantId,
-        status: { in: ['pending', 'confirmed'] },
-        dateTime: {
-          gte: new Date(startTime.getTime() - 2 * 60 * 60000), // 2 hours before
-          lte: endTime,
-        },
-      };
+    // Check for overlapping bookings
+    const where: any = {
+      tenantId,
+      status: { in: ['pending', 'confirmed'] },
+      dateTime: {
+        gte: new Date(startTime.getTime() - 2 * 60 * 60000), // 2 hours before
+        lte: endTime,
+      },
+    };
 
-      if (excludeBookingId) {
-        where.id = { not: excludeBookingId };
-      }
-
-      const overlappingBookings = await prisma.booking.findMany({ where });
-
-      // Check for actual overlap
-      for (const booking of overlappingBookings) {
-        const existingStart = new Date(booking.dateTime);
-        const existingEnd = new Date(
-          booking.dateTime.getTime() + (booking.duration || 60) * 60000
-        );
-
-        if (
-          (startTime >= existingStart && startTime < existingEnd) ||
-          (endTime > existingStart && endTime <= existingEnd) ||
-          (startTime <= existingStart && endTime >= existingEnd)
-        ) {
-          return false; // Overlap found
-        }
-      }
-
-      return true; // Available
-    } catch (error) {
-      logger.error('Check availability error', { error });
-      return false;
+    if (excludeBookingId) {
+      where.id = { not: excludeBookingId };
     }
+
+    const overlappingBookings = await prisma.booking.findMany({ where });
+
+    // Check for actual overlap
+    for (const booking of overlappingBookings) {
+      const existingStart = new Date(booking.dateTime);
+      const existingEnd = new Date(
+        booking.dateTime.getTime() + (booking.duration || 60) * 60000
+      );
+
+      if (
+        (startTime >= existingStart && startTime < existingEnd) ||
+        (endTime > existingStart && endTime <= existingEnd) ||
+        (startTime <= existingStart && endTime >= existingEnd)
+      ) {
+        return false; // Overlap found
+      }
+    }
+
+    return true; // Available
   }
 
   /**
