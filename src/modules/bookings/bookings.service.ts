@@ -84,11 +84,21 @@ export class BookingsService {
         tenantId: data.tenantId,
       });
 
-      // Send confirmation email
-      await this.sendBookingConfirmation(booking);
+      // Send confirmation email (non-blocking)
+      this.sendBookingConfirmation(booking).catch((error) => {
+        logger.error('Failed to send booking confirmation email', {
+          error,
+          bookingId: booking.id
+        });
+      });
 
-      // Add to Google Calendar (if configured)
-      await this.addToGoogleCalendar(booking);
+      // Add to Google Calendar (non-blocking)
+      this.addToGoogleCalendar(booking).catch((error) => {
+        logger.error('Failed to add booking to Google Calendar', {
+          error,
+          bookingId: booking.id
+        });
+      });
 
       return booking;
     } catch (error) {
@@ -209,9 +219,14 @@ export class BookingsService {
 
       logger.info('Booking updated successfully', { bookingId: id, tenantId });
 
-      // Update Google Calendar event
+      // Update Google Calendar event (non-blocking)
       if (booking.googleEventId && (data.dateTime || data.duration)) {
-        await this.updateGoogleCalendarEvent(updated);
+        this.updateGoogleCalendarEvent(updated).catch((error) => {
+          logger.error('Failed to update Google Calendar event', {
+            error,
+            bookingId: id
+          });
+        });
       }
 
       return updated;
@@ -242,8 +257,13 @@ export class BookingsService {
         },
       });
 
-      // Send confirmation email
-      await this.sendBookingConfirmation(confirmed);
+      // Send confirmation email (non-blocking)
+      this.sendBookingConfirmation(confirmed).catch((error) => {
+        logger.error('Failed to send confirmation email', {
+          error,
+          bookingId: id
+        });
+      });
 
       logger.info('Booking confirmed', { bookingId: id });
 
@@ -276,12 +296,22 @@ export class BookingsService {
         },
       });
 
-      // Send cancellation email
-      await this.sendCancellationEmail(cancelled);
+      // Send cancellation email (non-blocking)
+      this.sendCancellationEmail(cancelled).catch((error) => {
+        logger.error('Failed to send cancellation email', {
+          error,
+          bookingId: id
+        });
+      });
 
-      // Remove from Google Calendar
+      // Remove from Google Calendar (non-blocking)
       if (booking.googleEventId) {
-        await this.removeFromGoogleCalendar(booking);
+        this.removeFromGoogleCalendar(booking).catch((error) => {
+          logger.error('Failed to remove from Google Calendar', {
+            error,
+            bookingId: id
+          });
+        });
       }
 
       logger.info('Booking cancelled', { bookingId: id });
