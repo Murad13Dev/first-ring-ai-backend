@@ -10,6 +10,7 @@ Bu sənəd First Ring AI User Dashboard üçün mövcud olan bütün API endpoin
 - [Bookings](#bookings)
 - [Orders](#orders)
 - [Services](#services)
+- [FAQs](#faqs)
 - [Calls](#calls)
 - [Subscriptions](#subscriptions)
 
@@ -1330,6 +1331,399 @@ Authorization: Bearer <access-token>
     "id": "svc_999",
     "name": "Margherita Pizza (Copy)",
     "price": 12.99
+  }
+}
+```
+
+---
+
+## ❓ FAQs
+
+### 1. Get All FAQs
+
+**GET** `/api/faqs`
+
+Tenant-a aid bütün FAQ-ları alır.
+
+**Headers:**
+```
+Authorization: Bearer <access-token>
+```
+
+**Query Parameters:**
+- `category` (optional) - Kateqoriyaya görə filter
+- `isActive` (optional) - true/false - Aktiv/deaktiv filter
+- `search` (optional) - Sual və ya cavabda axtarış
+- `page` (optional) - Səhifə nömrəsi (default: 1)
+- `limit` (optional) - Səhifədə neçə nəticə (default: 50)
+
+**Example:**
+```
+GET /api/faqs?category=Booking&isActive=true&page=1&limit=20
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "faqs": [
+      {
+        "id": "faq_123",
+        "tenantId": "f8f6c45c-9bd2-54d858645467",
+        "question": "What are your business hours?",
+        "answer": "We are open Monday to Friday from 9 AM to 10 PM, and weekends from 10 AM to 11 PM.",
+        "keywords": ["hours", "open", "time", "schedule"],
+        "category": "General",
+        "viewCount": 125,
+        "helpfulCount": 98,
+        "isActive": true,
+        "createdAt": "2024-01-01T08:00:00.000Z",
+        "updatedAt": "2024-01-15T10:00:00.000Z"
+      },
+      {
+        "id": "faq_456",
+        "tenantId": "f8f6c45c-9bd2-54d858645467",
+        "question": "How do I make a reservation?",
+        "answer": "You can make a reservation by calling us or through our AI phone system. Just tell us your preferred date, time, and party size.",
+        "keywords": ["reservation", "booking", "table"],
+        "category": "Booking",
+        "viewCount": 89,
+        "helpfulCount": 76,
+        "isActive": true,
+        "createdAt": "2024-01-02T09:00:00.000Z",
+        "updatedAt": "2024-01-10T14:30:00.000Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 45,
+      "pages": 3
+    }
+  }
+}
+```
+
+---
+
+### 2. Get FAQ by ID
+
+**GET** `/api/faqs/:id`
+
+ID-yə görə FAQ məlumatını alır və view count-u artırır.
+
+**Headers:**
+```
+Authorization: Bearer <access-token>
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "faq_123",
+    "tenantId": "f8f6c45c-9bd2-54d858645467",
+    "question": "What are your business hours?",
+    "answer": "We are open Monday to Friday from 9 AM to 10 PM, and weekends from 10 AM to 11 PM.",
+    "keywords": ["hours", "open", "time", "schedule"],
+    "category": "General",
+    "viewCount": 126,
+    "helpfulCount": 98,
+    "isActive": true,
+    "createdAt": "2024-01-01T08:00:00.000Z",
+    "updatedAt": "2024-01-15T10:00:00.000Z"
+  }
+}
+```
+
+**Errors:**
+- `404` - FAQ not found
+
+---
+
+### 3. Create FAQ
+
+**POST** `/api/faqs`
+
+Yeni FAQ yaradır.
+
+**Headers:**
+```
+Authorization: Bearer <access-token>
+```
+
+**Request Body:**
+```json
+{
+  "question": "Do you offer delivery?",
+  "answer": "Yes, we offer delivery within a 5-mile radius. Delivery fee is $3.99 for orders under $25.",
+  "keywords": ["delivery", "shipping", "distance"],
+  "category": "Delivery"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "FAQ created successfully",
+  "data": {
+    "id": "faq_789",
+    "tenantId": "f8f6c45c-9bd2-54d858645467",
+    "question": "Do you offer delivery?",
+    "answer": "Yes, we offer delivery within a 5-mile radius. Delivery fee is $3.99 for orders under $25.",
+    "keywords": ["delivery", "shipping", "distance"],
+    "category": "Delivery",
+    "viewCount": 0,
+    "helpfulCount": 0,
+    "isActive": true,
+    "createdAt": "2024-01-15T18:00:00.000Z",
+    "updatedAt": "2024-01-15T18:00:00.000Z"
+  }
+}
+```
+
+**Errors:**
+- `400` - Question and answer are required
+
+**Note:** Keywords automatically generated from question/answer if not provided.
+
+---
+
+### 4. Update FAQ
+
+**PUT** `/api/faqs/:id`
+
+FAQ məlumatını yeniləyir.
+
+**Headers:**
+```
+Authorization: Bearer <access-token>
+```
+
+**Request Body:**
+```json
+{
+  "question": "Do you offer delivery service?",
+  "answer": "Yes, we offer delivery within a 5-mile radius. Delivery is free for orders over $30.",
+  "keywords": ["delivery", "shipping", "distance", "free"],
+  "category": "Delivery",
+  "isActive": true
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "FAQ updated successfully",
+  "data": {
+    "id": "faq_789",
+    "question": "Do you offer delivery service?",
+    "answer": "Yes, we offer delivery within a 5-mile radius. Delivery is free for orders over $30.",
+    "keywords": ["delivery", "shipping", "distance", "free"],
+    "category": "Delivery",
+    "isActive": true,
+    "updatedAt": "2024-01-15T19:00:00.000Z"
+  }
+}
+```
+
+**Errors:**
+- `404` - FAQ not found
+
+---
+
+### 5. Delete FAQ
+
+**DELETE** `/api/faqs/:id`
+
+FAQ-ı silir.
+
+**Headers:**
+```
+Authorization: Bearer <access-token>
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "FAQ deleted successfully"
+}
+```
+
+**Errors:**
+- `404` - FAQ not found
+
+---
+
+### 6. Search FAQs
+
+**POST** `/api/faqs/search`
+
+FAQ-larda axtarış edir (sual, cavab və keyword-lərə baxır).
+
+**Headers:**
+```
+Authorization: Bearer <access-token>
+```
+
+**Request Body:**
+```json
+{
+  "query": "delivery"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "faq_789",
+      "question": "Do you offer delivery service?",
+      "answer": "Yes, we offer delivery within a 5-mile radius...",
+      "keywords": ["delivery", "shipping", "distance", "free"],
+      "category": "Delivery",
+      "viewCount": 45,
+      "helpfulCount": 38,
+      "isActive": true,
+      "relevanceScore": 0.95
+    },
+    {
+      "id": "faq_234",
+      "question": "What is the delivery time?",
+      "answer": "Average delivery time is 30-45 minutes...",
+      "keywords": ["delivery", "time", "estimate"],
+      "category": "Delivery",
+      "viewCount": 67,
+      "helpfulCount": 54,
+      "isActive": true,
+      "relevanceScore": 0.87
+    }
+  ]
+}
+```
+
+**Errors:**
+- `400` - Query is required
+
+**Note:** Results sorted by relevance score.
+
+---
+
+### 7. Get Categories
+
+**GET** `/api/faqs/categories/list`
+
+Bütün FAQ kateqoriyalarının siyahısını alır.
+
+**Headers:**
+```
+Authorization: Bearer <access-token>
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    "General",
+    "Booking",
+    "Delivery",
+    "Payment",
+    "Menu",
+    "Hours"
+  ]
+}
+```
+
+---
+
+### 8. Mark as Helpful
+
+**POST** `/api/faqs/:id/helpful`
+
+FAQ-ı "helpful" olaraq işarələyir (helpful count artırır).
+
+**Headers:**
+```
+Authorization: Bearer <access-token>
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "FAQ marked as helpful"
+}
+```
+
+**Errors:**
+- `404` - FAQ not found
+
+---
+
+### 9. Get FAQ Statistics
+
+**GET** `/api/faqs/stats`
+
+FAQ statistikalarını alır.
+
+**Headers:**
+```
+Authorization: Bearer <access-token>
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "totalFAQs": 45,
+    "activeFAQs": 42,
+    "inactiveFAQs": 3,
+    "totalViews": 3542,
+    "totalHelpful": 2876,
+    "avgHelpfulRate": 81.2,
+    "byCategory": {
+      "General": 8,
+      "Booking": 12,
+      "Delivery": 7,
+      "Payment": 6,
+      "Menu": 9,
+      "Hours": 3
+    },
+    "mostViewed": [
+      {
+        "id": "faq_123",
+        "question": "What are your business hours?",
+        "viewCount": 456,
+        "helpfulCount": 398,
+        "category": "Hours"
+      },
+      {
+        "id": "faq_456",
+        "question": "How do I make a reservation?",
+        "viewCount": 387,
+        "helpfulCount": 325,
+        "category": "Booking"
+      }
+    ],
+    "mostHelpful": [
+      {
+        "id": "faq_789",
+        "question": "Do you offer delivery service?",
+        "helpfulCount": 412,
+        "viewCount": 445,
+        "helpfulRate": 92.6,
+        "category": "Delivery"
+      }
+    ]
   }
 }
 ```
