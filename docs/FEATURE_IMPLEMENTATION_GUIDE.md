@@ -1,6 +1,6 @@
 # Feature Implementation Guide - First Ring AI
 
-Bütün yeni funksiyaların ardıcıl istifadə təlimatı
+Step-by-step usage guide for all new features
 
 ---
 
@@ -17,19 +17,19 @@ Bütün yeni funksiyaların ardıcıl istifadə təlimatı
 
 ## 1. Password Change Confirmation Email
 
-### **Nə edir?**
-User OTP ilə passwordunu dəyişdikdə avtomatik olaraq təsdiq emaili göndərilir.
+### **What does it do?**
+When a user changes their password via OTP, a confirmation email is automatically sent.
 
-### **İstifadə ardıcıllığı:**
+### **Usage flow:**
 
 #### **Frontend Flow:**
 ```
-1. User "Forgot Password" düyməsinə basır
-2. Email göndərir → POST /api/auth/request-otp
-3. OTP kodunu daxil edir
-4. Yeni password qoyur → POST /api/auth/set-password-after-otp
-5. ✅ Backend avtomatik confirmation email göndərir
-6. User emailini yoxlayır və təsdiq alır
+1. User clicks "Forgot Password" button
+2. Sends email → POST /api/auth/request-otp
+3. Enters OTP code
+4. Sets new password → POST /api/auth/set-password-after-otp
+5. ✅ Backend automatically sends confirmation email
+6. User checks email and receives confirmation
 ```
 
 #### **API Endpoint:**
@@ -43,39 +43,39 @@ Content-Type: application/json
 }
 ```
 
-#### **Backend Flow (Avtomatik):**
+#### **Backend Flow (Automatic):**
 ```typescript
 // src/modules/auth/auth.service.ts:697-711
 async setPasswordAfterOTP(sessionToken, newPassword) {
-  // 1. Token verify edilir
-  // 2. Password hash edilərək update olunur
-  // 3. ✅ Email avtomatik göndərilir
+  // 1. Token is verified
+  // 2. Password is hashed and updated
+  // 3. ✅ Email is automatically sent
   await this.emailService.sendPasswordChangeConfirmationEmail(
     user.email,
     user.name
   );
-  // 4. Success response qaytarılır
+  // 4. Success response is returned
 }
 ```
 
 #### **Email Template:**
 - **Subject:** "Password Changed Successfully - First Ring AI"
 - **Content:**
-  - Təsdiq mesajı
-  - Dəyişiklik tarihi və vaxtı
-  - Security warning (əgər siz deyişdirməmisinizsə)
-  - "Login Now" düyməsi
+  - Confirmation message
+  - Date and time of change
+  - Security warning (if you didn't make this change)
+  - "Login Now" button
   - Security tips
   - Support email
 
-### **Test etmək:**
+### **Testing:**
 ```bash
-# 1. OTP request göndər
+# 1. Send OTP request
 curl -X POST http://localhost:5000/api/auth/request-otp \
   -H "Content-Type: application/json" \
   -d '{"email": "test@example.com"}'
 
-# 2. Password dəyiş
+# 2. Change password
 curl -X POST http://localhost:5000/api/auth/set-password-after-otp \
   -H "Content-Type: application/json" \
   -d '{
@@ -83,33 +83,33 @@ curl -X POST http://localhost:5000/api/auth/set-password-after-otp \
     "newPassword": "NewPassword123!"
   }'
 
-# 3. Emaili yoxla (test@example.com)
+# 3. Check email (test@example.com)
 ```
 
 ---
 
 ## 2. Whop Subscription Access Control
 
-### **Nə edir?**
-Bütün tenant ownerlərin Whop subscription statusunu yoxlayır və access control tətbiq edir.
+### **What does it do?**
+Checks Whop subscription status for all tenant owners and applies access control.
 
-### **Strategiya: SOFT BLOCK (7-day Grace Period)**
+### **Strategy: SOFT BLOCK (7-day Grace Period)**
 
 ```
 Active Subscription ✅
   ↓
 Expires 🔴
   ↓
-7-Day Grace Period ⚠️ (SOFT BLOCK - warnings ilə giriş var)
+7-Day Grace Period ⚠️ (SOFT BLOCK - access with warnings)
   ↓
-Grace Period Biter 🚫 (HARD BLOCK - giriş yoxdur)
+Grace Period Ends 🚫 (HARD BLOCK - no access)
 ```
 
-### **İstifadə ardıcıllığı:**
+### **Usage flow:**
 
 #### **1. Webhook Setup (One-time):**
 
-Whop Dashboard-da webhook configure et:
+Configure webhook in Whop Dashboard:
 ```
 URL: https://your-domain.com/api/webhooks/whop
 Events:
@@ -128,51 +128,51 @@ WHOP_COMPANY_ID=your_company_id
 
 #### **2. Subscription Flow:**
 
-**A. User abunə olur (Whop-da):**
+**A. User subscribes (on Whop):**
 ```
-1. User Whop-dan plan alır
-2. Whop webhook göndərir: payment_succeeded
-3. Backend webhook qəbul edir
-4. Tenant owner-in User modelində update:
+1. User purchases plan from Whop
+2. Whop sends webhook: payment_succeeded
+3. Backend receives webhook
+4. User model is updated for tenant owner:
    - whopSubscriptionActive = true
    - whopSubscriptionExpiry = date
    - whopGracePeriodEnds = null
-5. ✅ User full access alır
+5. ✅ User gets full access
 ```
 
-**B. Subscription bitir:**
+**B. Subscription expires:**
 ```
-1. Subscription expire olur
-2. Whop webhook göndərir: membership_went_invalid
-3. Backend 7-day grace period başlayır:
+1. Subscription expires
+2. Whop sends webhook: membership_went_invalid
+3. Backend starts 7-day grace period:
    - whopSubscriptionActive = false
    - whopGracePeriodEnds = today + 7 days
-4. ⚠️ SOFT BLOCK aktivləşir
-5. User API-lara giriş edə bilir, amma hər response-da warning mesajı gəlir
+4. ⚠️ SOFT BLOCK activates
+5. User can access APIs, but every response includes a warning message
 ```
 
-**C. Grace period bitir:**
+**C. Grace period ends:**
 ```
-1. 7 gün keçir
-2. Middleware yoxlayır: now > whopGracePeriodEnds
-3. 🚫 HARD BLOCK aktivləşir
-4. User 403 error alır: "Subscription expired"
+1. 7 days pass
+2. Middleware checks: now > whopGracePeriodEnds
+3. 🚫 HARD BLOCK activates
+4. User gets 403 error: "Subscription expired"
 ```
 
 #### **3. Middleware Protection:**
 
-**Bütün protected route-larda:**
+**On all protected routes:**
 ```typescript
 // src/modules/tenants/tenants.routes.ts
 router.get('/:id',
   authenticateToken,           // 1. JWT check
   checkWhopSubscription,       // 2. Subscription check
-  injectSubscriptionStatus,    // 3. Warning əlavə et
+  injectSubscriptionStatus,    // 3. Add warning
   tenantsController.getTenantById
 );
 ```
 
-**Protected API-lar:**
+**Protected APIs:**
 - `/api/tenants/*` (tenant CRUD)
 - `/api/orders/*` (order management)
 - `/api/calls/*` (call history)
@@ -220,7 +220,7 @@ router.get('/:id',
 
 #### **5. Frontend Integration:**
 
-**Login-də subscription status yoxla:**
+**Check subscription status on login:**
 ```typescript
 // Frontend - Login response
 const response = await fetch('/api/auth/login', { ... });
@@ -239,7 +239,7 @@ if (data._subscription) {
 }
 ```
 
-**API response-larda warning yoxla:**
+**Check warning in API responses:**
 ```typescript
 // Frontend - API calls
 const response = await fetch('/api/tenants/123', {
@@ -253,10 +253,10 @@ if (data._subscription?.warning) {
 }
 ```
 
-### **Test etmək:**
+### **Testing:**
 
 ```bash
-# 1. Database-də user-ə Whop subscription əlavə et
+# 1. Add Whop subscription to user in database
 UPDATE users
 SET
   "whopSubscriptionActive" = true,
@@ -264,12 +264,12 @@ SET
   "whopMembershipId" = 'mem_test123'
 WHERE email = 'test@example.com';
 
-# 2. Login ol və subscription status-u yoxla
+# 2. Login and check subscription status
 curl -X POST http://localhost:5000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email": "test@example.com", "password": "password123"}'
 
-# 3. Subscription-u expire et və grace period test et
+# 3. Expire subscription and test grace period
 UPDATE users
 SET
   "whopSubscriptionActive" = false,
@@ -277,18 +277,18 @@ SET
   "whopGracePeriodEnds" = NOW() + INTERVAL '6 days'
 WHERE email = 'test@example.com';
 
-# 4. API call et və warning-i gör
+# 4. Make API call and see warning
 curl -X GET http://localhost:5000/api/tenants/tenant_id \
   -H "Authorization: Bearer YOUR_TOKEN"
 
-# Response-da _subscription.warning olacaq
+# Response will include _subscription.warning
 
-# 5. Grace period-u bitir və hard block test et
+# 5. End grace period and test hard block
 UPDATE users
 SET "whopGracePeriodEnds" = NOW() - INTERVAL '1 day'
 WHERE email = 'test@example.com';
 
-# 6. API call et - 403 error alacaq
+# 6. Make API call - will get 403 error
 curl -X GET http://localhost:5000/api/tenants/tenant_id \
   -H "Authorization: Bearer YOUR_TOKEN"
 # Response: 403 Forbidden - "Subscription expired"
@@ -298,23 +298,23 @@ curl -X GET http://localhost:5000/api/tenants/tenant_id \
 
 ## 3. Toast POS Integration (Mario's Butcher)
 
-### **Nə edir?**
-Restaurant POS sistemi ilə inteqrasiya - order yaratmaq, menu sync etmək, order cancel etmək.
+### **What does it do?**
+Integration with restaurant POS system - create orders, sync menu, cancel orders.
 
-### **İstifadə ardıcıllığı:**
+### **Usage flow:**
 
-#### **1. Toast API Credentials Al:**
+#### **1. Get Toast API Credentials:**
 
 ```
-1. Toast support-a email göndər: partnersupport@toasttab.com
-2. Partner API access istə
-3. Credentials al:
+1. Send email to Toast support: partnersupport@toasttab.com
+2. Request Partner API access
+3. Get credentials:
    - Restaurant External ID (UUID format)
-   - Access Token (TOAST ilə başlayır)
+   - Access Token (starts with TOAST)
    - Environment: sandbox / production
 ```
 
-#### **2. Tenant üçün Toast POS Configure et:**
+#### **2. Configure Toast POS for tenant:**
 
 **API Call:**
 ```bash
@@ -343,7 +343,7 @@ curl -X POST http://localhost:5000/api/pos-integrations/tenants/TENANT_ID/config
 }
 ```
 
-#### **3. Connection Test et:**
+#### **3. Test connection:**
 
 ```bash
 curl -X POST http://localhost:5000/api/pos-integrations/tenants/TENANT_ID/test \
@@ -358,7 +358,7 @@ curl -X POST http://localhost:5000/api/pos-integrations/tenants/TENANT_ID/test \
 }
 ```
 
-#### **4. Menu Sync et (Toast-dan):**
+#### **4. Sync menu (from Toast):**
 
 ```bash
 curl -X POST http://localhost:5000/api/pos-integrations/tenants/TENANT_ID/sync-menu \
@@ -385,12 +385,12 @@ curl -X POST http://localhost:5000/api/pos-integrations/tenants/TENANT_ID/sync-m
 ]
 ```
 
-#### **5. Order Push et (Toast-a):**
+#### **5. Push order (to Toast):**
 
-**Scenario:** Customer AI ilə danışıb order verir
+**Scenario:** Customer talks to AI and places order
 
 ```typescript
-// 1. First Ring AI-da order yaradılır (AI call-dan)
+// 1. Order is created in First Ring AI (from AI call)
 const order = await prisma.order.create({
   data: {
     tenantId: 'mario_butcher',
@@ -405,7 +405,7 @@ const order = await prisma.order.create({
   }
 });
 
-// 2. Order Toast-a push edilir
+// 2. Order is pushed to Toast
 ```
 
 **API Call:**
@@ -423,9 +423,9 @@ curl -X POST http://localhost:5000/api/pos-integrations/tenants/TENANT_ID/orders
 }
 ```
 
-**Database-də update:**
+**Database update:**
 ```typescript
-// Order-a Toast order ID əlavə edilir
+// Toast order ID is added to order
 await prisma.order.update({
   where: { id: order.id },
   data: {
@@ -436,7 +436,7 @@ await prisma.order.update({
 });
 ```
 
-#### **6. Order Cancel et:**
+#### **6. Cancel order:**
 
 ```bash
 curl -X POST http://localhost:5000/api/pos-integrations/tenants/TENANT_ID/orders/ORDER_ID/cancel \
@@ -446,14 +446,14 @@ curl -X POST http://localhost:5000/api/pos-integrations/tenants/TENANT_ID/orders
 ### **Complete Flow (Mario's Butcher):**
 
 ```
-1. Customer Mario's Butcher-i zəng edir
-2. AI agent cavab verir
-3. Customer order verir: "2 ribeye steak, 3lb ground beef"
-4. AI order details-i confirm edir
-5. First Ring AI-da order create olunur
-6. Order avtomatik Toast POS-a push edilir
-7. Mario Toast POS-da order-i görür
-8. Order hazırlanır və customer götürür
+1. Customer calls Mario's Butcher
+2. AI agent answers
+3. Customer places order: "2 ribeye steak, 3lb ground beef"
+4. AI confirms order details
+5. Order is created in First Ring AI
+6. Order is automatically pushed to Toast POS
+7. Mario sees the order on Toast POS
+8. Order is prepared and customer picks up
 9. ✅ Done
 ```
 
@@ -464,8 +464,8 @@ Full setup guide: `/docs/TOAST_POS_SETUP.md`
 
 ## 4. AI Agent Customization
 
-### **Nə edir?**
-Tenant öz AI agent-ini customize edə bilir: voice, name, prompt, temperature, tools.
+### **What does it do?**
+Tenant can customize their AI agent: voice, name, prompt, temperature, tools.
 
 ### **Customization Options:**
 
@@ -478,9 +478,9 @@ Tenant öz AI agent-ini customize edə bilir: voice, name, prompt, temperature, 
 | System Prompt | Text | Custom prompt | Auto-generated |
 | Enabled Tools | Array | booking, ordering, faq, etc | All enabled |
 
-### **İstifadə ardıcıllığı:**
+### **Usage flow:**
 
-#### **1. Current Config-i əldə et:**
+#### **1. Get current config:**
 
 ```bash
 curl -X GET http://localhost:5000/api/tenants/TENANT_ID/agent-config \
@@ -532,9 +532,9 @@ curl -X GET http://localhost:5000/api/tenants/TENANT_ID/agent-config \
 }
 ```
 
-#### **2. Config Update et:**
+#### **2. Update config:**
 
-**Scenario A: Kişi səsi istəyir**
+**Scenario A: Wants male voice**
 ```bash
 curl -X PATCH http://localhost:5000/api/tenants/TENANT_ID/agent-config \
   -H "Authorization: Bearer JWT_TOKEN" \
@@ -566,7 +566,7 @@ curl -X PATCH http://localhost:5000/api/tenants/TENANT_ID/agent-config \
   }'
 ```
 
-**Scenario D: Yalnız ordering və faq tools**
+**Scenario D: Only ordering and faq tools**
 ```bash
 curl -X PATCH http://localhost:5000/api/tenants/TENANT_ID/agent-config \
   -H "Authorization: Bearer JWT_TOKEN" \
@@ -607,17 +607,17 @@ curl -X PATCH http://localhost:5000/api/tenants/TENANT_ID/agent-config \
 }
 ```
 
-#### **3. Retell AI Sync (Avtomatik):**
+#### **3. Retell AI Sync (Automatic):**
 
-Backend avtomatik olaraq Retell AI-ə sync edir:
+Backend automatically syncs to Retell AI:
 
 ```typescript
 // src/modules/tenants/tenants.service.ts:965-1030
 async updateAgentConfig(tenantId, config) {
-  // 1. Database-də tenant update et
+  // 1. Update tenant in database
   const tenant = await prisma.tenant.update({ ... });
 
-  // 2. Əgər Retell agent varsa, sync et
+  // 2. If Retell agent exists, sync it
   if (tenant.retellAgentId) {
     await this.syncAgentConfigToRetell(tenant);
   }
@@ -644,10 +644,10 @@ private async syncAgentConfigToRetell(tenant) {
 **Settings Page - Agent Customization:**
 
 ```typescript
-// 1. Config-i load et
+// 1. Load config
 const { data } = await fetch('/api/tenants/tenant_id/agent-config');
 
-// 2. Form göstər
+// 2. Show form
 <Form>
   <Input
     label="Agent Name"
@@ -683,7 +683,7 @@ const { data } = await fetch('/api/tenants/tenant_id/agent-config');
   <Button onClick={handleSave}>Save Configuration</Button>
 </Form>
 
-// 3. Save et
+// 3. Save
 const handleSave = async () => {
   await fetch('/api/tenants/tenant_id/agent-config', {
     method: 'PATCH',
@@ -694,35 +694,35 @@ const handleSave = async () => {
 };
 ```
 
-### **Test etmək:**
+### **Testing:**
 
 ```bash
-# 1. Default config-i gör
+# 1. Get default config
 curl -X GET http://localhost:5000/api/tenants/TENANT_ID/agent-config \
   -H "Authorization: Bearer JWT_TOKEN"
 
-# 2. Update et
+# 2. Update
 curl -X PATCH http://localhost:5000/api/tenants/TENANT_ID/agent-config \
   -H "Authorization: Bearer JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"customAgentName": "TestBot", "agentTemperature": 0.9}'
 
-# 3. Yenidən oxu və dəyişikliyi yoxla
+# 3. Read again and verify change
 curl -X GET http://localhost:5000/api/tenants/TENANT_ID/agent-config \
   -H "Authorization: Bearer JWT_TOKEN"
 
-# 4. Test call et və yeni config-in işlədiyini yoxla
-# (Retell dashboard-da agent-i yoxla)
+# 4. Make test call and verify new config works
+# (Check agent on Retell dashboard)
 ```
 
 ---
 
 ## 5. Stripe Yearly Subscriptions + Setup Fee
 
-### **Nə edir?**
-Stripe ilə yearly subscription + $1 one-time setup fee.
+### **What does it do?**
+Yearly subscription with Stripe + $1 one-time setup fee.
 
-### **İstifadə ardıcıllığı:**
+### **Usage flow:**
 
 #### **1. Stripe Setup (One-time):**
 
@@ -743,7 +743,7 @@ STRIPE_PRICE_ID_ENTERPRISE_YEARLY=price_xxxxx
 STRIPE_PRICE_ID_EXECUTIVE_YEARLY=price_xxxxx
 ```
 
-#### **2. Yearly Prices Create et:**
+#### **2. Create Yearly Prices:**
 
 **Automated Script:**
 ```bash
@@ -778,13 +778,13 @@ STRIPE_PRICE_ID_EXECUTIVE_YEARLY=price_1OabcDefGhiJkLmQ
 ✅ .env file updated successfully!
 ```
 
-#### **3. Subscription Checkout Create et (Setup Fee ilə):**
+#### **3. Create Subscription Checkout (with Setup Fee):**
 
 **Backend API:**
 ```typescript
 import stripeService from './services/stripe.service';
 
-// Checkout session yarat
+// Create checkout session
 const session = await stripeService.createSubscriptionCheckout({
   tenantId: tenant.id,
   customerEmail: user.email,
@@ -830,10 +830,10 @@ curl -X POST http://localhost:5000/api/subscriptions/create-checkout \
 #### **4. Checkout Flow:**
 
 ```
-1. User "Upgrade to Yearly" düyməsinə basır
-2. Backend checkout session yaradır (with $1 setup fee)
-3. User Stripe Checkout-a redirect olunur
-4. Checkout səhifəsində göstərilir:
+1. User clicks "Upgrade to Yearly" button
+2. Backend creates checkout session (with $1 setup fee)
+3. User is redirected to Stripe Checkout
+4. Checkout page shows:
 
    Line Items:
    - Setup Fee: $1.00 (one-time)
@@ -842,14 +842,14 @@ curl -X POST http://localhost:5000/api/subscriptions/create-checkout \
    Total today: $6,001.00
    Next payment: $6,000.00 (in 1 year)
 
-5. User card details daxil edir
-6. Payment process olunur
-7. Success/Cancel URL-ə redirect olunur
+5. User enters card details
+6. Payment is processed
+7. User is redirected to Success/Cancel URL
 ```
 
 #### **5. Webhook Handling:**
 
-**Stripe webhook göndərir:**
+**Stripe sends webhook:**
 ```json
 {
   "type": "checkout.session.completed",
@@ -978,10 +978,10 @@ const handleSubscribe = async (plan, billingCycle) => {
 | Monthly | $0 | $500/mo | $500 | $500/month |
 | Yearly | $1 | $6000/yr | **$6001** | $6000/year |
 
-### **Test etmək:**
+### **Testing:**
 
 ```bash
-# 1. Test checkout session yarat
+# 1. Create test checkout session
 curl -X POST http://localhost:5000/api/subscriptions/create-checkout \
   -H "Authorization: Bearer JWT_TOKEN" \
   -H "Content-Type: application/json" \
@@ -990,18 +990,18 @@ curl -X POST http://localhost:5000/api/subscriptions/create-checkout \
     "setupFeeAmount": 100
   }'
 
-# 2. Checkout URL-ə get və test card ilə ödə
+# 2. Go to checkout URL and pay with test card
 # Test Card: 4242 4242 4242 4242
 # Expiry: any future date
 # CVC: any 3 digits
 
-# 3. Webhook-i yoxla (Stripe CLI)
+# 3. Test webhook (Stripe CLI)
 stripe listen --forward-to localhost:5000/api/webhooks/stripe
 
-# 4. Test payment et və webhook event-i gör
+# 4. Make test payment and see webhook event
 stripe trigger checkout.session.completed
 
-# 5. Database-də subscription-u yoxla
+# 5. Check subscription in database
 SELECT * FROM tenants WHERE id = 'tenant_123';
 ```
 
@@ -1014,49 +1014,49 @@ Full guide: `/docs/STRIPE_SETUP.md`
 
 ### **🔗 User Dashboard API Endpoints**
 
-Bütün dashboard üçün lazım olan API linkləri:
+All API links needed for dashboard:
 
 #### **Authentication:**
 ```
-POST   /api/auth/register              - Qeydiyyat
+POST   /api/auth/register              - Registration
 POST   /api/auth/login                 - Login (subscription status included)
 POST   /api/auth/logout                - Logout
-POST   /api/auth/request-otp           - Password reset OTP göndər
-POST   /api/auth/set-password-after-otp - Password dəyiş + email göndər
+POST   /api/auth/request-otp           - Password reset OTP
+POST   /api/auth/set-password-after-otp - Password change + email
 GET    /api/auth/me                    - Current user info
 PUT    /api/auth/profile               - Profile update
-PUT    /api/auth/change-password       - Password dəyiş
+PUT    /api/auth/change-password       - Password change
 ```
 
 #### **Tenant Management:**
 ```
-GET    /api/tenants                    - Bütün tenants (admin only)
-POST   /api/tenants                    - Yeni tenant yarat (admin)
+GET    /api/tenants                    - All tenants (admin only)
+POST   /api/tenants                    - Create new tenant (admin)
 GET    /api/tenants/:id                - Tenant details (Whop protected)
 PUT    /api/tenants/:id                - Tenant update (Whop protected)
 DELETE /api/tenants/:id                - Tenant deactivate (admin)
-GET    /api/tenants/:id/stats          - Tenant statistikası (Whop protected)
+GET    /api/tenants/:id/stats          - Tenant statistics (Whop protected)
 PUT    /api/tenants/:id/subscription   - Subscription update (admin)
 ```
 
 #### **AI Agent Configuration:**
 ```
-GET    /api/tenants/:id/agent-config   - Agent config oxu
-PATCH  /api/tenants/:id/agent-config   - Agent config update
+GET    /api/tenants/:id/agent-config   - Read agent config
+PATCH  /api/tenants/:id/agent-config   - Update agent config
                                          (voice, name, prompt, temperature, tools)
 ```
 
 #### **Language Settings:**
 ```
-GET    /api/tenants/languages          - Supported languages siyahısı
+GET    /api/tenants/languages          - Supported languages list
 POST   /api/tenants/languages/test     - Translation test
-PUT    /api/tenants/:id/language       - Tenant default language set et
+PUT    /api/tenants/:id/language       - Set tenant default language
 ```
 
 #### **Orders:**
 ```
 GET    /api/orders                     - Orders list (Whop protected)
-POST   /api/orders                     - Yeni order yarat (Whop protected)
+POST   /api/orders                     - Create new order (Whop protected)
 GET    /api/orders/:id                 - Order details (Whop protected)
 PUT    /api/orders/:id                 - Order update (Whop protected)
 DELETE /api/orders/:id                 - Order cancel (Whop protected)
@@ -1067,14 +1067,14 @@ GET    /api/orders/:id/status          - Order status check
 ```
 GET    /api/calls                      - Call history (Whop protected)
 GET    /api/calls/:id                  - Call details (Whop protected)
-POST   /api/calls/:id/feedback         - Call feedback əlavə et
-GET    /api/calls/stats                - Call statistikası
+POST   /api/calls/:id/feedback         - Add call feedback
+GET    /api/calls/stats                - Call statistics
 ```
 
 #### **Bookings:**
 ```
 GET    /api/bookings                   - Bookings list (Whop protected)
-POST   /api/bookings                   - Yeni booking (Whop protected)
+POST   /api/bookings                   - Create new booking (Whop protected)
 GET    /api/bookings/:id               - Booking details (Whop protected)
 PUT    /api/bookings/:id               - Booking update (Whop protected)
 DELETE /api/bookings/:id               - Booking cancel (Whop protected)
@@ -1084,7 +1084,7 @@ GET    /api/bookings/calendar          - Calendar view
 #### **Services:**
 ```
 GET    /api/services                   - Services list (Whop protected)
-POST   /api/services                   - Yeni service (Whop protected)
+POST   /api/services                   - Create new service (Whop protected)
 GET    /api/services/:id               - Service details (Whop protected)
 PUT    /api/services/:id               - Service update (Whop protected)
 DELETE /api/services/:id               - Service delete (Whop protected)
@@ -1093,7 +1093,7 @@ DELETE /api/services/:id               - Service delete (Whop protected)
 #### **POS Integration (Toast, Square, Clover):**
 ```
 POST   /api/pos-integrations/tenants/:id/configure  - POS configure
-GET    /api/pos-integrations/tenants/:id/config     - POS config oxu
+GET    /api/pos-integrations/tenants/:id/config     - Read POS config
 POST   /api/pos-integrations/tenants/:id/test       - Connection test
 POST   /api/pos-integrations/tenants/:id/sync-menu  - Menu sync
 POST   /api/pos-integrations/tenants/:id/orders/:orderId/push   - Order push to POS
@@ -1110,7 +1110,7 @@ POST   /api/integrations/whatsapp      - WhatsApp connect
 
 #### **Stripe Subscriptions:**
 ```
-POST   /api/subscriptions/create-checkout          - Checkout session yarat
+POST   /api/subscriptions/create-checkout          - Create checkout session
 GET    /api/subscriptions/session/:sessionId       - Session details
 GET    /api/subscriptions/customer/:customerId     - Customer subscriptions
 POST   /api/subscriptions/:id/cancel               - Subscription cancel
@@ -1147,7 +1147,7 @@ GET    /api/partners/logos             - Partner logos list
 ```
 /dashboard
   ├── /overview                 → Dashboard home (stats, recent activity)
-  ├── /calls                    → Call history və analytics
+  ├── /calls                    → Call history and analytics
   ├── /orders                   → Orders management
   ├── /bookings                 → Bookings calendar
   ├── /services                 → Services management
@@ -1157,9 +1157,9 @@ GET    /api/partners/logos             - Partner logos list
   │   ├── /agent                → AI Agent customization
   │   ├── /language             → Language settings
   │   ├── /integrations         → POS, Discord, WhatsApp
-  │   └── /billing              → Subscription və billing
+  │   └── /billing              → Subscription and billing
   ├── /subscription
-  │   ├── /plans                → Pricing və plans
+  │   ├── /plans                → Pricing and plans
   │   ├── /checkout             → Stripe checkout
   │   ├── /success              → Payment success
   │   └── /cancel               → Payment cancel

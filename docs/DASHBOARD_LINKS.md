@@ -1,20 +1,20 @@
 # Dashboard API Links Reference
 
-User dashboard üçün bütün API endpointləri - tez axtarış üçün.
+All API endpoints for the user dashboard - quick reference.
 
 ---
 
 ## 🔐 Authentication
 
 ```
-POST   /api/auth/register                      - Qeydiyyat
-POST   /api/auth/login                         - Login (subscription status daxil)
+POST   /api/auth/register                      - Registration
+POST   /api/auth/login                         - Login (subscription status included)
 POST   /api/auth/logout                        - Logout
 POST   /api/auth/request-otp                   - Password reset OTP
-POST   /api/auth/set-password-after-otp        - Password dəyiş + email
+POST   /api/auth/set-password-after-otp        - Password change + email
 GET    /api/auth/me                            - Current user
 PUT    /api/auth/profile                       - Profile update
-PUT    /api/auth/change-password               - Password dəyiş
+PUT    /api/auth/change-password               - Password change
 ```
 
 ---
@@ -22,8 +22,8 @@ PUT    /api/auth/change-password               - Password dəyiş
 ## 🏢 Tenant Management
 
 ```
-GET    /api/tenants                            - Bütün tenants (admin)
-POST   /api/tenants                            - Yeni tenant (admin)
+GET    /api/tenants                            - All tenants (admin)
+POST   /api/tenants                            - New tenant (admin)
 GET    /api/tenants/:id                        - Tenant details ⚠️ Whop
 PUT    /api/tenants/:id                        - Tenant update ⚠️ Whop
 DELETE /api/tenants/:id                        - Tenant deactivate (admin)
@@ -37,8 +37,8 @@ PUT    /api/tenants/:id/subscription           - Subscription update (admin)
 ## 🤖 AI Agent Configuration
 
 ```
-GET    /api/tenants/:id/agent-config           - Agent config oxu
-PATCH  /api/tenants/:id/agent-config           - Agent config update
+GET    /api/tenants/:id/agent-config           - Read agent config
+PATCH  /api/tenants/:id/agent-config           - Update agent config
                                                  • customAgentName
                                                  • agentVoiceGender (male/female)
                                                  • agentVoiceId
@@ -63,7 +63,7 @@ PUT    /api/tenants/:id/language               - Set default language
 
 ```
 GET    /api/orders                             - Orders list ⚠️ Whop
-POST   /api/orders                             - Yeni order ⚠️ Whop
+POST   /api/orders                             - New order ⚠️ Whop
 GET    /api/orders/:id                         - Order details ⚠️ Whop
 PUT    /api/orders/:id                         - Order update ⚠️ Whop
 DELETE /api/orders/:id                         - Order cancel ⚠️ Whop
@@ -87,7 +87,7 @@ GET    /api/calls/stats                        - Call stats ⚠️ Whop
 
 ```
 GET    /api/bookings                           - Bookings list ⚠️ Whop
-POST   /api/bookings                           - Yeni booking ⚠️ Whop
+POST   /api/bookings                           - New booking ⚠️ Whop
 GET    /api/bookings/:id                       - Booking details ⚠️ Whop
 PUT    /api/bookings/:id                       - Booking update ⚠️ Whop
 DELETE /api/bookings/:id                       - Booking cancel ⚠️ Whop
@@ -100,7 +100,7 @@ GET    /api/bookings/calendar                  - Calendar view ⚠️ Whop
 
 ```
 GET    /api/services                           - Services list ⚠️ Whop
-POST   /api/services                           - Yeni service ⚠️ Whop
+POST   /api/services                           - New service ⚠️ Whop
 GET    /api/services/:id                       - Service details ⚠️ Whop
 PUT    /api/services/:id                       - Service update ⚠️ Whop
 DELETE /api/services/:id                       - Service delete ⚠️ Whop
@@ -112,7 +112,7 @@ DELETE /api/services/:id                       - Service delete ⚠️ Whop
 
 ```
 POST   /api/pos-integrations/tenants/:id/configure                - POS configure
-GET    /api/pos-integrations/tenants/:id/config                   - POS config oxu
+GET    /api/pos-integrations/tenants/:id/config                   - Read POS config
 POST   /api/pos-integrations/tenants/:id/test                     - Connection test
 POST   /api/pos-integrations/tenants/:id/sync-menu                - Menu sync
 POST   /api/pos-integrations/tenants/:id/orders/:orderId/push     - Order push to POS
@@ -135,7 +135,7 @@ POST   /api/integrations/whatsapp              - WhatsApp connect ⚠️ Whop
 ## 💳 Stripe Subscriptions
 
 ```
-POST   /api/subscriptions/create-checkout      - Checkout session yarat
+POST   /api/subscriptions/create-checkout      - Create checkout session
                                                  • priceId
                                                  • setupFeeAmount (optional, $1 = 100)
 GET    /api/subscriptions/session/:sessionId   - Session details
@@ -180,13 +180,13 @@ GET    /api/partners/logos                     - Partner logos
 
 ## 🎯 Legend
 
-- ⚠️ **Whop** - Whop subscription yoxlanması tələb edir
+- ⚠️ **Whop** - Requires Whop subscription verification
   - Active subscription: Full access
   - Expired + Grace period (7 days): Access with warnings
   - Grace period ended: 403 Forbidden
 
-- **(admin)** - Admin role tələb edir
-- **(public)** - Authentication tələb etmir
+- **(admin)** - Requires admin role
+- **(public)** - No authentication required
 
 ---
 

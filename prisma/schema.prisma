@@ -10,7 +10,7 @@ datasource db {
 }
 
 // ==========================================
-// TENANTS (Müştərilər)
+// TENANTS (Customers)
 // ==========================================
 model Tenant {
   id              String   @id @default(uuid())
@@ -79,7 +79,7 @@ model Tenant {
 }
 
 // ==========================================
-// USERS (Tenant istifadəçiləri)
+// USERS (Tenant users)
 // ==========================================
 model User {
   id            String   @id @default(uuid())
@@ -135,7 +135,7 @@ model User {
 }
 
 // ==========================================
-// LEADS (Potensial müştərilər)
+// LEADS (Potential customers)
 // ==========================================
 model Lead {
   id              String   @id @default(uuid())

@@ -1,6 +1,6 @@
 # User Dashboard API Guide
 
-Bu sənəd First Ring AI User Dashboard üçün mövcud olan bütün API endpoint-larını, request və response formatlarını ətraflı şəkildə izah edir.
+This document explains all available API endpoints for the First Ring AI User Dashboard, including request and response formats.
 
 ## 📋 Table of Contents
 
@@ -19,7 +19,7 @@ Bu sənəd First Ring AI User Dashboard üçün mövcud olan bütün API endpoin
 
 ## 🔐 Authentication
 
-Bütün dashboard endpoint-ları authentication tələb edir. Token-i `Authorization` header-də Bearer token kimi göndərin:
+All dashboard endpoints require authentication. Send the token in the `Authorization` header as a Bearer token:
 
 ```
 Authorization: Bearer <your-access-token>
@@ -29,7 +29,7 @@ Authorization: Bearer <your-access-token>
 
 **POST** `/api/auth/register`
 
-Yeni user qeydiyyatdan keçirir.
+Registers a new user.
 
 **Request Body:**
 ```json
@@ -72,7 +72,7 @@ Yeni user qeydiyyatdan keçirir.
 
 **POST** `/api/auth/login`
 
-User daxil olur və access/refresh token alır.
+User logs in and receives access/refresh tokens.
 
 **Request Body:**
 ```json
@@ -125,7 +125,7 @@ User daxil olur və access/refresh token alır.
 
 **POST** `/api/auth/refresh`
 
-Access token-i yeniləyir.
+Refreshes the access token.
 
 **Request Body:**
 ```json
@@ -154,7 +154,7 @@ Access token-i yeniləyir.
 
 **GET** `/api/auth/me`
 
-Mövcud user-in profil məlumatlarını alır.
+Gets the current user's profile information.
 
 **Headers:**
 ```
@@ -199,7 +199,7 @@ Authorization: Bearer <access-token>
 
 **POST** `/api/auth/logout`
 
-User çıxış edir (client tərəfdə token silinməlidir).
+User logs out (token should be deleted on client side).
 
 **Headers:**
 ```
@@ -222,7 +222,7 @@ Authorization: Bearer <access-token>
 
 **GET** `/api/analytics/:tenantId`
 
-Tenant üçün ümumi analitik məlumatları alır.
+Gets aggregated analytics data for a tenant.
 
 **Headers:**
 ```
@@ -230,7 +230,7 @@ Authorization: Bearer <access-token>
 ```
 
 **Query Parameters:**
-- `days` (optional) - Neçə günlük data (default: 30)
+- `days` (optional) - Number of days of data (default: 30)
 
 **Example:**
 ```
@@ -272,7 +272,7 @@ GET /api/analytics/f8f6c45c-9bd2-54d858645467?days=7
 
 **GET** `/api/analytics/:tenantId/events`
 
-Event-lərin siyahısını alır.
+Gets list of events.
 
 **Headers:**
 ```
@@ -280,9 +280,9 @@ Authorization: Bearer <access-token>
 ```
 
 **Query Parameters:**
-- `eventType` (optional) - Event növü (call_completed, booking_made, etc.)
-- `startDate` (optional) - Başlanğıc tarix (ISO format)
-- `endDate` (optional) - Bitmə tarix (ISO format)
+- `eventType` (optional) - Event type (call_completed, booking_made, etc.)
+- `startDate` (optional) - Start date (ISO format)
+- `endDate` (optional) - End date (ISO format)
 
 **Example:**
 ```
@@ -317,7 +317,7 @@ GET /api/analytics/f8f6c45c-9bd2-54d858645467/events?eventType=call_completed&st
 
 **POST** `/api/analytics/track`
 
-Yeni event yaradır.
+Creates a new event.
 
 **Headers:**
 ```
@@ -363,7 +363,7 @@ Authorization: Bearer <access-token>
 
 **GET** `/api/bookings`
 
-Tenant-a aid bütün bookingleri alır.
+Gets all bookings for a tenant.
 
 **Headers:**
 ```
@@ -372,8 +372,8 @@ Authorization: Bearer <access-token>
 
 **Query Parameters:**
 - `status` (optional) - pending, confirmed, cancelled, completed, no_show
-- `dateFrom` (optional) - Başlanğıc tarix
-- `dateTo` (optional) - Bitmə tarix
+- `dateFrom` (optional) - Start date
+- `dateTo` (optional) - End date
 
 **Response (200 OK):**
 ```json
@@ -409,7 +409,7 @@ Authorization: Bearer <access-token>
 
 **GET** `/api/bookings/:id`
 
-ID-yə görə booking məlumatını alır.
+Gets booking information by ID.
 
 **Headers:**
 ```
@@ -446,7 +446,7 @@ Authorization: Bearer <access-token>
 
 **POST** `/api/bookings`
 
-Yeni booking yaradır.
+Creates a new booking.
 
 **Headers:**
 ```
@@ -491,7 +491,7 @@ Authorization: Bearer <access-token>
 
 **PUT** `/api/bookings/:id`
 
-Booking məlumatını yeniləyir.
+Updates booking information.
 
 **Headers:**
 ```
@@ -527,7 +527,7 @@ Authorization: Bearer <access-token>
 
 **POST** `/api/bookings/:id/confirm`
 
-Booking-i təsdiq edir.
+Confirms a booking.
 
 **Headers:**
 ```
@@ -552,7 +552,7 @@ Authorization: Bearer <access-token>
 
 **POST** `/api/bookings/:id/cancel`
 
-Booking-i ləğv edir.
+Cancels a booking.
 
 **Headers:**
 ```
@@ -586,7 +586,7 @@ Authorization: Bearer <access-token>
 
 **POST** `/api/bookings/:id/no-show`
 
-Booking-i no-show olaraq işarələyir.
+Marks a booking as no-show.
 
 **Headers:**
 ```
@@ -611,7 +611,7 @@ Authorization: Bearer <access-token>
 
 **GET** `/api/bookings/stats`
 
-Booking statistikalarını alır.
+Gets booking statistics.
 
 **Headers:**
 ```
@@ -647,7 +647,7 @@ Authorization: Bearer <access-token>
 
 **GET** `/api/bookings/availability`
 
-Müəyyən vaxt üçün mövcudluğu yoxlayır.
+Checks availability for a specific time.
 
 **Headers:**
 ```
@@ -655,8 +655,8 @@ Authorization: Bearer <access-token>
 ```
 
 **Query Parameters:**
-- `dateTime` (required) - ISO format tarix
-- `duration` (optional) - Dəqiqə ilə müddət
+- `dateTime` (required) - ISO format date
+- `duration` (optional) - Duration in minutes
 - `serviceId` (optional)
 
 **Example:**
@@ -682,7 +682,7 @@ GET /api/bookings/availability?dateTime=2024-01-20T14:00:00.000Z&duration=60
 
 **GET** `/api/bookings/slots`
 
-Müəyyən tarix üçün boş vaxt slotlarını alır.
+Gets available time slots for a specific date.
 
 **Headers:**
 ```
@@ -690,9 +690,9 @@ Authorization: Bearer <access-token>
 ```
 
 **Query Parameters:**
-- `date` (required) - Tarix (YYYY-MM-DD)
+- `date` (required) - Date (YYYY-MM-DD)
 - `serviceId` (optional)
-- `duration` (optional) - Dəqiqə ilə
+- `duration` (optional) - In minutes
 
 **Example:**
 ```
@@ -725,7 +725,7 @@ GET /api/bookings/slots?date=2024-01-20&duration=60
 
 **GET** `/api/orders`
 
-Tenant-a aid bütün sifarişləri alır.
+Gets all orders for a tenant.
 
 **Headers:**
 ```
@@ -789,7 +789,7 @@ Authorization: Bearer <access-token>
 
 **GET** `/api/orders/:id`
 
-ID-yə görə sifariş məlumatını alır.
+Gets order information by ID.
 
 **Headers:**
 ```
@@ -823,7 +823,7 @@ Authorization: Bearer <access-token>
 
 **POST** `/api/orders`
 
-Yeni sifariş yaradır.
+Creates a new order.
 
 **Headers:**
 ```
@@ -879,7 +879,7 @@ Authorization: Bearer <access-token>
 
 **PUT** `/api/orders/:id`
 
-Sifariş məlumatını yeniləyir.
+Updates order information.
 
 **Headers:**
 ```
@@ -913,7 +913,7 @@ Authorization: Bearer <access-token>
 
 **POST** `/api/orders/:id/checkout`
 
-Sifariş üçün ödəniş linki yaradır.
+Creates a payment link for an order.
 
 **Headers:**
 ```
@@ -937,7 +937,7 @@ Authorization: Bearer <access-token>
 
 **GET** `/api/orders/stats`
 
-Sifariş statistikalarını alır.
+Gets order statistics.
 
 **Headers:**
 ```
@@ -989,7 +989,7 @@ Authorization: Bearer <access-token>
 
 **GET** `/api/services`
 
-Tenant-a aid bütün xidmətləri alır.
+Gets all services for a tenant.
 
 **Headers:**
 ```
@@ -997,8 +997,8 @@ Authorization: Bearer <access-token>
 ```
 
 **Query Parameters:**
-- `category` (optional) - Kateqoriyaya görə filter
-- `available` (optional) - true/false - Mövcudluğa görə filter
+- `category` (optional) - Filter by category
+- `available` (optional) - true/false - Filter by availability
 
 **Response (200 OK):**
 ```json
@@ -1035,7 +1035,7 @@ Authorization: Bearer <access-token>
 
 **GET** `/api/services/:id`
 
-ID-yə görə xidmət məlumatını alır.
+Gets service information by ID.
 
 **Headers:**
 ```
@@ -1068,7 +1068,7 @@ Authorization: Bearer <access-token>
 
 **POST** `/api/services`
 
-Yeni xidmət yaradır.
+Creates a new service.
 
 **Headers:**
 ```
@@ -1116,7 +1116,7 @@ Authorization: Bearer <access-token>
 
 **PUT** `/api/services/:id`
 
-Xidmət məlumatını yeniləyir.
+Updates service information.
 
 **Headers:**
 ```
@@ -1153,7 +1153,7 @@ Authorization: Bearer <access-token>
 
 **DELETE** `/api/services/:id`
 
-Xidməti silir.
+Deletes a service.
 
 **Headers:**
 ```
@@ -1177,7 +1177,7 @@ Authorization: Bearer <access-token>
 
 **GET** `/api/services/categories/list`
 
-Bütün kateqoriyaların siyahısını alır.
+Gets list of all categories.
 
 **Headers:**
 ```
@@ -1204,7 +1204,7 @@ Authorization: Bearer <access-token>
 
 **GET** `/api/services/stock/low`
 
-Az qalmış ehtiyyatı olan xidmətləri alır.
+Gets services with low stock.
 
 **Headers:**
 ```
@@ -1233,7 +1233,7 @@ Authorization: Bearer <access-token>
 
 **PUT** `/api/services/:id/stock`
 
-Xidmətin ehtiyyatını yeniləyir.
+Updates service stock.
 
 **Headers:**
 ```
@@ -1284,7 +1284,7 @@ Authorization: Bearer <access-token>
 
 **PUT** `/api/services/bulk/availability`
 
-Bir neçə xidmətin mövcudluğunu eyni anda yeniləyir.
+Updates availability for multiple services at once.
 
 **Headers:**
 ```
@@ -1316,7 +1316,7 @@ Authorization: Bearer <access-token>
 
 **POST** `/api/services/:id/duplicate`
 
-Xidməti kopyalayır.
+Duplicates a service.
 
 **Headers:**
 ```
@@ -1344,7 +1344,7 @@ Authorization: Bearer <access-token>
 
 **GET** `/api/faqs`
 
-Tenant-a aid bütün FAQ-ları alır.
+Gets all FAQs for a tenant.
 
 **Headers:**
 ```
@@ -1352,11 +1352,11 @@ Authorization: Bearer <access-token>
 ```
 
 **Query Parameters:**
-- `category` (optional) - Kateqoriyaya görə filter
-- `isActive` (optional) - true/false - Aktiv/deaktiv filter
-- `search` (optional) - Sual və ya cavabda axtarış
-- `page` (optional) - Səhifə nömrəsi (default: 1)
-- `limit` (optional) - Səhifədə neçə nəticə (default: 50)
+- `category` (optional) - Filter by category
+- `isActive` (optional) - true/false - Active/inactive filter
+- `search` (optional) - Search in question or answer
+- `page` (optional) - Page number (default: 1)
+- `limit` (optional) - Results per page (default: 50)
 
 **Example:**
 ```
@@ -1412,7 +1412,7 @@ GET /api/faqs?category=Booking&isActive=true&page=1&limit=20
 
 **GET** `/api/faqs/:id`
 
-ID-yə görə FAQ məlumatını alır və view count-u artırır.
+Gets FAQ information by ID and increments view count.
 
 **Headers:**
 ```
@@ -1448,7 +1448,7 @@ Authorization: Bearer <access-token>
 
 **POST** `/api/faqs`
 
-Yeni FAQ yaradır.
+Creates a new FAQ.
 
 **Headers:**
 ```
@@ -1489,7 +1489,7 @@ Authorization: Bearer <access-token>
 **Errors:**
 - `400` - Question and answer are required
 
-**Note:** Keywords automatically generated from question/answer if not provided.
+**Note:** Keywords are automatically generated from question/answer if not provided.
 
 ---
 
@@ -1497,7 +1497,7 @@ Authorization: Bearer <access-token>
 
 **PUT** `/api/faqs/:id`
 
-FAQ məlumatını yeniləyir.
+Updates FAQ information.
 
 **Headers:**
 ```
@@ -1541,7 +1541,7 @@ Authorization: Bearer <access-token>
 
 **DELETE** `/api/faqs/:id`
 
-FAQ-ı silir.
+Deletes an FAQ.
 
 **Headers:**
 ```
@@ -1565,7 +1565,7 @@ Authorization: Bearer <access-token>
 
 **POST** `/api/faqs/search`
 
-FAQ-larda axtarış edir (sual, cavab və keyword-lərə baxır).
+Searches FAQs (looks at question, answer, and keywords).
 
 **Headers:**
 ```
@@ -1621,7 +1621,7 @@ Authorization: Bearer <access-token>
 
 **GET** `/api/faqs/categories/list`
 
-Bütün FAQ kateqoriyalarının siyahısını alır.
+Gets list of all FAQ categories.
 
 **Headers:**
 ```
@@ -1649,7 +1649,7 @@ Authorization: Bearer <access-token>
 
 **POST** `/api/faqs/:id/helpful`
 
-FAQ-ı "helpful" olaraq işarələyir (helpful count artırır).
+Marks an FAQ as "helpful" (increments helpful count).
 
 **Headers:**
 ```
@@ -1673,7 +1673,7 @@ Authorization: Bearer <access-token>
 
 **GET** `/api/faqs/stats`
 
-FAQ statistikalarını alır.
+Gets FAQ statistics.
 
 **Headers:**
 ```
@@ -1733,13 +1733,13 @@ Authorization: Bearer <access-token>
 
 ## 🤖 AI Agent Configuration
 
-AI Agent konfiqurasiyası tenant-ın AI asistentini fərdiləşdirməyə imkan verir. Retell AI ilə avtomatik sync olunur.
+AI Agent configuration allows tenants to customize their AI assistant. Automatically syncs with Retell AI.
 
 ### 1. Get Agent Configuration
 
 **GET** `/api/tenants/:tenantId/agent-config`
 
-Tenant-ın AI agent konfiqurasiyasını və mövcud seçimləri alır.
+Gets the tenant's AI agent configuration and available options.
 
 **Headers:**
 ```
@@ -1829,7 +1829,7 @@ Authorization: Bearer <access-token>
 
 **PATCH** `/api/tenants/:tenantId/agent-config`
 
-AI agent konfiqurasiyasını yeniləyir və Retell AI-a sync edir.
+Updates AI agent configuration and syncs to Retell AI.
 
 **Headers:**
 ```
@@ -1852,12 +1852,12 @@ Authorization: Bearer <access-token>
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `customAgentName` | string | No | Agent adı (default: "{TenantName} AI Agent") |
-| `customAgentPrompt` | string | No | AI davranış prompt-u (system prompt) |
-| `agentVoiceGender` | string | No | Səs cinsi: "male" or "female" |
-| `agentVoiceId` | string | No | Spesifik voice ID (11labs-Rachel, etc.) |
-| `agentTemperature` | number | No | Yaradıcılıq səviyyəsi (0.0 - 1.0) |
-| `enabledTools` | array | No | Aktiv funksiyalar listası |
+| `customAgentName` | string | No | Agent name (default: "{TenantName} AI Agent") |
+| `customAgentPrompt` | string | No | AI behavior prompt (system prompt) |
+| `agentVoiceGender` | string | No | Voice gender: "male" or "female" |
+| `agentVoiceId` | string | No | Specific voice ID (11labs-Rachel, etc.) |
+| `agentTemperature` | number | No | Creativity level (0.0 - 1.0) |
+| `enabledTools` | array | No | List of active functions |
 
 **Response (200 OK):**
 ```json
@@ -1882,8 +1882,8 @@ Authorization: Bearer <access-token>
 - `404` - Tenant not found
 
 **Note:**
-- Dəyişikliklər avtomatik olaraq Retell AI-a sync olunur
-- Əgər Retell sync uğursuz olarsa, dəyişikliklər database-də saxlanır amma warning log edilir
+- Changes are automatically synced to Retell AI
+- If Retell sync fails, changes are saved in database but a warning is logged
 
 ---
 
@@ -1901,16 +1901,16 @@ Authorization: Bearer <access-token>
 
 ### Agent Temperature Guide
 
-**Temperature** yaradıcılıq və randomness-i idarə edir:
+**Temperature** controls creativity and randomness:
 
 | Range | Behavior | Best For | Example |
 |-------|----------|----------|---------|
-| **0.0 - 0.3** | Çox konservativ, deterministic | Legal, medical, formal | "Your reservation is confirmed for..." |
-| **0.4 - 0.6** | Balanslaşdırılmış, professional | Most businesses | "Great! I've booked that for you..." |
+| **0.0 - 0.3** | Very conservative, deterministic | Legal, medical, formal | "Your reservation is confirmed for..." |
+| **0.4 - 0.6** | Balanced, professional | Most businesses | "Great! I've booked that for you..." |
 | **0.7 - 0.9** | Natural, conversational | Casual restaurants, retail | "Awesome! You're all set for dinner on Friday!" |
-| **1.0** | Çox yaradıcı, unpredictable | Not recommended | Risky - can hallucinate |
+| **1.0** | Very creative, unpredictable | Not recommended | Risky - can hallucinate |
 
-**Tövsiyə:**
+**Recommendation:**
 - Restaurant/Service: **0.7**
 - Professional services: **0.5**
 - Healthcare/Legal: **0.3**
@@ -1919,7 +1919,7 @@ Authorization: Bearer <access-token>
 
 ### Custom Prompt Best Practices
 
-#### ✅ Yaxşı Prompt Nümunəsi:
+#### ✅ Good Prompt Example:
 
 ```
 You are a friendly AI assistant for "Bella Vista Restaurant", an upscale Italian restaurant.
@@ -1947,46 +1947,46 @@ CURRENT PROMOTIONS:
 - Free dessert for birthdays (mention ID required)
 ```
 
-#### ❌ Pis Prompt Nümunələri:
+#### ❌ Bad Prompt Examples:
 
-**Çox qısa:**
+**Too short:**
 ```
 You are a restaurant AI. Take orders and reservations.
 ```
-*Problem: Yetərincə kontekst yoxdur*
+*Problem: Not enough context*
 
-**Çox uzun/qarışıq:**
+**Too long/confusing:**
 ```
 You are an AI and you work for this restaurant and sometimes customers call and...
 [3 paragraphs of rambling text]
 ```
-*Problem: Fokus itir, AI qarışır*
+*Problem: Focus is lost, AI gets confused*
 
-**Kontradiktiv:**
+**Contradictory:**
 ```
 Be very formal and professional. Also be super casual and fun!
 ```
-*Problem: Ziddiyyətli təlimatlar*
+*Problem: Conflicting instructions*
 
 ---
 
 ### Retell AI Sync
 
-Konfiqurasiya dəyişdirildikdə avtomatik sync olunur:
+Configuration is automatically synced when changed:
 
-1. **Database-ə yazılır** (həmişə)
-2. **Retell AI API-a göndərilir** (əgər `retellAgentId` varsa)
-3. Sync uğursuz olarsa:
-   - Dəyişikliklər DB-də saxlanır ✅
-   - Error log edilir 📝
-   - User-ə warning görsənmir (background process)
+1. **Written to database** (always)
+2. **Sent to Retell AI API** (if `retellAgentId` exists)
+3. If sync fails:
+   - Changes are saved in DB ✅
+   - Error is logged 📝
+   - User doesn't see warning (background process)
 
 **Testing:**
-Dəyişiklikləri test etmək üçün:
-1. Agent config update edin
-2. 1-2 dəqiqə gözləyin (sync üçün)
-3. Test zəngi edin tenant phone-a
-4. Yeni prompt/voice/behavior test edin
+To test changes:
+1. Update agent config
+2. Wait 1-2 minutes (for sync)
+3. Make test call to tenant phone
+4. Test new prompt/voice/behavior
 
 ---
 
@@ -2025,9 +2025,9 @@ curl -X PATCH https://api.firstring.ai/api/tenants/tenant_123/agent-config \
 ```
 
 #### Step 4: Verify & Test
-- Config database-də saxlanılır ✅
-- Retell AI-a sync olunur ✅
-- Test zəngi edərək yoxlayın 📞
+- Config is saved in database ✅
+- Synced to Retell AI ✅
+- Make a test call to verify 📞
 
 ---
 
@@ -2037,7 +2037,7 @@ curl -X PATCH https://api.firstring.ai/api/tenants/tenant_123/agent-config \
 
 **GET** `/api/calls`
 
-Tenant-a aid bütün zəngləri alır.
+Gets all calls for a tenant.
 
 **Headers:**
 ```
@@ -2088,7 +2088,7 @@ Authorization: Bearer <access-token>
 
 **GET** `/api/calls/:id`
 
-ID-yə görə zəng məlumatını alır.
+Gets call information by ID.
 
 **Headers:**
 ```
@@ -2124,7 +2124,7 @@ Authorization: Bearer <access-token>
 
 **POST** `/api/calls`
 
-Yeni zəng məlumatı yaradır.
+Creates a new call record.
 
 **Headers:**
 ```
@@ -2169,7 +2169,7 @@ Authorization: Bearer <access-token>
 
 **GET** `/api/calls/stats`
 
-Zəng statistikalarını alır.
+Gets call statistics.
 
 **Headers:**
 ```
@@ -2220,7 +2220,7 @@ Authorization: Bearer <access-token>
 
 **GET** `/api/subscriptions/plans`
 
-Bütün abunəlik planlarını alır.
+Gets all subscription plans.
 
 **Response (200 OK):**
 ```json
@@ -2275,7 +2275,7 @@ Bütün abunəlik planlarını alır.
 
 **GET** `/api/subscriptions/:tenantId`
 
-Tenant-ın mövcud abunəliyini alır.
+Gets the tenant's current subscription.
 
 **Headers:**
 ```
@@ -2319,7 +2319,7 @@ Authorization: Bearer <access-token>
 
 **POST** `/api/subscriptions`
 
-Yeni abunəlik yaradır.
+Creates a new subscription.
 
 **Headers:**
 ```
@@ -2359,7 +2359,7 @@ Authorization: Bearer <access-token>
 
 **PUT** `/api/subscriptions/:tenantId`
 
-Abunəliyi yeniləyir (plan dəyişikliyi).
+Updates subscription (plan change).
 
 **Headers:**
 ```
@@ -2398,7 +2398,7 @@ Authorization: Bearer <access-token>
 
 **POST** `/api/subscriptions/:tenantId/cancel`
 
-Abunəliyi ləğv edir.
+Cancels a subscription.
 
 **Headers:**
 ```
@@ -2454,25 +2454,25 @@ Authorization: Bearer <access-token>
 
 ### Common Error Codes
 
-- `400` - Bad Request (məsələn: validation error)
-- `401` - Unauthorized (authentication tələb olunur)
-- `403` - Forbidden (icazə yoxdur)
-- `404` - Not Found (resurs tapılmadı)
-- `409` - Conflict (məsələn: email artıq mövcuddur)
+- `400` - Bad Request (e.g., validation error)
+- `401` - Unauthorized (authentication required)
+- `403` - Forbidden (no permission)
+- `404` - Not Found (resource not found)
+- `409` - Conflict (e.g., email already exists)
 - `500` - Internal Server Error
 
 ---
 
 ## 🔒 Authentication Notes
 
-1. **Access Token**: API sorğuları üçün istifadə olunur (7 gün keçərlidir)
-2. **Refresh Token**: Access token-i yeniləmək üçün (30 gün keçərlidir)
-3. **Token Yeniləmə**: Access token expire olduqda, `/api/auth/refresh` endpoint-indən istifadə edin
+1. **Access Token**: Used for API requests (valid for 7 days)
+2. **Refresh Token**: Used to refresh access token (valid for 30 days)
+3. **Token Refresh**: When access token expires, use `/api/auth/refresh` endpoint
 
 ### Token Expiry Handling
 
 ```javascript
-// Example: Token yeniləmə mexanizmi
+// Example: Token refresh mechanism
 async function apiCall(endpoint, options) {
   let response = await fetch(endpoint, {
     ...options,
@@ -2482,7 +2482,7 @@ async function apiCall(endpoint, options) {
     }
   });
 
-  // Əgər 401 alınırsa, token yenilənməlidir
+  // If 401 is received, token needs to be refreshed
   if (response.status === 401) {
     const refreshResponse = await fetch('/api/auth/refresh', {
       method: 'POST',
@@ -2493,7 +2493,7 @@ async function apiCall(endpoint, options) {
     const { data } = await refreshResponse.json();
     accessToken = data.accessToken;
 
-    // Yenidən cəhd et
+    // Retry
     response = await fetch(endpoint, {
       ...options,
       headers: {
@@ -2540,16 +2540,16 @@ curl -X GET http://localhost:4000/api/bookings \
 
 ## 📝 Notes
 
-- Bütün tarixlər ISO 8601 formatında olmalıdır: `2024-01-15T14:30:00.000Z`
-- Telefon nömrələri beynəlxalq formatda olmalıdır: `+994501234567`
-- Pul məbləğləri USD-də dollar və sentlər ilə (float): `12.99`
-- Boolean dəyərlər: `true` və ya `false` (string deyil)
+- All dates must be in ISO 8601 format: `2024-01-15T14:30:00.000Z`
+- Phone numbers must be in international format: `+994501234567`
+- Money amounts are in USD with dollars and cents (float): `12.99`
+- Boolean values: `true` or `false` (not strings)
 
 ---
 
 ## 🆘 Support
 
-API ilə bağlı problemlər və ya suallar üçün:
+For API issues or questions:
 - Email: support@firstringai.com
 - Documentation: https://docs.firstringai.com
 
