@@ -311,6 +311,75 @@ const adminDashboardService = {
     return updatedUser;
   },
 
+  // Get all agents across all tenants (Admin)
+  async getAllAgents(page: number = 1, limit: number = 20, search?: string) {
+    const where: any = {
+      retellAgentId: { not: null },
+    };
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { customAgentName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [tenants, total] = await Promise.all([
+      prisma.tenant.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          businessType: true,
+          email: true,
+          phone: true,
+          retellAgentId: true,
+          twilioNumber: true,
+          customAgentName: true,
+          customAgentPrompt: true,
+          agentVoiceGender: true,
+          agentVoiceId: true,
+          agentTemperature: true,
+          enabledTools: true,
+          plan: true,
+          subscriptionStatus: true,
+          createdAt: true,
+          updatedAt: true,
+          _count: { select: { calls: true, bookings: true, orders: true } },
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { updatedAt: 'desc' },
+      }),
+      prisma.tenant.count({ where }),
+    ]);
+
+    const agents = tenants.map((t) => ({
+      tenantId: t.id,
+      tenantName: t.name,
+      tenantEmail: t.email,
+      businessType: t.businessType,
+      plan: t.plan,
+      subscriptionStatus: t.subscriptionStatus,
+      agent: {
+        retellAgentId: t.retellAgentId,
+        name: t.customAgentName || `${t.name} AI Agent`,
+        phoneNumber: t.twilioNumber,
+        voiceGender: t.agentVoiceGender || 'male',
+        voiceId: t.agentVoiceId,
+        temperature: t.agentTemperature ?? 0.7,
+        enabledTools: t.enabledTools || [],
+        hasCustomPrompt: !!t.customAgentPrompt,
+      },
+      stats: t._count,
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt,
+    }));
+
+    return { agents, total, page, pages: Math.ceil(total / limit) };
+  },
+
   // Populate test data for production testing
   async populateTestData() {
     const timestamp = Date.now();
@@ -700,6 +769,20 @@ const adminDashboardController = {
     }
   },
 
+  async getAllAgents(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { page = 1, limit = 20, search } = req.query;
+      const result = await adminDashboardService.getAllAgents(
+        Number(page),
+        Number(limit),
+        search as string
+      );
+      res.json({ success: true, ...result });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async populateTestData(req: Request, res: Response, next: NextFunction) {
     try {
       const result = await adminDashboardService.populateTestData();
@@ -723,6 +806,9 @@ router.get('/analytics/revenue', adminDashboardController.getRevenueAnalytics);
 router.get('/analytics/calls', adminDashboardController.getCallAnalytics);
 router.get('/analytics/subscriptions', adminDashboardController.getSubscriptionAnalytics);
 router.get('/activities', adminDashboardController.getRecentActivities);
+
+// Agents management
+router.get('/agents', adminDashboardController.getAllAgents);
 
 // User approval management
 router.get('/users/pending-approval', adminDashboardController.getPendingApprovalUsers);

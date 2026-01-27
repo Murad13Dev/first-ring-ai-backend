@@ -14,18 +14,35 @@ const router = Router();
 // ==========================================
 
 const customerDashboardService = {
-  // Get dashboard overview for tenant
+  // Get dashboard overview for tenant (includes agent info)
   async getOverview(tenantId: string) {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const [
+      tenant,
       subscription,
       callsThisMonth,
       bookingsThisMonth,
       ordersThisMonth,
       usage,
     ] = await Promise.all([
+      prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: {
+          id: true,
+          name: true,
+          businessType: true,
+          retellAgentId: true,
+          twilioNumber: true,
+          customAgentName: true,
+          customAgentPrompt: true,
+          agentVoiceGender: true,
+          agentVoiceId: true,
+          agentTemperature: true,
+          enabledTools: true,
+        },
+      }),
       prisma.subscription.findUnique({
         where: { tenantId },
         include: { plan: true },
@@ -76,8 +93,22 @@ const customerDashboardService = {
       };
     }
 
+    // Build agent info for this tenant
+    const agent = tenant ? {
+      retellAgentId: tenant.retellAgentId,
+      name: tenant.customAgentName || `${tenant.name} AI Agent`,
+      businessType: tenant.businessType,
+      phoneNumber: tenant.twilioNumber,
+      voiceGender: tenant.agentVoiceGender || 'male',
+      voiceId: tenant.agentVoiceId,
+      temperature: tenant.agentTemperature ?? 0.7,
+      enabledTools: tenant.enabledTools || ['booking', 'ordering', 'faq', 'check_availability'],
+      hasAgent: !!tenant.retellAgentId,
+    } : null;
+
     return {
       subscription,
+      agent,
       stats: {
         callsThisMonth,
         bookingsThisMonth,
