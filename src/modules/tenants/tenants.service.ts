@@ -726,18 +726,22 @@ export class TenantsService {
       // Get available tools
       const availableTools = this.getAvailableTools();
 
+      const effectiveGender = tenant.agentVoiceGender || 'male';
+      const defaultVoiceId = effectiveGender === 'female' ? '11labs-Emily' : '11labs-Adrian';
+
       return {
         config: {
           customAgentName: tenant.customAgentName,
           customAgentPrompt: tenant.customAgentPrompt,
-          agentVoiceGender: tenant.agentVoiceGender || 'male',
-          agentVoiceId: tenant.agentVoiceId,
+          agentVoiceGender: effectiveGender,
+          agentVoiceId: tenant.agentVoiceId || defaultVoiceId,
           agentTemperature: tenant.agentTemperature || 0.7,
           enabledTools: tenant.enabledTools || ['booking', 'ordering', 'faq', 'check_availability'],
         },
         defaults: {
           agentName: `${tenant.name} AI Agent`,
           voiceGender: 'male',
+          voiceId: '11labs-Adrian',
           temperature: 0.7,
           enabledTools: ['booking', 'ordering', 'faq', 'check_availability'],
         },

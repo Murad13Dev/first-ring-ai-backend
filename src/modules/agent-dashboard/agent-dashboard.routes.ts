@@ -56,6 +56,9 @@ const agentDashboardService = {
       }
     }
 
+    const effectiveGender = tenant.agentVoiceGender || 'male';
+    const defaultVoiceId = effectiveGender === 'female' ? '11labs-Emily' : '11labs-Adrian';
+
     return {
       agent: {
         retellAgentId: tenant.retellAgentId,
@@ -63,8 +66,8 @@ const agentDashboardService = {
         businessType: tenant.businessType,
         phoneNumber: tenant.twilioNumber,
         customPrompt: tenant.customAgentPrompt,
-        voiceGender: tenant.agentVoiceGender || 'male',
-        voiceId: tenant.agentVoiceId,
+        voiceGender: effectiveGender,
+        voiceId: tenant.agentVoiceId || defaultVoiceId,
         temperature: tenant.agentTemperature ?? 0.7,
         enabledTools: tenant.enabledTools || ['booking', 'ordering', 'faq', 'check_availability'],
         createdAt: tenant.createdAt,

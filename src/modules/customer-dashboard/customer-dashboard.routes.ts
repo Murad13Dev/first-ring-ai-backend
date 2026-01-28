@@ -94,13 +94,15 @@ const customerDashboardService = {
     }
 
     // Build agent info for this tenant
+    const effectiveGender = tenant?.agentVoiceGender || 'male';
+    const defaultVoiceId = effectiveGender === 'female' ? '11labs-Emily' : '11labs-Adrian';
     const agent = tenant ? {
       retellAgentId: tenant.retellAgentId,
       name: tenant.customAgentName || `${tenant.name} AI Agent`,
       businessType: tenant.businessType,
       phoneNumber: tenant.twilioNumber,
-      voiceGender: tenant.agentVoiceGender || 'male',
-      voiceId: tenant.agentVoiceId,
+      voiceGender: effectiveGender,
+      voiceId: tenant.agentVoiceId || defaultVoiceId,
       temperature: tenant.agentTemperature ?? 0.7,
       enabledTools: tenant.enabledTools || ['booking', 'ordering', 'faq', 'check_availability'],
       hasAgent: !!tenant.retellAgentId,
