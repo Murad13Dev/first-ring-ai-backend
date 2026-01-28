@@ -213,17 +213,26 @@ export class TenantsService {
           tenantId: result.tenant.id,
         });
 
+        const language = data.language || 'en-US';
+
         const retellAgentId = await retellProvisioningService.createAgentForTenant({
           tenantId: result.tenant.id,
           tenantName: result.tenant.name,
           businessType: result.tenant.businessType,
-          language: data.language || 'en-US',
+          language,
         });
 
-        // Update tenant with agent ID
-        await prisma.tenant.update({
-          where: { id: result.tenant.id },
-          data: { retellAgentId },
+        // Create Agent record in agents table
+        await prisma.agent.create({
+          data: {
+            tenantId: result.tenant.id,
+            retellAgentId,
+            name: `${result.tenant.name} AI Agent`,
+            language,
+            voiceGender: 'male',
+            temperature: 0.7,
+            enabledTools: ['booking', 'ordering', 'faq', 'check_availability'],
+          },
         });
 
         logger.info('Retell AI agent provisioned', {
@@ -705,14 +714,10 @@ export class TenantsService {
         select: {
           id: true,
           name: true,
-          businessType: true,
-          retellAgentId: true,
-          customAgentName: true,
-          customAgentPrompt: true,
-          agentVoiceGender: true,
-          agentVoiceId: true,
-          agentTemperature: true,
-          enabledTools: true,
+          agents: {
+            orderBy: { createdAt: 'asc' },
+            take: 1,
+          },
         },
       });
 
@@ -720,23 +725,21 @@ export class TenantsService {
         throw new AppError('Tenant not found', 404);
       }
 
-      // Get available voice options
       const voiceOptions = this.getVoiceOptions();
-
-      // Get available tools
       const availableTools = this.getAvailableTools();
 
-      const effectiveGender = tenant.agentVoiceGender || 'male';
+      const agent = tenant.agents[0];
+      const effectiveGender = agent?.voiceGender || 'male';
       const defaultVoiceId = effectiveGender === 'female' ? '11labs-Emily' : '11labs-Adrian';
 
       return {
         config: {
-          customAgentName: tenant.customAgentName,
-          customAgentPrompt: tenant.customAgentPrompt,
+          customAgentName: agent?.name || null,
+          customAgentPrompt: agent?.systemPrompt || null,
           agentVoiceGender: effectiveGender,
-          agentVoiceId: tenant.agentVoiceId || defaultVoiceId,
-          agentTemperature: tenant.agentTemperature || 0.7,
-          enabledTools: tenant.enabledTools || ['booking', 'ordering', 'faq', 'check_availability'],
+          agentVoiceId: agent?.voiceId || defaultVoiceId,
+          agentTemperature: agent?.temperature || 0.7,
+          enabledTools: agent?.enabledTools || ['booking', 'ordering', 'faq', 'check_availability'],
         },
         defaults: {
           agentName: `${tenant.name} AI Agent`,
@@ -772,59 +775,36 @@ export class TenantsService {
     }
   ) {
     try {
-      // Validate temperature
-      if (config.agentTemperature !== undefined) {
-        if (config.agentTemperature < 0.0 || config.agentTemperature > 1.0) {
-          throw new AppError('Temperature must be between 0.0 and 1.0', 400);
-        }
-      }
-
-      // Validate voice gender
-      if (config.agentVoiceGender && !['male', 'female'].includes(config.agentVoiceGender)) {
-        throw new AppError('Voice gender must be "male" or "female"', 400);
-      }
-
-      // Validate tools
-      const availableTools = ['booking', 'ordering', 'faq', 'check_availability', 'end_call'];
-      if (config.enabledTools) {
-        const invalidTools = config.enabledTools.filter(tool => !availableTools.includes(tool));
-        if (invalidTools.length > 0) {
-          throw new AppError(`Invalid tools: ${invalidTools.join(', ')}`, 400);
-        }
-      }
-
-      // Update tenant
-      const tenant = await prisma.tenant.update({
-        where: { id: tenantId },
-        data: {
-          customAgentName: config.customAgentName,
-          customAgentPrompt: config.customAgentPrompt,
-          agentVoiceGender: config.agentVoiceGender,
-          agentVoiceId: config.agentVoiceId,
-          agentTemperature: config.agentTemperature,
-          enabledTools: config.enabledTools as any,
-        },
+      // Find the first agent for this tenant (backward compatibility)
+      const agent = await prisma.agent.findFirst({
+        where: { tenantId },
+        orderBy: { createdAt: 'asc' },
       });
 
-      // Update Retell AI agent if exists
-      if (tenant.retellAgentId) {
-        try {
-          await this.syncAgentConfigToRetell(tenant);
-        } catch (retellError) {
-          logger.error('Failed to sync config to Retell AI', { error: retellError });
-          // Don't fail the request - config is saved in DB
-        }
+      if (!agent) {
+        throw new AppError('No agent found for this tenant. Create an agent first.', 404);
       }
 
-      logger.info('Agent configuration updated', { tenantId });
+      // Delegate to agents service
+      const agentsService = require('../agents/agents.service').default;
+      const updated = await agentsService.updateAgent(agent.id, tenantId, {
+        name: config.customAgentName,
+        systemPrompt: config.customAgentPrompt,
+        voiceGender: config.agentVoiceGender,
+        voiceId: config.agentVoiceId,
+        temperature: config.agentTemperature,
+        enabledTools: config.enabledTools,
+      });
+
+      logger.info('Agent configuration updated via legacy endpoint', { tenantId, agentId: agent.id });
 
       return {
-        customAgentName: tenant.customAgentName,
-        customAgentPrompt: tenant.customAgentPrompt,
-        agentVoiceGender: tenant.agentVoiceGender,
-        agentVoiceId: tenant.agentVoiceId,
-        agentTemperature: tenant.agentTemperature,
-        enabledTools: tenant.enabledTools,
+        customAgentName: updated.name,
+        customAgentPrompt: updated.systemPrompt,
+        agentVoiceGender: updated.voiceGender,
+        agentVoiceId: updated.voiceId,
+        agentTemperature: updated.temperature,
+        enabledTools: updated.enabledTools,
       };
     } catch (error) {
       logger.error('Update agent config error', { error });
@@ -832,101 +812,7 @@ export class TenantsService {
     }
   }
 
-  /**
-   * Sync tenant agent config to Retell AI
-   */
-  private async syncAgentConfigToRetell(tenant: any) {
-    if (!tenant.retellAgentId) {
-      return;
-    }
-
-    // Prepare update data for Retell
-    const updateData: any = {};
-
-    // Agent name
-    if (tenant.customAgentName) {
-      updateData.agent_name = tenant.customAgentName;
-    }
-
-    // System prompt
-    if (tenant.customAgentPrompt) {
-      updateData.general_prompt = tenant.customAgentPrompt;
-    }
-
-    // Voice selection
-    if (tenant.agentVoiceId) {
-      updateData.voice_id = tenant.agentVoiceId;
-    } else if (tenant.agentVoiceGender) {
-      // Select voice based on gender
-      updateData.voice_id = tenant.agentVoiceGender === 'female'
-        ? '11labs-Emily'
-        : '11labs-Adrian';
-    }
-
-    // Temperature
-    if (tenant.agentTemperature !== null && tenant.agentTemperature !== undefined) {
-      updateData.temperature = tenant.agentTemperature;
-    }
-
-    // Tools (filter based on enabled tools)
-    if (tenant.enabledTools) {
-      const enabledTools = tenant.enabledTools as string[];
-      updateData.general_tools = this.buildToolsConfig(tenant.id, enabledTools);
-    }
-
-    // Update Retell agent
-    await retellProvisioningService.updateAgent(tenant.retellAgentId, updateData);
-  }
-
-  /**
-   * Build tools configuration for Retell
-   */
-  private buildToolsConfig(tenantId: string, enabledTools: string[]) {
-    const allTools = [
-      {
-        type: 'end_call',
-        name: 'end_call',
-        description: 'End the call when conversation is complete',
-      },
-      {
-        type: 'custom',
-        name: 'check_availability',
-        url: `${process.env.API_URL}/api/retell/functions/${tenantId}`,
-        description: 'Check service or product availability',
-      },
-      {
-        type: 'custom',
-        name: 'book_appointment',
-        url: `${process.env.API_URL}/api/retell/functions/${tenantId}`,
-        description: 'Book an appointment or reservation',
-      },
-      {
-        type: 'custom',
-        name: 'create_order',
-        url: `${process.env.API_URL}/api/retell/functions/${tenantId}`,
-        description: 'Create a new order',
-      },
-      {
-        type: 'custom',
-        name: 'answer_faq',
-        url: `${process.env.API_URL}/api/retell/functions/${tenantId}`,
-        description: 'Answer frequently asked questions',
-      },
-    ];
-
-    // Map tool names to internal names
-    const toolNameMap: Record<string, string> = {
-      'booking': 'book_appointment',
-      'ordering': 'create_order',
-      'faq': 'answer_faq',
-      'check_availability': 'check_availability',
-      'end_call': 'end_call',
-    };
-
-    // Filter tools based on enabled list
-    const mappedToolNames = enabledTools.map(tool => toolNameMap[tool] || tool);
-    return allTools.filter(tool => mappedToolNames.includes(tool.name));
-  }
+  // NOTE: syncAgentConfigToRetell and buildToolsConfig have been moved to agents.service.ts
 
   /**
    * Get available voice options

@@ -35,6 +35,7 @@ import blogRoutes from './modules/blog/blog.routes';
 import partnerLogosRoutes from './modules/partner-logos/partner-logos.routes';
 import agentDashboardRoutes from './modules/agent-dashboard/agent-dashboard.routes';
 import customersRoutes from './modules/customers/customers.routes';
+import agentsRoutes from './modules/agents/agents.routes';
 
 // Load environment variables
 dotenv.config();
@@ -146,6 +147,7 @@ app.use('/api/blog', blogRoutes);
 app.use('/api/blog', partnerLogosRoutes);
 app.use('/api/agent-dashboard', agentDashboardRoutes);
 app.use('/api/customers', customersRoutes);
+app.use('/api/agents', agentsRoutes);
 
 // ==========================================
 // ERROR HANDLING

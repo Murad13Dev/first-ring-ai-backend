@@ -35,12 +35,20 @@ const customerDashboardService = {
           businessType: true,
           retellAgentId: true,
           twilioNumber: true,
-          customAgentName: true,
-          customAgentPrompt: true,
-          agentVoiceGender: true,
-          agentVoiceId: true,
-          agentTemperature: true,
-          enabledTools: true,
+          agents: {
+            select: {
+              id: true,
+              name: true,
+              retellAgentId: true,
+              voiceGender: true,
+              voiceId: true,
+              language: true,
+              temperature: true,
+              enabledTools: true,
+              phoneNumber: true,
+              isActive: true,
+            },
+          },
         },
       }),
       prisma.subscription.findUnique({
@@ -93,24 +101,28 @@ const customerDashboardService = {
       };
     }
 
-    // Build agent info for this tenant
-    const effectiveGender = tenant?.agentVoiceGender || 'male';
-    const defaultVoiceId = effectiveGender === 'female' ? '11labs-Emily' : '11labs-Adrian';
-    const agent = tenant ? {
-      retellAgentId: tenant.retellAgentId,
-      name: tenant.customAgentName || `${tenant.name} AI Agent`,
-      businessType: tenant.businessType,
-      phoneNumber: tenant.twilioNumber,
-      voiceGender: effectiveGender,
-      voiceId: tenant.agentVoiceId || defaultVoiceId,
-      temperature: tenant.agentTemperature ?? 0.7,
-      enabledTools: tenant.enabledTools || ['booking', 'ordering', 'faq', 'check_availability'],
-      hasAgent: !!tenant.retellAgentId,
-    } : null;
+    // Build agents info for this tenant
+    const agents = tenant?.agents?.map((a) => {
+      const effectiveGender = a.voiceGender || 'male';
+      const defaultVoiceId = effectiveGender === 'female' ? '11labs-Emily' : '11labs-Adrian';
+      return {
+        id: a.id,
+        retellAgentId: a.retellAgentId,
+        name: a.name || `${tenant.name} AI Agent`,
+        voiceGender: effectiveGender,
+        voiceId: a.voiceId || defaultVoiceId,
+        language: a.language,
+        temperature: a.temperature,
+        enabledTools: a.enabledTools || ['booking', 'ordering', 'faq', 'check_availability'],
+        phoneNumber: a.phoneNumber,
+        isActive: a.isActive,
+      };
+    }) || [];
 
     return {
       subscription,
-      agent,
+      agents,
+      agentCount: agents.length,
       stats: {
         callsThisMonth,
         bookingsThisMonth,

@@ -313,75 +313,69 @@ const adminDashboardService = {
 
   // Get all agents across all tenants (Admin)
   async getAllAgents(page: number = 1, limit: number = 20, search?: string) {
-    const where: any = {
-      retellAgentId: { not: null },
-    };
+    const where: any = {};
 
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
-        { customAgentName: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
+        { tenant: { name: { contains: search, mode: 'insensitive' } } },
+        { tenant: { email: { contains: search, mode: 'insensitive' } } },
       ];
     }
 
-    const [tenants, total] = await Promise.all([
-      prisma.tenant.findMany({
+    const [agents, total] = await Promise.all([
+      prisma.agent.findMany({
         where,
-        select: {
-          id: true,
-          name: true,
-          businessType: true,
-          email: true,
-          phone: true,
-          retellAgentId: true,
-          twilioNumber: true,
-          customAgentName: true,
-          customAgentPrompt: true,
-          agentVoiceGender: true,
-          agentVoiceId: true,
-          agentTemperature: true,
-          enabledTools: true,
-          plan: true,
-          subscriptionStatus: true,
-          createdAt: true,
-          updatedAt: true,
-          _count: { select: { calls: true, bookings: true, orders: true } },
+        include: {
+          tenant: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              businessType: true,
+              plan: true,
+              subscriptionStatus: true,
+            },
+          },
+          _count: { select: { calls: true } },
         },
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { updatedAt: 'desc' },
       }),
-      prisma.tenant.count({ where }),
+      prisma.agent.count({ where }),
     ]);
 
-    const agents = tenants.map((t) => {
-      const gender = t.agentVoiceGender || 'male';
-      const defaultVoiceId = gender === 'female' ? '11labs-Emily' : '11labs-Adrian';
+    const result = agents.map((a) => {
+      const effectiveGender = a.voiceGender || 'male';
+      const defaultVoiceId = effectiveGender === 'female' ? '11labs-Emily' : '11labs-Adrian';
       return {
-      tenantId: t.id,
-      tenantName: t.name,
-      tenantEmail: t.email,
-      businessType: t.businessType,
-      plan: t.plan,
-      subscriptionStatus: t.subscriptionStatus,
-      agent: {
-        retellAgentId: t.retellAgentId,
-        name: t.customAgentName || `${t.name} AI Agent`,
-        phoneNumber: t.twilioNumber,
-        voiceGender: gender,
-        voiceId: t.agentVoiceId || defaultVoiceId,
-        temperature: t.agentTemperature ?? 0.7,
-        enabledTools: t.enabledTools || [],
-        hasCustomPrompt: !!t.customAgentPrompt,
-      },
-      stats: t._count,
-      createdAt: t.createdAt,
-      updatedAt: t.updatedAt,
-    };
+        id: a.id,
+        tenantId: a.tenant.id,
+        tenantName: a.tenant.name,
+        tenantEmail: a.tenant.email,
+        businessType: a.tenant.businessType,
+        plan: a.tenant.plan,
+        subscriptionStatus: a.tenant.subscriptionStatus,
+        agent: {
+          retellAgentId: a.retellAgentId,
+          name: a.name || `${a.tenant.name} AI Agent`,
+          phoneNumber: a.phoneNumber,
+          voiceGender: effectiveGender,
+          voiceId: a.voiceId || defaultVoiceId,
+          language: a.language,
+          temperature: a.temperature,
+          enabledTools: a.enabledTools || [],
+          hasCustomPrompt: !!a.systemPrompt,
+          isActive: a.isActive,
+        },
+        callCount: a._count.calls,
+        createdAt: a.createdAt,
+        updatedAt: a.updatedAt,
+      };
     });
 
-    return { agents, total, page, pages: Math.ceil(total / limit) };
+    return { agents: result, total, page, pages: Math.ceil(total / limit) };
   },
 
   // Populate test data for production testing
@@ -401,9 +395,22 @@ const adminDashboardService = {
         country: 'United States',
         plan: 'professional',
         subscriptionStatus: 'active',
-        retellAgentId: `agent_test_${timestamp}`,
       },
     });
+
+    // Create test agent for the tenant
+    await prisma.agent.create({
+      data: {
+        tenantId: tenant.id,
+        retellAgentId: `agent_test_${timestamp}`,
+        name: `Test Spa & Wellness ${timestamp} AI Agent`,
+        voiceGender: 'male',
+        language: 'en-US',
+        temperature: 0.7,
+        enabledTools: ['booking', 'ordering', 'faq', 'check_availability'],
+      },
+    });
+
     results.created.tenant = tenant.id;
 
     // 2. Create test call logs
