@@ -1,4 +1,6 @@
--- CreateTable
+-- =============================================
+-- 1. CREATE AGENTS TABLE (Multi-agent support)
+-- =============================================
 CREATE TABLE "agents" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
@@ -18,23 +20,42 @@ CREATE TABLE "agents" (
     CONSTRAINT "agents_pkey" PRIMARY KEY ("id")
 );
 
--- Add agentId to calls table
-ALTER TABLE "calls" ADD COLUMN "agentId" TEXT;
+-- =============================================
+-- 2. ADD maxAgents TO PLANS TABLE
+-- =============================================
+ALTER TABLE "plans" ADD COLUMN IF NOT EXISTS "maxAgents" INTEGER NOT NULL DEFAULT 1;
 
--- CreateIndex
+-- Update existing plans with appropriate maxAgents values
+UPDATE "plans" SET "maxAgents" = 1 WHERE "slug" = 'starter';
+UPDATE "plans" SET "maxAgents" = 3 WHERE "slug" = 'professional';
+UPDATE "plans" SET "maxAgents" = 10 WHERE "slug" = 'enterprise';
+UPDATE "plans" SET "maxAgents" = 100 WHERE "slug" = 'executive';
+
+-- =============================================
+-- 3. ADD agentId TO CALLS TABLE
+-- =============================================
+ALTER TABLE "calls" ADD COLUMN IF NOT EXISTS "agentId" TEXT;
+
+-- =============================================
+-- 4. DROP OLD TENANT AGENT FIELDS (moved to agents table)
+-- =============================================
+ALTER TABLE "tenants" DROP COLUMN IF EXISTS "customAgentName";
+ALTER TABLE "tenants" DROP COLUMN IF EXISTS "customAgentPrompt";
+ALTER TABLE "tenants" DROP COLUMN IF EXISTS "agentVoiceGender";
+ALTER TABLE "tenants" DROP COLUMN IF EXISTS "agentVoiceId";
+ALTER TABLE "tenants" DROP COLUMN IF EXISTS "agentTemperature";
+ALTER TABLE "tenants" DROP COLUMN IF EXISTS "enabledTools";
+
+-- =============================================
+-- 5. CREATE INDEXES
+-- =============================================
 CREATE UNIQUE INDEX "agents_retellAgentId_key" ON "agents"("retellAgentId");
-
--- CreateIndex
 CREATE INDEX "agents_tenantId_idx" ON "agents"("tenantId");
-
--- CreateIndex
 CREATE INDEX "agents_retellAgentId_idx" ON "agents"("retellAgentId");
+CREATE INDEX IF NOT EXISTS "calls_agentId_idx" ON "calls"("agentId");
 
--- CreateIndex
-CREATE INDEX "calls_agentId_idx" ON "calls"("agentId");
-
--- AddForeignKey
+-- =============================================
+-- 6. ADD FOREIGN KEYS
+-- =============================================
 ALTER TABLE "agents" ADD CONSTRAINT "agents_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "tenants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "calls" ADD CONSTRAINT "calls_agentId_fkey" FOREIGN KEY ("agentId") REFERENCES "agents"("id") ON DELETE SET NULL ON UPDATE CASCADE;
