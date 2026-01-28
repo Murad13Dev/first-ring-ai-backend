@@ -45,20 +45,13 @@ model Tenant {
   subscriptionId  String?  // Square subscription ID
   trialEndsAt     DateTime?
   currentPeriodEnd DateTime?
-  
+
   // Settings
   settings        Json?    // Additional settings
 
-  // AI Agent Customization
-  customAgentName     String?   // Custom name for AI agent (default: "{tenantName} AI Agent")
-  customAgentPrompt   String?   @db.Text  // Custom system prompt (overrides default)
-  agentVoiceGender    String?   // "male" | "female" (affects voice selection)
-  agentVoiceId        String?   // Specific Retell voice ID (overrides default)
-  agentTemperature    Float?    // LLM temperature 0.0-1.0 (default: 0.7)
-  enabledTools        Json?     // Array of enabled tool names ["booking", "ordering", "faq"]
-
   // Relations
   users           User[]
+  agents          Agent[]
   services        Service[]
   faqs            FAQ[]
   bookings        Booking[]
@@ -67,7 +60,7 @@ model Tenant {
   qrCodes         QRCode[]
   subscription    Subscription?
   integration     TenantIntegration?
-  
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -76,6 +69,43 @@ model Tenant {
   @@index([retellAgentId])
   @@index([plan])
   @@map("tenants")
+}
+
+// ==========================================
+// AI AGENTS (Multiple per tenant)
+// ==========================================
+model Agent {
+  id              String   @id @default(uuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Retell Integration
+  retellAgentId   String?  @unique
+
+  // Agent Configuration
+  name            String?   // Custom name (default: "{tenantName} AI Agent")
+  systemPrompt    String?   @db.Text  // Custom system prompt
+  voiceGender     String    @default("male") // "male" | "female"
+  voiceId         String?   // Specific voice ID (e.g., "11labs-Adrian")
+  language        String    @default("en-US")
+  temperature     Float     @default(0.7) // LLM temperature 0.0-1.0
+  enabledTools    Json?     // Array of enabled tool names ["booking", "ordering", "faq"]
+
+  // Phone
+  phoneNumber     String?   // Twilio number assigned to this agent
+
+  // Status
+  isActive        Boolean   @default(true)
+
+  // Relations
+  calls           Call[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([retellAgentId])
+  @@map("agents")
 }
 
 // ==========================================
@@ -398,7 +428,9 @@ model Call {
   id            String   @id @default(uuid())
   tenantId      String
   tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  
+  agentId       String?
+  agent         Agent?   @relation(fields: [agentId], references: [id], onDelete: SetNull)
+
   // Call Info
   fromNumber    String
   toNumber      String   // Twilio number
@@ -429,6 +461,7 @@ model Call {
   createdAt     DateTime @default(now())
 
   @@index([tenantId])
+  @@index([agentId])
   @@index([fromNumber])
   @@index([intent])
   @@index([createdAt])
@@ -840,6 +873,7 @@ model Plan {
   callMinutes             Int      // Monthly call minutes included
   maxCalls                Int      // Max calls per month (legacy field)
   maxUsers                Int      @default(1)
+  maxAgents               Int      @default(1)  // Max AI agents per tenant
   maxPhoneLines           Int?     // Number of AI phone lines (1, 3, 10, null for unlimited)
   hasUnlimitedPhoneLines  Boolean  @default(false) // True for Executive plan
 

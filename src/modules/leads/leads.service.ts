@@ -436,13 +436,20 @@ export class LeadsService {
         tenantId: tenant.id,
         tenantName: tenant.name,
         businessType: tenant.businessType,
-        language: 'en-US', // Default language, can be customized
+        language: 'en-US',
       });
 
-      // Update tenant with agent ID
-      await prisma.tenant.update({
-        where: { id: tenant.id },
-        data: { retellAgentId },
+      // Create Agent record in agents table
+      await prisma.agent.create({
+        data: {
+          tenantId: tenant.id,
+          retellAgentId,
+          name: `${tenant.name} AI Agent`,
+          language: 'en-US',
+          voiceGender: 'male',
+          temperature: 0.7,
+          enabledTools: ['booking', 'ordering', 'faq', 'check_availability'],
+        },
       });
 
       logger.info('Retell AI agent auto-provisioned', {

@@ -4,8 +4,7 @@ import { AuthRequest, authenticateToken } from '../../middleware/auth.middleware
 import { tenantIsolation } from '../../middleware/tenant.middleware';
 import prisma from '../../config/database';
 import logger from '../../config/logger';
-import retellProvisioningService from '../../services/retell-provisioning.service';
-import tenantsService from '../tenants/tenants.service';
+import agentsService from '../agents/agents.service';
 
 const router = Router();
 
@@ -15,100 +14,37 @@ const router = Router();
 
 const agentDashboardService = {
   /**
-   * Get the authenticated user's agent details
-   * Combines local DB config with live Retell API data
+   * Get all agents for the tenant
    */
-  async getMyAgent(tenantId: string) {
-    const tenant = await prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: {
-        id: true,
-        name: true,
-        businessType: true,
-        retellAgentId: true,
-        twilioNumber: true,
-        customAgentName: true,
-        customAgentPrompt: true,
-        agentVoiceGender: true,
-        agentVoiceId: true,
-        agentTemperature: true,
-        enabledTools: true,
-        createdAt: true,
-      },
-    });
-
-    if (!tenant) {
-      return null;
-    }
-
-    // Fetch live agent details from Retell API if agent exists
-    let retellAgent = null;
-    if (tenant.retellAgentId) {
-      try {
-        retellAgent = await retellProvisioningService.getAgentDetails(tenant.retellAgentId);
-      } catch (error) {
-        logger.warn('Failed to fetch Retell agent details', {
-          tenantId,
-          retellAgentId: tenant.retellAgentId,
-          error,
-        });
-        // Don't fail - return local data even if Retell API is unavailable
-      }
-    }
-
-    const effectiveGender = tenant.agentVoiceGender || 'male';
-    const defaultVoiceId = effectiveGender === 'female' ? '11labs-Emily' : '11labs-Adrian';
-
-    return {
-      agent: {
-        retellAgentId: tenant.retellAgentId,
-        name: tenant.customAgentName || `${tenant.name} AI Agent`,
-        businessType: tenant.businessType,
-        phoneNumber: tenant.twilioNumber,
-        customPrompt: tenant.customAgentPrompt,
-        voiceGender: effectiveGender,
-        voiceId: tenant.agentVoiceId || defaultVoiceId,
-        temperature: tenant.agentTemperature ?? 0.7,
-        enabledTools: tenant.enabledTools || ['booking', 'ordering', 'faq', 'check_availability'],
-        createdAt: tenant.createdAt,
-        // Live data from Retell API
-        retellDetails: retellAgent ? {
-          agentName: retellAgent.agent_name,
-          voiceId: retellAgent.voice_id,
-          language: retellAgent.language,
-          lastModified: retellAgent.last_modification_timestamp,
-        } : null,
-      },
-      hasAgent: !!tenant.retellAgentId,
-    };
+  async getMyAgents(tenantId: string) {
+    return agentsService.getAgentsByTenant(tenantId);
   },
 
   /**
-   * Update the authenticated user's agent configuration
+   * Get a single agent by ID
    */
-  async updateMyAgent(tenantId: string, config: {
-    customAgentName?: string;
-    customAgentPrompt?: string;
-    agentVoiceGender?: 'male' | 'female';
-    agentVoiceId?: string;
-    agentTemperature?: number;
-    enabledTools?: string[];
-  }) {
-    return tenantsService.updateAgentConfig(tenantId, config);
+  async getMyAgent(tenantId: string, agentId: string) {
+    return agentsService.getAgent(agentId, tenantId);
   },
 
   /**
-   * Get call history for the agent's tenant
+   * Get call history for a specific agent or all agents
    */
-  async getAgentCalls(tenantId: string, page: number = 1, limit: number = 20) {
+  async getAgentCalls(tenantId: string, agentId?: string, page: number = 1, limit: number = 20) {
+    const where: any = { tenantId };
+    if (agentId) {
+      where.agentId = agentId;
+    }
+
     const [calls, total] = await Promise.all([
       prisma.call.findMany({
-        where: { tenantId },
+        where,
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { createdAt: 'desc' },
         select: {
           id: true,
+          agentId: true,
           fromNumber: true,
           toNumber: true,
           direction: true,
@@ -123,7 +59,7 @@ const agentDashboardService = {
           createdAt: true,
         },
       }),
-      prisma.call.count({ where: { tenantId } }),
+      prisma.call.count({ where }),
     ]);
 
     return {
@@ -138,21 +74,25 @@ const agentDashboardService = {
   },
 
   /**
-   * Get analytics for the agent's calls
+   * Get analytics for a specific agent or all agents
    */
-  async getAgentAnalytics(tenantId: string, days: number = 30) {
+  async getAgentAnalytics(tenantId: string, agentId?: string, days: number = 30) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
+    const callWhere: any = { tenantId, createdAt: { gte: startDate } };
+    const totalCallWhere: any = { tenantId };
+    if (agentId) {
+      callWhere.agentId = agentId;
+      totalCallWhere.agentId = agentId;
+    }
+
     const [calls, bookingsCount, ordersCount, totalCalls] = await Promise.all([
       prisma.call.findMany({
-        where: {
-          tenantId,
-          createdAt: { gte: startDate },
-        },
+        where: callWhere,
         select: {
           duration: true,
           outcome: true,
@@ -168,7 +108,7 @@ const agentDashboardService = {
       prisma.order.count({
         where: { tenantId, createdAt: { gte: startOfMonth } },
       }),
-      prisma.call.count({ where: { tenantId } }),
+      prisma.call.count({ where: totalCallWhere }),
     ]);
 
     // Group calls by date
@@ -235,24 +175,36 @@ const agentDashboardService = {
 
 const agentDashboardController = {
   /**
-   * Get current user's agent
-   * GET /api/agent-dashboard/my-agent
+   * Get all agents for the tenant
+   * GET /api/agent-dashboard/my-agents
+   */
+  async getMyAgents(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const tenantId = req.user!.tenantId!;
+      const agents = await agentDashboardService.getMyAgents(tenantId);
+
+      return res.json({
+        success: true,
+        data: agents,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Get a single agent
+   * GET /api/agent-dashboard/my-agents/:agentId
    */
   async getMyAgent(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const tenantId = req.user!.tenantId!;
-      const result = await agentDashboardService.getMyAgent(tenantId);
-
-      if (!result) {
-        return res.status(404).json({
-          success: false,
-          message: 'Tenant not found',
-        });
-      }
+      const { agentId } = req.params;
+      const agent = await agentDashboardService.getMyAgent(tenantId, agentId);
 
       return res.json({
         success: true,
-        data: result,
+        data: agent,
       });
     } catch (error) {
       next(error);
@@ -260,51 +212,17 @@ const agentDashboardController = {
   },
 
   /**
-   * Update current user's agent configuration
-   * PATCH /api/agent-dashboard/my-agent
-   */
-  async updateMyAgent(req: AuthRequest, res: Response, next: NextFunction) {
-    try {
-      const tenantId = req.user!.tenantId!;
-      const {
-        customAgentName,
-        customAgentPrompt,
-        agentVoiceGender,
-        agentVoiceId,
-        agentTemperature,
-        enabledTools,
-      } = req.body;
-
-      const result = await agentDashboardService.updateMyAgent(tenantId, {
-        customAgentName,
-        customAgentPrompt,
-        agentVoiceGender,
-        agentVoiceId,
-        agentTemperature,
-        enabledTools,
-      });
-
-      return res.json({
-        success: true,
-        message: 'Agent configuration updated successfully',
-        data: result,
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  /**
-   * Get current user's agent call history
-   * GET /api/agent-dashboard/my-agent/calls
+   * Get call history (all agents or specific agent)
+   * GET /api/agent-dashboard/calls?agentId=xxx
    */
   async getAgentCalls(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const tenantId = req.user!.tenantId!;
-      const { page = 1, limit = 20 } = req.query;
+      const { page = 1, limit = 20, agentId } = req.query;
 
       const result = await agentDashboardService.getAgentCalls(
         tenantId,
+        agentId as string | undefined,
         Number(page),
         Number(limit)
       );
@@ -319,16 +237,17 @@ const agentDashboardController = {
   },
 
   /**
-   * Get current user's agent analytics
-   * GET /api/agent-dashboard/my-agent/analytics
+   * Get analytics (all agents or specific agent)
+   * GET /api/agent-dashboard/analytics?agentId=xxx
    */
   async getAgentAnalytics(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const tenantId = req.user!.tenantId!;
-      const { days = 30 } = req.query;
+      const { days = 30, agentId } = req.query;
 
       const analytics = await agentDashboardService.getAgentAnalytics(
         tenantId,
+        agentId as string | undefined,
         Number(days)
       );
 
@@ -342,17 +261,16 @@ const agentDashboardController = {
   },
 
   /**
-   * Get agent configuration options (voices, tools, etc.)
-   * GET /api/agent-dashboard/my-agent/config-options
+   * Get configuration options (voices, tools, etc.)
+   * GET /api/agent-dashboard/config-options
    */
   async getConfigOptions(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const tenantId = req.user!.tenantId!;
-      const config = await tenantsService.getAgentConfig(tenantId);
+      const options = agentsService.getConfigOptions();
 
       return res.json({
         success: true,
-        data: config,
+        data: options,
       });
     } catch (error) {
       next(error);
@@ -363,24 +281,23 @@ const agentDashboardController = {
 // ==========================================
 // ROUTES
 // All routes require authentication + tenant isolation
-// The user only sees their own tenant's agent
 // ==========================================
 
 router.use(authenticateToken, tenantIsolation);
 
-// Get my agent details
-router.get('/my-agent', agentDashboardController.getMyAgent);
+// List all my agents
+router.get('/my-agents', agentDashboardController.getMyAgents);
 
-// Update my agent configuration
-router.patch('/my-agent', agentDashboardController.updateMyAgent);
+// Get specific agent details
+router.get('/my-agents/:agentId', agentDashboardController.getMyAgent);
 
-// Get my agent's call history
-router.get('/my-agent/calls', agentDashboardController.getAgentCalls);
+// Get call history (optional ?agentId= filter)
+router.get('/calls', agentDashboardController.getAgentCalls);
 
-// Get my agent's analytics
-router.get('/my-agent/analytics', agentDashboardController.getAgentAnalytics);
+// Get analytics (optional ?agentId= filter)
+router.get('/analytics', agentDashboardController.getAgentAnalytics);
 
-// Get available configuration options (voices, tools, temperature range)
-router.get('/my-agent/config-options', agentDashboardController.getConfigOptions);
+// Get configuration options
+router.get('/config-options', agentDashboardController.getConfigOptions);
 
 export default router;
