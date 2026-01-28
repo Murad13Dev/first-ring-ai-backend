@@ -355,7 +355,10 @@ const adminDashboardService = {
       prisma.tenant.count({ where }),
     ]);
 
-    const agents = tenants.map((t) => ({
+    const agents = tenants.map((t) => {
+      const gender = t.agentVoiceGender || 'male';
+      const defaultVoiceId = gender === 'female' ? '11labs-Emily' : '11labs-Adrian';
+      return {
       tenantId: t.id,
       tenantName: t.name,
       tenantEmail: t.email,
@@ -366,8 +369,8 @@ const adminDashboardService = {
         retellAgentId: t.retellAgentId,
         name: t.customAgentName || `${t.name} AI Agent`,
         phoneNumber: t.twilioNumber,
-        voiceGender: t.agentVoiceGender || 'male',
-        voiceId: t.agentVoiceId,
+        voiceGender: gender,
+        voiceId: t.agentVoiceId || defaultVoiceId,
         temperature: t.agentTemperature ?? 0.7,
         enabledTools: t.enabledTools || [],
         hasCustomPrompt: !!t.customAgentPrompt,
@@ -375,7 +378,8 @@ const adminDashboardService = {
       stats: t._count,
       createdAt: t.createdAt,
       updatedAt: t.updatedAt,
-    }));
+    };
+    });
 
     return { agents, total, page, pages: Math.ceil(total / limit) };
   },
