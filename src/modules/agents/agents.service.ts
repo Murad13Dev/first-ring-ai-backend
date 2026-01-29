@@ -495,6 +495,182 @@ class AgentsService {
       },
     ];
   }
+
+  /**
+   * Assign a phone number to an agent
+   */
+  async assignPhoneNumber(
+    agentId: string,
+    tenantId: string,
+    phoneNumber: string
+  ) {
+    // Check agent exists and belongs to tenant
+    const agent = await prisma.agent.findUnique({
+      where: { id: agentId },
+    });
+
+    if (!agent || agent.tenantId !== tenantId) {
+      throw new AppError('Agent not found', 404);
+    }
+
+    // Check if phone number is already assigned to another agent
+    const existingAgent = await prisma.agent.findFirst({
+      where: {
+        phoneNumber,
+        tenantId,
+        id: { not: agentId },
+      },
+    });
+
+    if (existingAgent) {
+      throw new AppError(
+        `Phone number is already assigned to agent: ${existingAgent.name}`,
+        400
+      );
+    }
+
+    // Update agent with phone number
+    const updated = await prisma.agent.update({
+      where: { id: agentId },
+      data: { phoneNumber },
+    });
+
+    logger.info('Phone number assigned to agent', {
+      agentId,
+      phoneNumber,
+      tenantId,
+    });
+
+    return updated;
+  }
+
+  /**
+   * Remove phone number from an agent
+   */
+  async unassignPhoneNumber(agentId: string, tenantId: string) {
+    const agent = await prisma.agent.findUnique({
+      where: { id: agentId },
+    });
+
+    if (!agent || agent.tenantId !== tenantId) {
+      throw new AppError('Agent not found', 404);
+    }
+
+    const updated = await prisma.agent.update({
+      where: { id: agentId },
+      data: { phoneNumber: null },
+    });
+
+    logger.info('Phone number unassigned from agent', {
+      agentId,
+      tenantId,
+    });
+
+    return updated;
+  }
+
+  /**
+   * Get available phone numbers for tenant (including provisioned and unassigned)
+   */
+  async getAvailablePhoneNumbers(tenantId: string) {
+    // Get tenant's main Twilio number
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { twilioNumber: true },
+    });
+
+    if (!tenant) {
+      throw new AppError('Tenant not found', 404);
+    }
+
+    // Get all agents with their phone numbers
+    const agents = await prisma.agent.findMany({
+      where: { tenantId },
+      select: { id: true, name: true, phoneNumber: true },
+    });
+
+    const assignedNumbers = agents
+      .filter((a) => a.phoneNumber)
+      .map((a) => ({
+        phoneNumber: a.phoneNumber!,
+        assignedTo: { agentId: a.id, agentName: a.name },
+      }));
+
+    const availableNumbers: { phoneNumber: string; source: string }[] = [];
+
+    // Add tenant's main number if not assigned
+    if (tenant.twilioNumber) {
+      const isAssigned = assignedNumbers.some(
+        (n) => n.phoneNumber === tenant.twilioNumber
+      );
+      if (!isAssigned) {
+        availableNumbers.push({
+          phoneNumber: tenant.twilioNumber,
+          source: 'tenant',
+        });
+      }
+    }
+
+    return {
+      available: availableNumbers,
+      assigned: assignedNumbers,
+      tenantNumber: tenant.twilioNumber,
+    };
+  }
+
+  /**
+   * Get agent by phone number (used for incoming calls)
+   */
+  async getAgentByPhoneNumber(phoneNumber: string) {
+    // First try to find agent with this specific phone
+    const agent = await prisma.agent.findFirst({
+      where: {
+        phoneNumber,
+        isActive: true,
+      },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            businessType: true,
+            twilioNumber: true,
+          },
+        },
+      },
+    });
+
+    if (agent) {
+      return agent;
+    }
+
+    // If no agent has this number, find tenant by their main Twilio number
+    // and return their first active agent
+    const tenant = await prisma.tenant.findFirst({
+      where: { twilioNumber: phoneNumber },
+      include: {
+        agents: {
+          where: { isActive: true },
+          orderBy: { createdAt: 'asc' },
+          take: 1,
+        },
+      },
+    });
+
+    if (tenant && tenant.agents.length > 0) {
+      return {
+        ...tenant.agents[0],
+        tenant: {
+          id: tenant.id,
+          name: tenant.name,
+          businessType: tenant.businessType,
+          twilioNumber: tenant.twilioNumber,
+        },
+      };
+    }
+
+    return null;
+  }
 }
 
 export default new AgentsService();

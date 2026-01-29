@@ -8,6 +8,7 @@ import {
   CheckFeatureAvailabilityDto
 } from './dto/sales-agent-functions.dto';
 import { emailService } from '../email/email.service';
+import { UsageTrackingService } from '../../services/usage-tracking.service';
 
 /**
  * Retell AI Service
@@ -73,12 +74,19 @@ export const retellService = {
   /**
    * Handle call ended event
    * Updates the Call record with duration and recording
+   * Records usage for billing
    */
   async handleCallEnded(call: any) {
     logger.info('Call ended', { callId: call.call_id, duration: call.duration_ms });
 
     // Calculate duration in seconds
     const durationSeconds = Math.round((call.duration_ms || 0) / 1000);
+
+    // Find the Call record to get tenantId
+    const callRecord = await prisma.call.findFirst({
+      where: { retellCallId: call.call_id },
+      select: { tenantId: true },
+    });
 
     // Update Call record
     const updated = await prisma.call.updateMany({
@@ -97,6 +105,20 @@ export const retellService = {
         callId: call.call_id,
         duration: durationSeconds
       });
+
+      // Record usage for billing (if we have tenantId)
+      if (callRecord?.tenantId && durationSeconds > 0) {
+        try {
+          const usageService = new UsageTrackingService();
+          await usageService.recordCallUsage(callRecord.tenantId, durationSeconds);
+          logger.info('Call usage recorded for billing', {
+            tenantId: callRecord.tenantId,
+            durationSeconds,
+          });
+        } catch (usageError) {
+          logger.error('Failed to record call usage', { error: usageError, callId: call.call_id });
+        }
+      }
     }
   },
 

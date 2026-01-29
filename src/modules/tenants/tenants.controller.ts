@@ -346,6 +346,87 @@ export class TenantsController {
       next(error);
     }
   }
+
+  /**
+   * Get tenant settings
+   * GET /api/tenants/:id/settings
+   */
+  async getSettings(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const settings = await tenantsService.getSettings(id);
+
+      return res.status(200).json({
+        success: true,
+        data: settings,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Update tenant settings
+   * PUT /api/tenants/:id/settings
+   */
+  async updateSettings(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const settings = req.body;
+
+      const result = await tenantsService.updateSettings(id, settings);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Settings updated successfully',
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Update business hours
+   * PUT /api/tenants/:id/business-hours
+   */
+  async updateBusinessHours(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const { businessHours } = req.body;
+
+      const result = await tenantsService.updateBusinessHours(id, businessHours);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Business hours updated successfully',
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Update notification preferences
+   * PUT /api/tenants/:id/notifications
+   */
+  async updateNotificationPreferences(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const preferences = req.body;
+
+      const result = await tenantsService.updateNotificationPreferences(id, preferences);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Notification preferences updated successfully',
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new TenantsController();

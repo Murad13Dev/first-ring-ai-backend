@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { retellService } from './retell.service';
 import logger from '../../config/logger';
+import webhookLogService from '../../services/webhook-log.service';
 
 /**
  * Retell AI Webhook Controller
@@ -12,8 +13,22 @@ export const retellController = {
    * Receives call events and function calls
    */
   async webhook(req: Request, res: Response, next: NextFunction) {
+    const startTime = Date.now();
+    let logId = '';
+
     try {
       const { event, call, args, function_name } = req.body;
+
+      // Log webhook receipt
+      logId = await webhookLogService.create({
+        source: 'retell',
+        event: event || function_name || 'unknown',
+        path: req.path,
+        method: req.method,
+        headers: req.headers as Record<string, string>,
+        body: req.body,
+        callId: call?.call_id,
+      });
 
       logger.info('Retell webhook received', { event, function_name });
 
@@ -38,14 +53,39 @@ export const retellController = {
             args,
             call
           );
+
+          // Log successful processing
+          await webhookLogService.update(logId, {
+            status: 'processed',
+            statusCode: 200,
+            responseBody: result,
+            processingMs: Date.now() - startTime,
+          });
+
           return res.json(result);
 
         default:
           logger.warn('Unknown Retell event', { event });
       }
 
+      // Log successful processing
+      await webhookLogService.update(logId, {
+        status: 'processed',
+        statusCode: 200,
+        responseBody: { success: true },
+        processingMs: Date.now() - startTime,
+      });
+
       res.json({ success: true });
     } catch (error) {
+      // Log failed processing
+      await webhookLogService.update(logId, {
+        status: 'failed',
+        statusCode: 500,
+        error: error instanceof Error ? error.message : String(error),
+        processingMs: Date.now() - startTime,
+      });
+
       next(error);
     }
   },

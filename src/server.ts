@@ -7,6 +7,7 @@ import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './config/swagger';
 import logger from './config/logger';
 import { errorHandler, notFound } from './middleware/error.middleware';
+import { apiLimiter, authLimiter, webhookLimiter, passwordResetLimiter } from './middleware/rate-limit.middleware';
 
 // Import routes
 import authRoutes from './modules/auth/auth.routes';
@@ -38,6 +39,9 @@ import customersRoutes from './modules/customers/customers.routes';
 import agentsRoutes from './modules/agents/agents.routes';
 import exportRoutes from './modules/export/export.routes';
 import reminderRoutes from './modules/reminders/reminder.routes';
+import { initializeCronJobs } from './cron';
+import usageRoutes from './modules/usage/usage.routes';
+import webhookLogsRoutes from './modules/webhook-logs/webhook-logs.routes';
 
 // Load environment variables
 dotenv.config();
@@ -101,6 +105,13 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // ==========================================
+// RATE LIMITING
+// ==========================================
+
+// Apply general rate limiter to all API routes
+app.use('/api', apiLimiter);
+
+// ==========================================
 // SWAGGER API DOCS
 // ==========================================
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -136,7 +147,8 @@ app.get('/api', (_req, res) => {
 });
 
 // Mount API routes
-app.use('/api/auth', authRoutes);
+// Auth routes with stricter rate limiting
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/leads', leadsRoutes);
 app.use('/api/tenants', tenantsRoutes);
 app.use('/api/services', servicesRoutes);
@@ -149,7 +161,8 @@ app.use('/api/integrations', integrationsRoutes);
 app.use('/api/pos', posIntegrationsRoutes);
 app.use('/api/channels', channelsRoutes);
 app.use('/api/follow-ups', followUpsRoutes);
-app.use('/api/retell', retellRoutes);
+// Retell webhook routes with webhook rate limiting
+app.use('/api/retell', webhookLimiter, retellRoutes);
 app.use('/api/business-types', businessTypesRoutes);
 app.use('/api/subscriptions', subscriptionsRoutes);
 app.use('/api/admin', adminDashboardRoutes);
@@ -165,6 +178,8 @@ app.use('/api/customers', customersRoutes);
 app.use('/api/agents', agentsRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/reminders', reminderRoutes);
+app.use('/api/usage', usageRoutes);
+app.use('/api/webhook-logs', webhookLogsRoutes);
 
 // ==========================================
 // ERROR HANDLING
@@ -187,6 +202,9 @@ const server = app.listen(PORT, () => {
   logger.info(`📡 API URL: http://localhost:${PORT}`);
   logger.info(`🏥 Health check: http://localhost:${PORT}/health`);
   logger.info(`📚 API endpoints: http://localhost:${PORT}/api`);
+
+  // Initialize cron jobs
+  initializeCronJobs();
 });
 
 // Graceful shutdown

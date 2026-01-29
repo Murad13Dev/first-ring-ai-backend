@@ -1369,3 +1369,42 @@ model PartnerLogo {
 
   @@map("partner_logos")
 }
+
+// ==========================================
+// WEBHOOK LOGS
+// ==========================================
+model WebhookLog {
+  id            String    @id @default(uuid())
+
+  // Source info
+  source        String    // "retell" | "twilio" | "stripe" | "whop" | "square"
+  event         String    // Event type (e.g., "call_started", "call_ended", "payment.succeeded")
+
+  // Request details
+  method        String    @default("POST")
+  path          String
+  headers       Json?     // Filtered headers (exclude sensitive ones)
+  body          Json?     // Request body
+
+  // Processing info
+  status        String    @default("received") // "received" | "processed" | "failed"
+  statusCode    Int?      // Response status code
+  responseBody  Json?     // Response sent back
+  error         String?   @db.Text // Error message if failed
+
+  // Relations
+  tenantId      String?
+  callId        String?   // Related call ID if applicable
+
+  // Timing
+  processingMs  Int?      // Processing time in milliseconds
+
+  createdAt     DateTime  @default(now())
+
+  @@index([source])
+  @@index([event])
+  @@index([status])
+  @@index([tenantId])
+  @@index([createdAt])
+  @@map("webhook_logs")
+}
