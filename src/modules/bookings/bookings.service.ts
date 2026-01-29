@@ -2,7 +2,6 @@ import prisma from '../../config/database';
 import logger from '../../config/logger';
 import { AppError } from '../../middleware/error.middleware';
 import nodemailer from 'nodemailer';
-import { google } from 'googleapis';
 
 interface CreateBookingData {
   tenantId: string;
@@ -87,14 +86,6 @@ export class BookingsService {
       // Send confirmation email (non-blocking)
       this.sendBookingConfirmation(booking).catch((error) => {
         logger.error('Failed to send booking confirmation email', {
-          error,
-          bookingId: booking.id
-        });
-      });
-
-      // Add to Google Calendar (non-blocking)
-      this.addToGoogleCalendar(booking).catch((error) => {
-        logger.error('Failed to add booking to Google Calendar', {
           error,
           bookingId: booking.id
         });
@@ -219,16 +210,6 @@ export class BookingsService {
 
       logger.info('Booking updated successfully', { bookingId: id, tenantId });
 
-      // Update Google Calendar event (non-blocking)
-      if (booking.googleEventId && (data.dateTime || data.duration)) {
-        this.updateGoogleCalendarEvent(updated).catch((error) => {
-          logger.error('Failed to update Google Calendar event', {
-            error,
-            bookingId: id
-          });
-        });
-      }
-
       return updated;
     } catch (error) {
       logger.error('Update booking error', { error });
@@ -303,16 +284,6 @@ export class BookingsService {
           bookingId: id
         });
       });
-
-      // Remove from Google Calendar (non-blocking)
-      if (booking.googleEventId) {
-        this.removeFromGoogleCalendar(booking).catch((error) => {
-          logger.error('Failed to remove from Google Calendar', {
-            error,
-            bookingId: id
-          });
-        });
-      }
 
       logger.info('Booking cancelled', { bookingId: id });
 
@@ -581,42 +552,6 @@ export class BookingsService {
     }
   }
 
-  /**
-   * Add booking to Google Calendar
-   */
-  private async addToGoogleCalendar(booking: any) {
-    try {
-      // TODO: Implement Google Calendar integration
-      // This requires OAuth2 setup and calendar API
-      logger.info('Google Calendar integration pending', { bookingId: booking.id });
-    } catch (error) {
-      logger.error('Add to Google Calendar error', { error });
-    }
-  }
-
-  /**
-   * Update Google Calendar event
-   */
-  private async updateGoogleCalendarEvent(booking: any) {
-    try {
-      // TODO: Implement
-      logger.info('Google Calendar update pending', { bookingId: booking.id });
-    } catch (error) {
-      logger.error('Update Google Calendar error', { error });
-    }
-  }
-
-  /**
-   * Remove from Google Calendar
-   */
-  private async removeFromGoogleCalendar(booking: any) {
-    try {
-      // TODO: Implement
-      logger.info('Google Calendar removal pending', { bookingId: booking.id });
-    } catch (error) {
-      logger.error('Remove from Google Calendar error', { error });
-    }
-  }
 }
 
 export default new BookingsService();
