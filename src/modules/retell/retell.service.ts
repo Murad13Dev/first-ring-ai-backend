@@ -16,55 +16,122 @@ import { emailService } from '../email/email.service';
 export const retellService = {
   /**
    * Handle call started event
+   * Creates a Call record linked to the Agent via retellAgentId
    */
   async handleCallStarted(call: any) {
-    logger.info('Call started', { callId: call.call_id, from: call.from_number });
+    logger.info('Call started', {
+      callId: call.call_id,
+      from: call.from_number,
+      retellAgentId: call.agent_id
+    });
 
-    // Log call start in database
-    await prisma.callLog.create({
+    // Find the Agent by retellAgentId to get tenantId
+    let tenantId = call.metadata?.tenantId;
+    let agentId: string | null = null;
+
+    if (call.agent_id) {
+      const agent = await prisma.agent.findFirst({
+        where: { retellAgentId: call.agent_id },
+        select: { id: true, tenantId: true },
+      });
+
+      if (agent) {
+        tenantId = agent.tenantId;
+        agentId = agent.id;
+        logger.info('Found agent for call', { agentId: agent.id, tenantId });
+      }
+    }
+
+    if (!tenantId) {
+      logger.warn('No tenantId found for call, skipping Call record creation', {
+        callId: call.call_id
+      });
+      return;
+    }
+
+    // Create Call record
+    await prisma.call.create({
       data: {
-        callId: call.call_id,
-        fromNumber: call.from_number,
-        toNumber: call.to_number,
-        status: 'started',
-        startedAt: new Date(),
-        tenantId: call.metadata?.tenantId,
+        retellCallId: call.call_id,
+        tenantId,
+        agentId,
+        fromNumber: call.from_number || '',
+        toNumber: call.to_number || '',
+        direction: call.direction || 'inbound',
+        duration: 0,
+        outcome: 'in_progress',
+        metadata: {
+          retellAgentId: call.agent_id,
+          startedAt: new Date().toISOString(),
+        },
       },
     });
+
+    logger.info('Call record created', { callId: call.call_id, tenantId, agentId });
   },
 
   /**
    * Handle call ended event
+   * Updates the Call record with duration and recording
    */
   async handleCallEnded(call: any) {
-    logger.info('Call ended', { callId: call.call_id, duration: call.duration });
+    logger.info('Call ended', { callId: call.call_id, duration: call.duration_ms });
 
-    // Update call log
-    await prisma.callLog.updateMany({
-      where: { callId: call.call_id },
+    // Calculate duration in seconds
+    const durationSeconds = Math.round((call.duration_ms || 0) / 1000);
+
+    // Update Call record
+    const updated = await prisma.call.updateMany({
+      where: { retellCallId: call.call_id },
       data: {
-        status: 'ended',
-        duration: call.duration,
-        endedAt: new Date(),
+        duration: durationSeconds,
+        recordingUrl: call.recording_url,
+        outcome: call.call_status === 'ended' ? 'completed' : call.call_status,
       },
     });
+
+    if (updated.count === 0) {
+      logger.warn('No Call record found to update for call_ended', { callId: call.call_id });
+    } else {
+      logger.info('Call record updated with duration', {
+        callId: call.call_id,
+        duration: durationSeconds
+      });
+    }
   },
 
   /**
    * Handle call analyzed event
+   * Updates the Call record with transcript, sentiment, and summary
    */
   async handleCallAnalyzed(call: any) {
     logger.info('Call analyzed', { callId: call.call_id });
 
-    // Store transcript and analysis
-    await prisma.callLog.updateMany({
-      where: { callId: call.call_id },
+    // Extract sentiment from call analysis
+    const sentiment = call.call_analysis?.user_sentiment ||
+                      call.call_analysis?.sentiment ||
+                      null;
+
+    // Update Call record with analysis data
+    const updated = await prisma.call.updateMany({
+      where: { retellCallId: call.call_id },
       data: {
         transcript: call.transcript,
-        summary: call.call_analysis?.summary,
-        sentiment: call.call_analysis?.sentiment,
+        summary: call.call_analysis?.call_summary || call.call_analysis?.summary,
+        sentiment: sentiment,
+        intent: call.call_analysis?.call_successful ? 'completed' : 'unknown',
       },
     });
+
+    if (updated.count === 0) {
+      logger.warn('No Call record found to update for call_analyzed', { callId: call.call_id });
+    } else {
+      logger.info('Call record updated with analysis', {
+        callId: call.call_id,
+        hasSummary: !!call.call_analysis?.call_summary,
+        hasTranscript: !!call.transcript,
+      });
+    }
   },
 
   /**

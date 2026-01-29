@@ -431,33 +431,37 @@ model Call {
   agentId       String?
   agent         Agent?   @relation(fields: [agentId], references: [id], onDelete: SetNull)
 
+  // Retell Integration
+  retellCallId  String?  @unique  // Retell's call_id for linking webhook updates
+
   // Call Info
   fromNumber    String
   toNumber      String   // Twilio number
   direction     String   // "inbound" | "outbound"
-  
+
   // Duration & Recording
-  duration      Int      // seconds
+  duration      Int      @default(0) // seconds
   recordingUrl  String?
   transcript    String?  @db.Text
-  
+
   // AI Analysis
   intent        String?  // "faq" | "booking" | "order" | "escalation" | "unknown"
   outcome       String?  // "completed" | "escalated" | "failed" | "voicemail"
   aiConfidence  Float?
   sentiment     String?  // "positive" | "neutral" | "negative"
-  
+  summary       String?  @db.Text  // Call summary from Retell analysis
+
   // Linked Records
   bookingId     String?
   orderId       String?
   leadId        String?
-  
+
   // Metadata
   metadata      Json?
-  
+
   // Call Quality
   callQuality   Int?     // 1-5 rating
-  
+
   createdAt     DateTime @default(now())
 
   @@index([tenantId])
@@ -465,6 +469,7 @@ model Call {
   @@index([fromNumber])
   @@index([intent])
   @@index([createdAt])
+  @@index([retellCallId])
   @@map("calls")
 }
 
