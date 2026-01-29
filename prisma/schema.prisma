@@ -33,11 +33,14 @@ model Tenant {
   
   // Integrations
   squareLocationId String?
-  googleCalendarId String?
-  googleSheetId   String?
-  googleAccessToken String?
-  googleRefreshToken String?
   posConfig       Json?    // POS integration configuration
+
+  // DEPRECATED: Google integrations (keeping for backward compatibility)
+  // These fields are no longer used - use in-app export and reminder services instead
+  googleCalendarId String?   // @deprecated - not used
+  googleSheetId   String?    // @deprecated - not used
+  googleAccessToken String?  // @deprecated - not used
+  googleRefreshToken String? // @deprecated - not used
 
   // Subscription
   plan            String   @default("free") // "free" | "basic" | "pro" | "enterprise"
@@ -335,8 +338,8 @@ model Booking {
   specialRequests String?
   
   // Integrations
-  googleEventId String?
   externalBookingId String?  // POS booking ID
+  googleEventId String?      // @deprecated - not used (was for Google Calendar sync)
 
   // Notifications
   reminderSent  Boolean  @default(false)
