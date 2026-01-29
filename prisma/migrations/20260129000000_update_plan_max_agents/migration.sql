@@ -4,7 +4,7 @@
 -- Enterprise: 10 agents (10 phone lines)
 -- Executive: 999 agents (unlimited)
 
-UPDATE "Plan" SET "maxAgents" = 1 WHERE "slug" = 'starter';
-UPDATE "Plan" SET "maxAgents" = 3 WHERE "slug" = 'professional';
-UPDATE "Plan" SET "maxAgents" = 10 WHERE "slug" = 'enterprise';
-UPDATE "Plan" SET "maxAgents" = 999 WHERE "slug" = 'executive';
+UPDATE "plans" SET "maxAgents" = 1 WHERE "slug" = 'starter';
+UPDATE "plans" SET "maxAgents" = 3 WHERE "slug" = 'professional';
+UPDATE "plans" SET "maxAgents" = 10 WHERE "slug" = 'enterprise';
+UPDATE "plans" SET "maxAgents" = 999 WHERE "slug" = 'executive';
