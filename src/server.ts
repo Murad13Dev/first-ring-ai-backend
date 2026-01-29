@@ -43,12 +43,25 @@ dotenv.config();
 // Initialize Express app
 const app: Application = express();
 
+// Disable ETag to prevent 304 Not Modified responses for API endpoints
+app.disable('etag');
+
 // ==========================================
 // MIDDLEWARE
 // ==========================================
 
 // Security headers
 app.use(helmet());
+
+// No-cache headers for API routes to ensure fresh data
+app.use('/api', (_req, res, next) => {
+  res.set({
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
+  next();
+});
 
 // CORS
 // CORS CONFIG FOR PRODUCTION + LOCAL DEV
