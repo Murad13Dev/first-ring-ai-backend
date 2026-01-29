@@ -2,6 +2,7 @@ import prisma from '../../config/database';
 import logger from '../../config/logger';
 import { AppError } from '../../middleware/error.middleware';
 import nodemailer from 'nodemailer';
+import reminderService from '../reminders/reminder.service';
 
 interface CreateBookingData {
   tenantId: string;
@@ -83,8 +84,8 @@ export class BookingsService {
         tenantId: data.tenantId,
       });
 
-      // Send confirmation email (non-blocking)
-      this.sendBookingConfirmation(booking).catch((error) => {
+      // Send confirmation email using reminder service (non-blocking)
+      reminderService.sendBookingConfirmation(booking.id).catch((error) => {
         logger.error('Failed to send booking confirmation email', {
           error,
           bookingId: booking.id
