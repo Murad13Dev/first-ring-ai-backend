@@ -866,6 +866,252 @@ export class TenantsService {
       },
     ];
   }
+
+  /**
+   * Get tenant settings
+   */
+  async getSettings(tenantId: string) {
+    try {
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: {
+          id: true,
+          name: true,
+          businessType: true,
+          email: true,
+          phone: true,
+          address: true,
+          city: true,
+          country: true,
+          website: true,
+          timezone: true,
+          businessHours: true,
+          settings: true,
+        },
+      });
+
+      if (!tenant) {
+        throw new AppError('Tenant not found', 404);
+      }
+
+      const settings = (tenant.settings as Record<string, any>) || {};
+
+      return {
+        general: {
+          name: tenant.name,
+          businessType: tenant.businessType,
+          email: tenant.email,
+          phone: tenant.phone,
+          address: tenant.address,
+          city: tenant.city,
+          country: tenant.country,
+          website: tenant.website,
+          timezone: tenant.timezone || 'UTC',
+        },
+        businessHours: tenant.businessHours || this.getDefaultBusinessHours(),
+        notifications: {
+          emailNotifications: settings.emailNotifications ?? true,
+          smsNotifications: settings.smsNotifications ?? false,
+          bookingReminders: settings.bookingReminders ?? true,
+          reminderHoursBefore: settings.reminderHoursBefore ?? 24,
+          dailyDigest: settings.dailyDigest ?? false,
+          weeklyReport: settings.weeklyReport ?? true,
+        },
+        preferences: {
+          defaultLanguage: settings.defaultLanguage || 'en',
+          dateFormat: settings.dateFormat || 'YYYY-MM-DD',
+          timeFormat: settings.timeFormat || '24h',
+          currency: settings.currency || 'USD',
+          autoConfirmBookings: settings.autoConfirmBookings ?? false,
+          requireDeposit: settings.requireDeposit ?? false,
+          depositAmount: settings.depositAmount ?? 0,
+        },
+      };
+    } catch (error) {
+      logger.error('Get settings error', { error, tenantId });
+      throw error;
+    }
+  }
+
+  /**
+   * Update tenant settings
+   */
+  async updateSettings(
+    tenantId: string,
+    newSettings: {
+      general?: {
+        name?: string;
+        phone?: string;
+        address?: string;
+        city?: string;
+        country?: string;
+        website?: string;
+        timezone?: string;
+      };
+      notifications?: Record<string, any>;
+      preferences?: Record<string, any>;
+    }
+  ) {
+    try {
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: tenantId },
+      });
+
+      if (!tenant) {
+        throw new AppError('Tenant not found', 404);
+      }
+
+      const existingSettings = (tenant.settings as Record<string, any>) || {};
+
+      // Merge notifications and preferences into settings JSON
+      const updatedSettings = {
+        ...existingSettings,
+        ...(newSettings.notifications || {}),
+        ...(newSettings.preferences || {}),
+      };
+
+      // Prepare update data
+      const updateData: any = {
+        settings: updatedSettings,
+        updatedAt: new Date(),
+      };
+
+      // Update general fields if provided
+      if (newSettings.general) {
+        if (newSettings.general.name) updateData.name = newSettings.general.name;
+        if (newSettings.general.phone) updateData.phone = newSettings.general.phone;
+        if (newSettings.general.address) updateData.address = newSettings.general.address;
+        if (newSettings.general.city) updateData.city = newSettings.general.city;
+        if (newSettings.general.country) updateData.country = newSettings.general.country;
+        if (newSettings.general.website) updateData.website = newSettings.general.website;
+        if (newSettings.general.timezone) updateData.timezone = newSettings.general.timezone;
+      }
+
+      const updated = await prisma.tenant.update({
+        where: { id: tenantId },
+        data: updateData,
+      });
+
+      logger.info('Tenant settings updated', { tenantId });
+
+      return this.getSettings(tenantId);
+    } catch (error) {
+      logger.error('Update settings error', { error, tenantId });
+      throw error;
+    }
+  }
+
+  /**
+   * Update business hours
+   */
+  async updateBusinessHours(
+    tenantId: string,
+    businessHours: {
+      monday?: { open: string; close: string; closed?: boolean };
+      tuesday?: { open: string; close: string; closed?: boolean };
+      wednesday?: { open: string; close: string; closed?: boolean };
+      thursday?: { open: string; close: string; closed?: boolean };
+      friday?: { open: string; close: string; closed?: boolean };
+      saturday?: { open: string; close: string; closed?: boolean };
+      sunday?: { open: string; close: string; closed?: boolean };
+    }
+  ) {
+    try {
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: tenantId },
+      });
+
+      if (!tenant) {
+        throw new AppError('Tenant not found', 404);
+      }
+
+      const updated = await prisma.tenant.update({
+        where: { id: tenantId },
+        data: {
+          businessHours,
+          updatedAt: new Date(),
+        },
+      });
+
+      logger.info('Business hours updated', { tenantId });
+
+      return { businessHours: updated.businessHours };
+    } catch (error) {
+      logger.error('Update business hours error', { error, tenantId });
+      throw error;
+    }
+  }
+
+  /**
+   * Update notification preferences
+   */
+  async updateNotificationPreferences(
+    tenantId: string,
+    preferences: {
+      emailNotifications?: boolean;
+      smsNotifications?: boolean;
+      bookingReminders?: boolean;
+      reminderHoursBefore?: number;
+      dailyDigest?: boolean;
+      weeklyReport?: boolean;
+    }
+  ) {
+    try {
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: tenantId },
+      });
+
+      if (!tenant) {
+        throw new AppError('Tenant not found', 404);
+      }
+
+      const existingSettings = (tenant.settings as Record<string, any>) || {};
+
+      const updatedSettings = {
+        ...existingSettings,
+        ...preferences,
+      };
+
+      const updated = await prisma.tenant.update({
+        where: { id: tenantId },
+        data: {
+          settings: updatedSettings,
+          updatedAt: new Date(),
+        },
+      });
+
+      logger.info('Notification preferences updated', { tenantId });
+
+      return {
+        notifications: {
+          emailNotifications: updatedSettings.emailNotifications ?? true,
+          smsNotifications: updatedSettings.smsNotifications ?? false,
+          bookingReminders: updatedSettings.bookingReminders ?? true,
+          reminderHoursBefore: updatedSettings.reminderHoursBefore ?? 24,
+          dailyDigest: updatedSettings.dailyDigest ?? false,
+          weeklyReport: updatedSettings.weeklyReport ?? true,
+        },
+      };
+    } catch (error) {
+      logger.error('Update notification preferences error', { error, tenantId });
+      throw error;
+    }
+  }
+
+  /**
+   * Get default business hours
+   */
+  private getDefaultBusinessHours() {
+    return {
+      monday: { open: '09:00', close: '18:00', closed: false },
+      tuesday: { open: '09:00', close: '18:00', closed: false },
+      wednesday: { open: '09:00', close: '18:00', closed: false },
+      thursday: { open: '09:00', close: '18:00', closed: false },
+      friday: { open: '09:00', close: '18:00', closed: false },
+      saturday: { open: '10:00', close: '16:00', closed: false },
+      sunday: { open: '00:00', close: '00:00', closed: true },
+    };
+  }
 }
 
 export default new TenantsService();

@@ -52,6 +52,31 @@ router.get(
 );
 
 /**
+ * GET /api/agents/phones/available
+ * Get available phone numbers for assignment
+ * NOTE: Must be defined before /:agentId routes
+ */
+router.get(
+  '/phones/available',
+  authenticateToken,
+  checkWhopSubscription,
+  injectSubscriptionStatus,
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const tenantId = req.user!.tenantId!;
+      const phoneNumbers = await agentsService.getAvailablePhoneNumbers(tenantId);
+
+      return res.json({
+        success: true,
+        data: phoneNumbers,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
  * GET /api/agents/:agentId
  * Get a single agent's details
  */
@@ -224,6 +249,68 @@ router.post(
       return res.json({
         success: true,
         message: 'Retell agent linked successfully',
+        data: agent,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * POST /api/agents/:agentId/assign-phone
+ * Assign a phone number to an agent
+ */
+router.post(
+  '/:agentId/assign-phone',
+  authenticateToken,
+  checkWhopSubscription,
+  injectSubscriptionStatus,
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const tenantId = req.user!.tenantId!;
+      const { agentId } = req.params;
+      const { phoneNumber } = req.body;
+
+      if (!phoneNumber) {
+        return res.status(400).json({
+          success: false,
+          message: 'phoneNumber is required',
+        });
+      }
+
+      const agent = await agentsService.assignPhoneNumber(agentId, tenantId, phoneNumber);
+
+      return res.json({
+        success: true,
+        message: 'Phone number assigned successfully',
+        data: agent,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * DELETE /api/agents/:agentId/assign-phone
+ * Remove phone number from an agent
+ */
+router.delete(
+  '/:agentId/assign-phone',
+  authenticateToken,
+  checkWhopSubscription,
+  injectSubscriptionStatus,
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const tenantId = req.user!.tenantId!;
+      const { agentId } = req.params;
+
+      const agent = await agentsService.unassignPhoneNumber(agentId, tenantId);
+
+      return res.json({
+        success: true,
+        message: 'Phone number unassigned successfully',
         data: agent,
       });
     } catch (error) {

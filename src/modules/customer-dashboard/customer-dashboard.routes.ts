@@ -289,6 +289,196 @@ const customerDashboardService = {
 
     return activities.slice(0, limit);
   },
+
+  // Get real-time stats (today's numbers)
+  async getRealTimeStats(tenantId: string) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [
+      callsToday,
+      bookingsToday,
+      ordersToday,
+      totalCallMinutesToday,
+      revenueToday,
+      activeAgents,
+    ] = await Promise.all([
+      prisma.call.count({
+        where: { tenantId, createdAt: { gte: today } },
+      }),
+      prisma.booking.count({
+        where: { tenantId, createdAt: { gte: today } },
+      }),
+      prisma.order.count({
+        where: { tenantId, createdAt: { gte: today } },
+      }),
+      prisma.call.aggregate({
+        where: { tenantId, createdAt: { gte: today } },
+        _sum: { duration: true },
+      }),
+      prisma.order.aggregate({
+        where: { tenantId, paymentStatus: 'paid', createdAt: { gte: today } },
+        _sum: { total: true },
+      }),
+      prisma.agent.count({
+        where: { tenantId, isActive: true },
+      }),
+    ]);
+
+    return {
+      today: {
+        calls: callsToday,
+        bookings: bookingsToday,
+        orders: ordersToday,
+        callMinutes: Math.round((totalCallMinutesToday._sum.duration || 0) / 60),
+        revenue: revenueToday._sum.total || 0,
+      },
+      activeAgents,
+      timestamp: new Date().toISOString(),
+    };
+  },
+
+  // Get comparison stats (this period vs previous period)
+  async getComparisonStats(tenantId: string, period: 'day' | 'week' | 'month' = 'week') {
+    const now = new Date();
+    let currentStart: Date;
+    let previousStart: Date;
+    let previousEnd: Date;
+
+    switch (period) {
+      case 'day':
+        currentStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        previousStart = new Date(currentStart);
+        previousStart.setDate(previousStart.getDate() - 1);
+        previousEnd = new Date(currentStart);
+        break;
+      case 'week':
+        const dayOfWeek = now.getDay();
+        currentStart = new Date(now);
+        currentStart.setDate(now.getDate() - dayOfWeek);
+        currentStart.setHours(0, 0, 0, 0);
+        previousStart = new Date(currentStart);
+        previousStart.setDate(previousStart.getDate() - 7);
+        previousEnd = new Date(currentStart);
+        break;
+      case 'month':
+      default:
+        currentStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        previousStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        previousEnd = new Date(currentStart);
+        break;
+    }
+
+    const [currentCalls, previousCalls, currentBookings, previousBookings, currentOrders, previousOrders, currentRevenue, previousRevenue] = await Promise.all([
+      prisma.call.count({
+        where: { tenantId, createdAt: { gte: currentStart } },
+      }),
+      prisma.call.count({
+        where: { tenantId, createdAt: { gte: previousStart, lt: previousEnd } },
+      }),
+      prisma.booking.count({
+        where: { tenantId, createdAt: { gte: currentStart } },
+      }),
+      prisma.booking.count({
+        where: { tenantId, createdAt: { gte: previousStart, lt: previousEnd } },
+      }),
+      prisma.order.count({
+        where: { tenantId, createdAt: { gte: currentStart } },
+      }),
+      prisma.order.count({
+        where: { tenantId, createdAt: { gte: previousStart, lt: previousEnd } },
+      }),
+      prisma.order.aggregate({
+        where: { tenantId, paymentStatus: 'paid', createdAt: { gte: currentStart } },
+        _sum: { total: true },
+      }),
+      prisma.order.aggregate({
+        where: { tenantId, paymentStatus: 'paid', createdAt: { gte: previousStart, lt: previousEnd } },
+        _sum: { total: true },
+      }),
+    ]);
+
+    const calculateChange = (current: number, previous: number): { value: number; percentage: number; trend: 'up' | 'down' | 'stable' } => {
+      if (previous === 0) {
+        return { value: current, percentage: current > 0 ? 100 : 0, trend: current > 0 ? 'up' : 'stable' };
+      }
+      const percentage = Math.round(((current - previous) / previous) * 100);
+      return {
+        value: current - previous,
+        percentage,
+        trend: percentage > 0 ? 'up' : percentage < 0 ? 'down' : 'stable',
+      };
+    };
+
+    return {
+      period,
+      calls: {
+        current: currentCalls,
+        previous: previousCalls,
+        change: calculateChange(currentCalls, previousCalls),
+      },
+      bookings: {
+        current: currentBookings,
+        previous: previousBookings,
+        change: calculateChange(currentBookings, previousBookings),
+      },
+      orders: {
+        current: currentOrders,
+        previous: previousOrders,
+        change: calculateChange(currentOrders, previousOrders),
+      },
+      revenue: {
+        current: currentRevenue._sum.total || 0,
+        previous: previousRevenue._sum.total || 0,
+        change: calculateChange(currentRevenue._sum.total || 0, previousRevenue._sum.total || 0),
+      },
+    };
+  },
+
+  // Get peak hours analysis
+  async getPeakHoursAnalysis(tenantId: string, days: number = 30) {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const calls = await prisma.call.findMany({
+      where: { tenantId, createdAt: { gte: startDate } },
+      select: { createdAt: true, duration: true },
+    });
+
+    // Group by hour of day
+    const hourlyStats: Record<number, { count: number; totalDuration: number }> = {};
+    for (let i = 0; i < 24; i++) {
+      hourlyStats[i] = { count: 0, totalDuration: 0 };
+    }
+
+    calls.forEach((call) => {
+      const hour = call.createdAt.getHours();
+      hourlyStats[hour].count++;
+      hourlyStats[hour].totalDuration += call.duration || 0;
+    });
+
+    // Find peak hours
+    const sortedHours = Object.entries(hourlyStats)
+      .sort(([, a], [, b]) => b.count - a.count)
+      .map(([hour, stats]) => ({
+        hour: parseInt(hour),
+        displayHour: `${parseInt(hour).toString().padStart(2, '0')}:00`,
+        calls: stats.count,
+        avgDuration: stats.count > 0 ? Math.round(stats.totalDuration / stats.count) : 0,
+      }));
+
+    return {
+      hourlyBreakdown: Object.entries(hourlyStats).map(([hour, stats]) => ({
+        hour: parseInt(hour),
+        displayHour: `${parseInt(hour).toString().padStart(2, '0')}:00`,
+        calls: stats.count,
+        avgDuration: stats.count > 0 ? Math.round(stats.totalDuration / stats.count) : 0,
+      })),
+      peakHours: sortedHours.slice(0, 5),
+      quietHours: sortedHours.slice(-5).reverse(),
+      periodDays: days,
+    };
+  },
 };
 
 // ==========================================
@@ -401,6 +591,44 @@ const customerDashboardController = {
       next(error);
     }
   },
+
+  async getRealTimeStats(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { tenantId } = req.params;
+      const stats = await customerDashboardService.getRealTimeStats(tenantId);
+      res.json({ success: true, data: stats });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async getComparisonStats(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { tenantId } = req.params;
+      const { period = 'week' } = req.query;
+      const stats = await customerDashboardService.getComparisonStats(
+        tenantId,
+        period as 'day' | 'week' | 'month'
+      );
+      res.json({ success: true, data: stats });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async getPeakHoursAnalysis(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { tenantId } = req.params;
+      const { days = 30 } = req.query;
+      const analysis = await customerDashboardService.getPeakHoursAnalysis(
+        tenantId,
+        Number(days)
+      );
+      res.json({ success: true, data: analysis });
+    } catch (error) {
+      next(error);
+    }
+  },
 };
 
 // ==========================================
@@ -415,5 +643,8 @@ router.get('/:tenantId/invoices', customerDashboardController.getInvoices);
 router.get('/:tenantId/notifications', customerDashboardController.getNotifications);
 router.put('/notifications/:notificationId/read', customerDashboardController.markNotificationRead);
 router.get('/:tenantId/activities', customerDashboardController.getRecentActivities);
+router.get('/:tenantId/realtime', customerDashboardController.getRealTimeStats);
+router.get('/:tenantId/comparison', customerDashboardController.getComparisonStats);
+router.get('/:tenantId/peak-hours', customerDashboardController.getPeakHoursAnalysis);
 
 export default router;

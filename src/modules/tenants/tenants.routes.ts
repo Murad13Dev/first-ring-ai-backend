@@ -98,4 +98,32 @@ router.get('/:id/agent-config', authenticateToken, checkWhopSubscription, inject
  */
 router.patch('/:id/agent-config', authenticateToken, checkWhopSubscription, injectSubscriptionStatus, tenantsController.updateAgentConfig);
 
+/**
+ * @route   GET /api/tenants/:id/settings
+ * @desc    Get tenant settings
+ * @access  Admin or Tenant owner
+ */
+router.get('/:id/settings', authenticateToken, checkWhopSubscription, injectSubscriptionStatus, tenantsController.getSettings);
+
+/**
+ * @route   PUT /api/tenants/:id/settings
+ * @desc    Update tenant settings
+ * @access  Admin or Tenant owner
+ */
+router.put('/:id/settings', authenticateToken, checkWhopSubscription, injectSubscriptionStatus, tenantsController.updateSettings);
+
+/**
+ * @route   PUT /api/tenants/:id/business-hours
+ * @desc    Update business hours
+ * @access  Admin or Tenant owner
+ */
+router.put('/:id/business-hours', authenticateToken, checkWhopSubscription, injectSubscriptionStatus, tenantsController.updateBusinessHours);
+
+/**
+ * @route   PUT /api/tenants/:id/notifications
+ * @desc    Update notification preferences
+ * @access  Admin or Tenant owner
+ */
+router.put('/:id/notifications', authenticateToken, checkWhopSubscription, injectSubscriptionStatus, tenantsController.updateNotificationPreferences);
+
 export default router;
