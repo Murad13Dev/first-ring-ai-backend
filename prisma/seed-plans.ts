@@ -17,6 +17,7 @@ async function seedPlans() {
       maxCalls: 2000, // Legacy field
       maxUsers: 1,
       maxPhoneLines: 1,
+      maxAgents: 1, // 1 AI agent for Starter
       hasUnlimitedPhoneLines: false,
       overageRatePerMinute: 0.75,
       features: [
@@ -41,6 +42,7 @@ async function seedPlans() {
       maxCalls: 6000, // Legacy field
       maxUsers: 5,
       maxPhoneLines: 3,
+      maxAgents: 3, // 3 AI agents for Professional
       hasUnlimitedPhoneLines: false,
       overageRatePerMinute: 0.75,
       features: [
@@ -65,6 +67,7 @@ async function seedPlans() {
       maxCalls: 12000, // Legacy field
       maxUsers: 20,
       maxPhoneLines: 10,
+      maxAgents: 10, // 10 AI agents for Enterprise
       hasUnlimitedPhoneLines: false,
       overageRatePerMinute: 0.60,
       features: [
@@ -90,6 +93,7 @@ async function seedPlans() {
       maxCalls: 24000, // Legacy field
       maxUsers: 50,
       maxPhoneLines: null, // Unlimited
+      maxAgents: 999, // Unlimited AI agents for Executive
       hasUnlimitedPhoneLines: true,
       overageRatePerMinute: 0.50,
       features: [
