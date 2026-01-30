@@ -3,6 +3,7 @@ import logger from '../config/logger';
 import reminderService from '../modules/reminders/reminder.service';
 import { UsageTrackingService } from '../services/usage-tracking.service';
 import webhookLogService from '../services/webhook-log.service';
+import auditService from '../services/audit.service';
 
 /**
  * Initialize all cron jobs
@@ -83,10 +84,25 @@ export function initializeCronJobs() {
     }
   });
 
+  // ==========================================
+  // AUDIT LOGS CLEANUP
+  // Run monthly on the 1st at 4:00 AM
+  // ==========================================
+  cron.schedule('0 4 1 * *', async () => {
+    logger.info('⏰ Running audit logs cleanup');
+    try {
+      const deletedCount = await auditService.cleanup(90); // Keep 90 days
+      logger.info('✅ Audit logs cleanup completed', { deletedCount });
+    } catch (error) {
+      logger.error('❌ Audit logs cleanup failed', { error });
+    }
+  });
+
   logger.info('✅ All cron jobs initialized');
   logger.info('   📋 Booking reminders: every 15 minutes');
   logger.info('   📋 Usage warnings: every hour');
   logger.info('   📋 Monthly usage reset: 1st of each month');
   logger.info('   📋 Subscription expiry: daily at 9:00 AM');
   logger.info('   📋 Webhook logs cleanup: weekly on Sunday');
+  logger.info('   📋 Audit logs cleanup: monthly on 1st');
 }

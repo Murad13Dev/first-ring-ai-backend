@@ -42,6 +42,8 @@ import reminderRoutes from './modules/reminders/reminder.routes';
 import { initializeCronJobs } from './cron';
 import usageRoutes from './modules/usage/usage.routes';
 import webhookLogsRoutes from './modules/webhook-logs/webhook-logs.routes';
+import auditRoutes from './modules/audit/audit.routes';
+import healthService from './services/health.service';
 
 // Load environment variables
 dotenv.config();
@@ -120,13 +122,27 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // ROUTES
 // ==========================================
 
-// Health check
-app.get('/health', (_req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Server is healthy',
+// Health check - quick
+app.get('/health', async (_req, res) => {
+  const health = await healthService.quickCheck();
+  res.status(health.status === 'ok' ? 200 : 503).json({
+    success: health.status === 'ok',
+    message: health.status === 'ok' ? 'Server is healthy' : 'Server is unhealthy',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV,
+    database: health.database,
+  });
+});
+
+// Health check - detailed
+app.get('/health/detailed', async (req, res) => {
+  const includeExternal = req.query.external === 'true';
+  const health = await healthService.check(includeExternal);
+
+  const statusCode = health.status === 'healthy' ? 200 : health.status === 'degraded' ? 200 : 503;
+  res.status(statusCode).json({
+    success: health.status !== 'unhealthy',
+    ...health,
   });
 });
 
@@ -180,6 +196,7 @@ app.use('/api/export', exportRoutes);
 app.use('/api/reminders', reminderRoutes);
 app.use('/api/usage', usageRoutes);
 app.use('/api/webhook-logs', webhookLogsRoutes);
+app.use('/api/audit', auditRoutes);
 
 // ==========================================
 // ERROR HANDLING
