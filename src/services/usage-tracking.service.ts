@@ -176,9 +176,6 @@ export class UsageTrackingService {
             gte: periodStart,
           },
         },
-        include: {
-          // We need tenant info for notification
-        },
       });
 
       for (const record of usageRecords) {
