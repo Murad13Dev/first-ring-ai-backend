@@ -39,11 +39,11 @@ const rateLimitHandler = (req: Request, res: Response) => {
 
 /**
  * General API rate limiter
- * 100 requests per minute per tenant/IP
+ * 300 requests per minute per tenant/IP
  */
 export const apiLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 100, // 100 requests per window
+  max: 300, // 300 requests per window
   keyGenerator,
   handler: rateLimitHandler,
   standardHeaders: true,
@@ -55,12 +55,12 @@ export const apiLimiter = rateLimit({
 });
 
 /**
- * Strict rate limiter for authentication endpoints
- * 10 attempts per 15 minutes per IP
+ * Rate limiter for authentication endpoints
+ * 50 attempts per 5 minutes per IP (allows normal usage but prevents brute force)
  */
 export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 requests per window
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 50, // 50 requests per window
   keyGenerator: (req: Request) => {
     // Always use IP for auth endpoints
     return `auth:${req.ip || req.socket.remoteAddress || 'unknown'}`;
@@ -74,7 +74,7 @@ export const authLimiter = rateLimit({
     res.status(429).json({
       success: false,
       error: 'Too many authentication attempts',
-      message: 'Too many login attempts. Please try again in 15 minutes.',
+      message: 'Too many requests. Please try again in a few minutes.',
       retryAfter: res.getHeader('Retry-After'),
     });
   },
