@@ -98,6 +98,10 @@ export class PaymentsController {
   /**
    * Create subscription checkout
    * POST /api/payments/subscription/checkout
+   *
+   * Supports two modes:
+   * 1. Direct priceId: { tenantId, customerEmail, priceId, ... }
+   * 2. Plan-based (recommended): { tenantId, customerEmail, planSlug, billingPeriod, ... }
    */
   async createSubscriptionCheckout(req: Request, res: Response, next: NextFunction) {
     try {
@@ -106,26 +110,51 @@ export class PaymentsController {
         customerEmail,
         customerName,
         priceId,
+        planSlug,
+        billingPeriod,
         trialDays,
+        setupFeeAmount,
         metadata,
         successUrl,
         cancelUrl,
       } = req.body;
 
-      if (!tenantId || !customerEmail || !priceId) {
-        throw new AppError('Missing required fields: tenantId, customerEmail, priceId', 400);
+      if (!tenantId || !customerEmail) {
+        throw new AppError('Missing required fields: tenantId, customerEmail', 400);
       }
 
-      const session = await stripeService.createSubscriptionCheckout({
-        tenantId,
-        customerEmail,
-        customerName,
-        priceId,
-        trialDays,
-        metadata,
-        successUrl,
-        cancelUrl,
-      });
+      let session;
+
+      // Use plan-based checkout if planSlug is provided (recommended)
+      if (planSlug && billingPeriod) {
+        session = await stripeService.createSubscriptionCheckoutByPlan({
+          tenantId,
+          customerEmail,
+          customerName,
+          planSlug,
+          billingPeriod,
+          trialDays,
+          setupFeeAmount,
+          metadata,
+          successUrl,
+          cancelUrl,
+        });
+      } else if (priceId) {
+        // Fallback to direct priceId for backwards compatibility
+        session = await stripeService.createSubscriptionCheckout({
+          tenantId,
+          customerEmail,
+          customerName,
+          priceId,
+          trialDays,
+          setupFeeAmount,
+          metadata,
+          successUrl,
+          cancelUrl,
+        });
+      } else {
+        throw new AppError('Missing required fields: either (planSlug + billingPeriod) or priceId', 400);
+      }
 
       return res.status(201).json({
         success: true,

@@ -712,31 +712,22 @@ export class LeadsService {
         throw new AppError(`Plan not found: ${tenant.plan}`, 404);
       }
 
-      // Map plan slug to Stripe price ID
-      const stripePriceMap: Record<string, string> = {
-        starter: process.env.STRIPE_PRICE_ID_STARTER || '',
-        professional: process.env.STRIPE_PRICE_ID_PROFESSIONAL || '',
-        enterprise: process.env.STRIPE_PRICE_ID_ENTERPRISE || '',
-        executive: process.env.STRIPE_PRICE_ID_EXECUTIVE || '',
-      };
+      let checkout: { sessionId: string; checkoutUrl: string | null } | null = null;
 
-      const priceId = stripePriceMap[tenant.plan];
-
-      let checkout: { sessionId: string; checkoutUrl: string } | null = null;
-
-      // Create Stripe checkout session if price ID is configured
-      if (priceId) {
-        checkout = await stripeService.createSubscriptionCheckout({
-        tenantId: tenant.id,
-        customerEmail: tenant.email,
-        customerName: tenant.name,
-        priceId,
-        trialDays: 0, // No trial, immediate payment required
-        metadata: {
-          leadId: lead.id,
-          plan: tenant.plan,
-          source: 'lead_conversion',
-        },
+      // Create Stripe checkout session using plan slug (database lookup)
+      try {
+        checkout = await stripeService.createSubscriptionCheckoutByPlan({
+          tenantId: tenant.id,
+          customerEmail: tenant.email,
+          customerName: tenant.name,
+          planSlug: tenant.plan,
+          billingPeriod: 'monthly', // Default to monthly for lead conversion
+          trialDays: 0, // No trial, immediate payment required
+          metadata: {
+            leadId: lead.id,
+            plan: tenant.plan,
+            source: 'lead_conversion',
+          },
           successUrl: `${process.env.FRONTEND_URL}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
           cancelUrl: `${process.env.FRONTEND_URL}/subscription/cancel`,
         });
@@ -756,11 +747,14 @@ export class LeadsService {
             subscriptionId: checkout.sessionId,
           },
         });
-      } else {
-        logger.warn('No Stripe price ID configured for plan - email will be sent without payment link', {
+      } catch (checkoutError) {
+        // If checkout creation fails, log warning but continue with email
+        logger.warn('Failed to create Stripe checkout - email will be sent without payment link', {
           plan: tenant.plan,
           tenantId: tenant.id,
+          error: checkoutError,
         });
+        checkout = null;
       }
 
       // Build plan features from database
