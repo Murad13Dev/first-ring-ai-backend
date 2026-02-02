@@ -895,11 +895,39 @@ model Plan {
   isPopular   Boolean  @default(false)
 
   subscriptions Subscription[]
+  prices        PlanPrice[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@map("plans")
+}
+
+// ==========================================
+// PLAN PRICES (Normalized pricing structure)
+// ==========================================
+model PlanPrice {
+  id              String   @id @default(uuid())
+
+  planId          String
+  plan            Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  billingPeriod   String   // "monthly", "yearly"
+  price           Float    // Price in USD
+  stripePriceId   String   @unique // Stripe price ID (e.g., price_xxx)
+
+  // Optional: Currency support for future
+  currency        String   @default("USD")
+
+  isActive        Boolean  @default(true)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([planId, billingPeriod])
+  @@index([planId])
+  @@index([stripePriceId])
+  @@map("plan_prices")
 }
 
 // ==========================================
