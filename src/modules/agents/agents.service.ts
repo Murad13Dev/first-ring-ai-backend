@@ -353,7 +353,6 @@ class AgentsService {
       { code: 'it-IT', name: 'Italian' },
       { code: 'pt-BR', name: 'Portuguese (Brazil)' },
       { code: 'ru-RU', name: 'Russian' },
-      { code: 'az-AZ', name: 'Azerbaijani' },
       { code: 'ko-KR', name: 'Korean' },
       { code: 'ja-JP', name: 'Japanese' },
       { code: 'zh-CN', name: 'Chinese (Simplified)' },
