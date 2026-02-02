@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import logger from '../config/logger';
 import { AppError } from '../middleware/error.middleware';
+import prisma from '../config/database';
 
 // ==========================================
 // STRIPE SERVICE
@@ -528,6 +529,129 @@ class StripeService {
       logger.error('Create price for product error', { error });
       throw new AppError('Failed to create price for product', 500);
     }
+  }
+
+  // ==========================================
+  // PLAN PRICE LOOKUP (from Database)
+  // ==========================================
+
+  /**
+   * Get Stripe price ID from database by plan slug and billing period
+   * This replaces the old approach of using environment variables
+   */
+  async getStripePriceId(planSlug: string, billingPeriod: 'monthly' | 'yearly'): Promise<string> {
+    try {
+      const planPrice = await prisma.planPrice.findFirst({
+        where: {
+          plan: { slug: planSlug },
+          billingPeriod,
+          isActive: true,
+        },
+        select: {
+          stripePriceId: true,
+        },
+      });
+
+      if (!planPrice) {
+        throw new AppError(
+          `Price not found for plan '${planSlug}' with billing period '${billingPeriod}'`,
+          404
+        );
+      }
+
+      return planPrice.stripePriceId;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      logger.error('Get stripe price ID error', { error, planSlug, billingPeriod });
+      throw new AppError('Failed to get price ID', 500);
+    }
+  }
+
+  /**
+   * Get plan with all prices
+   */
+  async getPlanWithPrices(planSlug: string) {
+    try {
+      const plan = await prisma.plan.findUnique({
+        where: { slug: planSlug },
+        include: {
+          prices: {
+            where: { isActive: true },
+            orderBy: { billingPeriod: 'asc' },
+          },
+        },
+      });
+
+      if (!plan) {
+        throw new AppError(`Plan '${planSlug}' not found`, 404);
+      }
+
+      return plan;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      logger.error('Get plan with prices error', { error, planSlug });
+      throw new AppError('Failed to get plan', 500);
+    }
+  }
+
+  /**
+   * Get all plans with their prices (for pricing page)
+   */
+  async getAllPlansWithPrices() {
+    try {
+      const plans = await prisma.plan.findMany({
+        where: { isActive: true },
+        include: {
+          prices: {
+            where: { isActive: true },
+            orderBy: { billingPeriod: 'asc' },
+          },
+        },
+        orderBy: { price: 'asc' },
+      });
+
+      return plans;
+    } catch (error) {
+      logger.error('Get all plans with prices error', { error });
+      throw new AppError('Failed to get plans', 500);
+    }
+  }
+
+  /**
+   * Create subscription checkout using plan slug and billing period
+   * This is the preferred method - uses database for price lookup
+   */
+  async createSubscriptionCheckoutByPlan(params: {
+    tenantId: string;
+    customerEmail: string;
+    customerName?: string;
+    planSlug: string;
+    billingPeriod: 'monthly' | 'yearly';
+    trialDays?: number;
+    setupFeeAmount?: number;
+    metadata?: Record<string, string>;
+    successUrl?: string;
+    cancelUrl?: string;
+  }) {
+    // Get the Stripe price ID from database
+    const stripePriceId = await this.getStripePriceId(params.planSlug, params.billingPeriod);
+
+    // Use the existing method with the resolved price ID
+    return this.createSubscriptionCheckout({
+      tenantId: params.tenantId,
+      customerEmail: params.customerEmail,
+      customerName: params.customerName,
+      priceId: stripePriceId,
+      trialDays: params.trialDays,
+      setupFeeAmount: params.setupFeeAmount,
+      metadata: {
+        planSlug: params.planSlug,
+        billingPeriod: params.billingPeriod,
+        ...params.metadata,
+      },
+      successUrl: params.successUrl,
+      cancelUrl: params.cancelUrl,
+    });
   }
 }
 
