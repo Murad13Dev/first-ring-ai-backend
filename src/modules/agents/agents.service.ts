@@ -338,8 +338,28 @@ class AgentsService {
     return {
       voices: this.getVoiceOptions(),
       tools: this.getAvailableTools(),
+      languages: this.getLanguageOptions(),
       temperatureRange: { min: 0.0, max: 1.0, step: 0.1 },
     };
+  }
+
+  private getLanguageOptions() {
+    return [
+      { code: 'en-US', name: 'English (US)' },
+      { code: 'en-GB', name: 'English (UK)' },
+      { code: 'es-ES', name: 'Spanish' },
+      { code: 'fr-FR', name: 'French' },
+      { code: 'de-DE', name: 'German' },
+      { code: 'it-IT', name: 'Italian' },
+      { code: 'pt-BR', name: 'Portuguese (Brazil)' },
+      { code: 'ru-RU', name: 'Russian' },
+      { code: 'ko-KR', name: 'Korean' },
+      { code: 'ja-JP', name: 'Japanese' },
+      { code: 'zh-CN', name: 'Chinese (Simplified)' },
+      { code: 'ar-SA', name: 'Arabic' },
+      { code: 'tr-TR', name: 'Turkish' },
+      { code: 'hi-IN', name: 'Hindi' },
+    ];
   }
 
   /**
@@ -368,6 +388,10 @@ class AgentsService {
 
     if (agent.temperature !== null && agent.temperature !== undefined) {
       updateData.temperature = agent.temperature;
+    }
+
+    if (agent.language) {
+      updateData.language = agent.language;
     }
 
     if (agent.enabledTools) {

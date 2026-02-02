@@ -355,10 +355,15 @@ Always be helpful, professional, and customer-focused.`,
       'it-IT': '11labs-Alessandra',
       'pt-BR': '11labs-Ricardo',
       'ru-RU': 'openai-alloy',
-      'az-AZ': 'openai-alloy',
+      'ko-KR': 'openai-alloy',
+      'ja-JP': 'openai-alloy',
+      'zh-CN': 'openai-alloy',
+      'ar-SA': 'openai-alloy',
+      'tr-TR': 'openai-alloy',
+      'hi-IN': 'openai-alloy',
     };
 
-    return voiceMap[language] || '11labs-Adrian';
+    return voiceMap[language] || 'openai-alloy';
   }
 
   /**
