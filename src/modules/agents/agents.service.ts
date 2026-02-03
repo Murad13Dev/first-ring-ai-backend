@@ -345,20 +345,49 @@ class AgentsService {
 
   private getLanguageOptions() {
     return [
+      // English variants
       { code: 'en-US', name: 'English (US)' },
       { code: 'en-GB', name: 'English (UK)' },
-      { code: 'es-ES', name: 'Spanish' },
+      { code: 'en-IN', name: 'English (India)' },
+      { code: 'en-AU', name: 'English (Australia)' },
+      { code: 'en-NZ', name: 'English (New Zealand)' },
+      // Spanish variants
+      { code: 'es-ES', name: 'Spanish (Spain)' },
+      { code: 'es-419', name: 'Spanish (Latin America)' },
+      // Portuguese variants
+      { code: 'pt-BR', name: 'Portuguese (Brazil)' },
+      { code: 'pt-PT', name: 'Portuguese (Portugal)' },
+      // European languages
       { code: 'fr-FR', name: 'French' },
       { code: 'de-DE', name: 'German' },
       { code: 'it-IT', name: 'Italian' },
-      { code: 'pt-BR', name: 'Portuguese (Brazil)' },
+      { code: 'nl-NL', name: 'Dutch' },
+      { code: 'nl-BE', name: 'Dutch (Belgium)' },
+      { code: 'pl-PL', name: 'Polish' },
       { code: 'ru-RU', name: 'Russian' },
-      { code: 'ko-KR', name: 'Korean' },
-      { code: 'ja-JP', name: 'Japanese' },
+      { code: 'uk-UA', name: 'Ukrainian' },
+      { code: 'ro-RO', name: 'Romanian' },
+      { code: 'bg-BG', name: 'Bulgarian' },
+      { code: 'hu-HU', name: 'Hungarian' },
+      { code: 'sk-SK', name: 'Slovak' },
+      { code: 'el-GR', name: 'Greek' },
+      { code: 'ca-ES', name: 'Catalan' },
+      // Scandinavian languages
+      { code: 'da-DK', name: 'Danish' },
+      { code: 'fi-FI', name: 'Finnish' },
+      { code: 'nb-NO', name: 'Norwegian' },
+      { code: 'sv-SE', name: 'Swedish' },
+      // Asian languages
       { code: 'zh-CN', name: 'Chinese (Simplified)' },
-      { code: 'ar-SA', name: 'Arabic' },
-      { code: 'tr-TR', name: 'Turkish' },
+      { code: 'ja-JP', name: 'Japanese' },
+      { code: 'ko-KR', name: 'Korean' },
       { code: 'hi-IN', name: 'Hindi' },
+      { code: 'vi-VN', name: 'Vietnamese' },
+      { code: 'id-ID', name: 'Indonesian' },
+      { code: 'ms-MY', name: 'Malay' },
+      // Middle Eastern languages
+      { code: 'tr-TR', name: 'Turkish' },
+      { code: 'ar-SA', name: 'Arabic' },
     ];
   }
 
