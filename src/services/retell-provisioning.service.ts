@@ -347,20 +347,49 @@ Always be helpful, professional, and customer-focused.`,
    */
   private getDefaultVoiceId(language: string): string {
     const voiceMap: Record<string, string> = {
+      // English variants
       'en-US': '11labs-Adrian',
       'en-GB': '11labs-Emily',
+      'en-IN': '11labs-Adrian',
+      'en-AU': '11labs-Adrian',
+      'en-NZ': '11labs-Adrian',
+      // Spanish variants
       'es-ES': '11labs-Mateo',
+      'es-419': '11labs-Mateo',
+      // Portuguese variants
+      'pt-BR': '11labs-Ricardo',
+      'pt-PT': '11labs-Ricardo',
+      // European languages
       'fr-FR': '11labs-Amelie',
       'de-DE': '11labs-Hans',
       'it-IT': '11labs-Alessandra',
-      'pt-BR': '11labs-Ricardo',
+      'nl-NL': 'openai-alloy',
+      'nl-BE': 'openai-alloy',
+      'pl-PL': 'openai-alloy',
       'ru-RU': 'openai-alloy',
-      'ko-KR': 'openai-alloy',
-      'ja-JP': 'openai-alloy',
+      'uk-UA': 'openai-alloy',
+      'ro-RO': 'openai-alloy',
+      'bg-BG': 'openai-alloy',
+      'hu-HU': 'openai-alloy',
+      'sk-SK': 'openai-alloy',
+      'el-GR': 'openai-alloy',
+      'ca-ES': 'openai-alloy',
+      // Scandinavian languages
+      'da-DK': 'openai-alloy',
+      'fi-FI': 'openai-alloy',
+      'nb-NO': 'openai-alloy',
+      'sv-SE': 'openai-alloy',
+      // Asian languages
       'zh-CN': 'openai-alloy',
-      'ar-SA': 'openai-alloy',
-      'tr-TR': 'openai-alloy',
+      'ja-JP': 'openai-alloy',
+      'ko-KR': 'openai-alloy',
       'hi-IN': 'openai-alloy',
+      'vi-VN': 'openai-alloy',
+      'id-ID': 'openai-alloy',
+      'ms-MY': 'openai-alloy',
+      // Middle Eastern languages
+      'tr-TR': 'openai-alloy',
+      'ar-SA': 'openai-alloy',
     };
 
     return voiceMap[language] || 'openai-alloy';
