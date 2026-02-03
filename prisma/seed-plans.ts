@@ -14,7 +14,7 @@ async function seedPlans() {
       name: 'Starter Plan',
       description: 'Designed for small businesses. One AI phone line with essential features.',
       price: 500, // Base monthly price (kept for backwards compatibility)
-      yearlyPrice: 5000, // Yearly price
+      yearlyPrice: 4800, // Yearly price (20% discount: $500 x 12 = $6,000 - $1,200 = $4,800)
       stripeProductId: 'prod_TmUFzafP1HCW08',
       callMinutes: 1000,
       maxCalls: 2000,
@@ -41,7 +41,7 @@ async function seedPlans() {
         },
         {
           billingPeriod: 'yearly',
-          price: 5000,
+          price: 4800,
           stripePriceId: process.env.STRIPE_PRICE_ID_STARTER_YEARLY || 'price_starter_yearly',
         },
       ],
@@ -51,7 +51,7 @@ async function seedPlans() {
       name: 'Professional Plan',
       description: 'Designed for growing businesses. Up to three AI phone lines with advanced features.',
       price: 1500,
-      yearlyPrice: 15000,
+      yearlyPrice: 12600, // 30% discount: $1,500 x 12 = $18,000 - $5,400 = $12,600
       stripeProductId: 'prod_TmUI3uuw8nKYvr',
       callMinutes: 3000,
       maxCalls: 6000,
@@ -78,7 +78,7 @@ async function seedPlans() {
         },
         {
           billingPeriod: 'yearly',
-          price: 15000,
+          price: 12600,
           stripePriceId: process.env.STRIPE_PRICE_ID_PROFESSIONAL_YEARLY || 'price_professional_yearly',
         },
       ],
@@ -88,7 +88,7 @@ async function seedPlans() {
       name: 'Enterprise Plan',
       description: 'Built for multi-location businesses and clinics. Up to ten AI phone lines.',
       price: 3000,
-      yearlyPrice: 30000,
+      yearlyPrice: 21600, // 40% discount: $3,000 x 12 = $36,000 - $14,400 = $21,600
       stripeProductId: 'prod_TmULjPlu2aqieY',
       callMinutes: 6000,
       maxCalls: 12000,
@@ -116,7 +116,7 @@ async function seedPlans() {
         },
         {
           billingPeriod: 'yearly',
-          price: 30000,
+          price: 21600,
           stripePriceId: process.env.STRIPE_PRICE_ID_ENTERPRISE_YEARLY || 'price_enterprise_yearly',
         },
       ],
@@ -126,7 +126,7 @@ async function seedPlans() {
       name: 'Executive Plan',
       description: 'For high-volume operators and brands. Unlimited AI phone lines with full customization.',
       price: 5000,
-      yearlyPrice: 50000,
+      yearlyPrice: 30000, // 50% discount: $5,000 x 12 = $60,000 - $30,000 = $30,000
       stripeProductId: 'prod_TmUMC9AweLww7l',
       callMinutes: 12000,
       maxCalls: 24000,
@@ -154,7 +154,7 @@ async function seedPlans() {
         },
         {
           billingPeriod: 'yearly',
-          price: 50000,
+          price: 30000,
           stripePriceId: process.env.STRIPE_PRICE_ID_EXECUTIVE_YEARLY || 'price_executive_yearly',
         },
       ],
