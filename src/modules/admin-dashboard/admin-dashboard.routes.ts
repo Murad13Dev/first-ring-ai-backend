@@ -139,6 +139,66 @@ const adminDashboardService = {
     };
   },
 
+  // Get all calls across all tenants (Admin)
+  async getAllCalls(
+    page: number = 1,
+    limit: number = 50,
+    filters?: {
+      tenantId?: string;
+      intent?: string;
+      outcome?: string;
+      direction?: string;
+      dateFrom?: Date;
+      dateTo?: Date;
+      search?: string;
+    }
+  ) {
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (filters?.tenantId) where.tenantId = filters.tenantId;
+    if (filters?.intent) where.intent = filters.intent;
+    if (filters?.outcome) where.outcome = filters.outcome;
+    if (filters?.direction) where.direction = filters.direction;
+
+    if (filters?.dateFrom || filters?.dateTo) {
+      where.createdAt = {};
+      if (filters.dateFrom) where.createdAt.gte = filters.dateFrom;
+      if (filters.dateTo) where.createdAt.lte = filters.dateTo;
+    }
+
+    if (filters?.search) {
+      where.OR = [
+        { fromNumber: { contains: filters.search } },
+        { toNumber: { contains: filters.search } },
+      ];
+    }
+
+    const [calls, total] = await Promise.all([
+      prisma.call.findMany({
+        where,
+        include: {
+          tenant: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.call.count({ where }),
+    ]);
+
+    return {
+      calls,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    };
+  },
+
   // Get subscription analytics
   async getSubscriptionAnalytics() {
     const subscriptions = await (prisma.subscription.groupBy as any)({
@@ -693,6 +753,28 @@ const adminDashboardController = {
     }
   },
 
+  async getAllCalls(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { page = 1, limit = 50, tenantId, intent, outcome, direction, dateFrom, dateTo, search } = req.query;
+      const result = await adminDashboardService.getAllCalls(
+        Number(page),
+        Number(limit),
+        {
+          tenantId: tenantId as string,
+          intent: intent as string,
+          outcome: outcome as string,
+          direction: direction as string,
+          dateFrom: dateFrom ? new Date(dateFrom as string) : undefined,
+          dateTo: dateTo ? new Date(dateTo as string) : undefined,
+          search: search as string,
+        }
+      );
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async getSubscriptionAnalytics(req: Request, res: Response, next: NextFunction) {
     try {
       const analytics = await adminDashboardService.getSubscriptionAnalytics();
@@ -817,6 +899,9 @@ router.get('/analytics/revenue', adminDashboardController.getRevenueAnalytics);
 router.get('/analytics/calls', adminDashboardController.getCallAnalytics);
 router.get('/analytics/subscriptions', adminDashboardController.getSubscriptionAnalytics);
 router.get('/activities', adminDashboardController.getRecentActivities);
+
+// Calls management (list all calls across tenants)
+router.get('/calls', adminDashboardController.getAllCalls);
 
 // Agents management
 router.get('/agents', adminDashboardController.getAllAgents);
