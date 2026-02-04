@@ -139,6 +139,216 @@ const adminDashboardService = {
     };
   },
 
+  // Get all calls across all tenants (Admin)
+  async getAllCalls(
+    page: number = 1,
+    limit: number = 50,
+    filters?: {
+      tenantId?: string;
+      intent?: string;
+      outcome?: string;
+      direction?: string;
+      dateFrom?: Date;
+      dateTo?: Date;
+      search?: string;
+    }
+  ) {
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (filters?.tenantId) where.tenantId = filters.tenantId;
+    if (filters?.intent) where.intent = filters.intent;
+    if (filters?.outcome) where.outcome = filters.outcome;
+    if (filters?.direction) where.direction = filters.direction;
+
+    if (filters?.dateFrom || filters?.dateTo) {
+      where.createdAt = {};
+      if (filters.dateFrom) where.createdAt.gte = filters.dateFrom;
+      if (filters.dateTo) where.createdAt.lte = filters.dateTo;
+    }
+
+    if (filters?.search) {
+      where.OR = [
+        { fromNumber: { contains: filters.search } },
+        { toNumber: { contains: filters.search } },
+      ];
+    }
+
+    const [calls, total] = await Promise.all([
+      prisma.call.findMany({
+        where,
+        include: {
+          tenant: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.call.count({ where }),
+    ]);
+
+    return {
+      calls,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    };
+  },
+
+  // Get all bookings across all tenants (Admin)
+  async getAllBookings(
+    page: number = 1,
+    limit: number = 50,
+    filters?: {
+      tenantId?: string;
+      status?: string;
+      dateFrom?: Date;
+      dateTo?: Date;
+      search?: string;
+    }
+  ) {
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (filters?.tenantId) where.tenantId = filters.tenantId;
+    if (filters?.status) where.status = filters.status;
+
+    if (filters?.dateFrom || filters?.dateTo) {
+      where.dateTime = {};
+      if (filters.dateFrom) where.dateTime.gte = filters.dateFrom;
+      if (filters.dateTo) where.dateTime.lte = filters.dateTo;
+    }
+
+    if (filters?.search) {
+      where.OR = [
+        { customerName: { contains: filters.search, mode: 'insensitive' } },
+        { customerPhone: { contains: filters.search } },
+        { customerEmail: { contains: filters.search, mode: 'insensitive' } },
+        { serviceName: { contains: filters.search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [bookings, total] = await Promise.all([
+      prisma.booking.findMany({
+        where,
+        include: {
+          tenant: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.booking.count({ where }),
+    ]);
+
+    return {
+      bookings,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    };
+  },
+
+  // Get all subscriptions across all tenants (Admin)
+  async getAllSubscriptions(
+    page: number = 1,
+    limit: number = 50,
+    filters?: {
+      status?: string;
+      planId?: string;
+      search?: string;
+    }
+  ) {
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (filters?.status) where.status = filters.status;
+    if (filters?.planId) where.planId = filters.planId;
+
+    if (filters?.search) {
+      where.tenant = {
+        OR: [
+          { name: { contains: filters.search, mode: 'insensitive' } },
+          { email: { contains: filters.search, mode: 'insensitive' } },
+        ],
+      };
+    }
+
+    const [subscriptions, total] = await Promise.all([
+      prisma.subscription.findMany({
+        where,
+        include: {
+          plan: true,
+          tenant: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+              businessType: true,
+            },
+          },
+        },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.subscription.count({ where }),
+    ]);
+
+    return {
+      subscriptions,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    };
+  },
+
+  // Update subscription (Admin)
+  async updateSubscription(subscriptionId: string, data: { planId?: string; status?: string }) {
+    return prisma.subscription.update({
+      where: { id: subscriptionId },
+      data,
+      include: {
+        plan: true,
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+  },
+
+  // Cancel subscription (Admin)
+  async cancelSubscription(subscriptionId: string) {
+    return prisma.subscription.update({
+      where: { id: subscriptionId },
+      data: {
+        status: 'cancelled',
+        cancelAtPeriodEnd: false,
+      },
+      include: {
+        plan: true,
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+  },
+
   // Get subscription analytics
   async getSubscriptionAnalytics() {
     const subscriptions = await (prisma.subscription.groupBy as any)({
@@ -693,6 +903,87 @@ const adminDashboardController = {
     }
   },
 
+  async getAllCalls(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { page = 1, limit = 50, tenantId, intent, outcome, direction, dateFrom, dateTo, search } = req.query;
+      const result = await adminDashboardService.getAllCalls(
+        Number(page),
+        Number(limit),
+        {
+          tenantId: tenantId as string,
+          intent: intent as string,
+          outcome: outcome as string,
+          direction: direction as string,
+          dateFrom: dateFrom ? new Date(dateFrom as string) : undefined,
+          dateTo: dateTo ? new Date(dateTo as string) : undefined,
+          search: search as string,
+        }
+      );
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async getAllBookings(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { page = 1, limit = 50, tenantId, status, dateFrom, dateTo, search } = req.query;
+      const result = await adminDashboardService.getAllBookings(
+        Number(page),
+        Number(limit),
+        {
+          tenantId: tenantId as string,
+          status: status as string,
+          dateFrom: dateFrom ? new Date(dateFrom as string) : undefined,
+          dateTo: dateTo ? new Date(dateTo as string) : undefined,
+          search: search as string,
+        }
+      );
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async getAllSubscriptions(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { page = 1, limit = 50, status, planId, search } = req.query;
+      const result = await adminDashboardService.getAllSubscriptions(
+        Number(page),
+        Number(limit),
+        {
+          status: status as string,
+          planId: planId as string,
+          search: search as string,
+        }
+      );
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async updateSubscription(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { subscriptionId } = req.params;
+      const { planId, status } = req.body;
+      const subscription = await adminDashboardService.updateSubscription(subscriptionId, { planId, status });
+      res.json({ success: true, data: subscription });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async cancelSubscription(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { subscriptionId } = req.params;
+      const subscription = await adminDashboardService.cancelSubscription(subscriptionId);
+      res.json({ success: true, data: subscription, message: 'Subscription cancelled successfully' });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async getSubscriptionAnalytics(req: Request, res: Response, next: NextFunction) {
     try {
       const analytics = await adminDashboardService.getSubscriptionAnalytics();
@@ -817,6 +1108,17 @@ router.get('/analytics/revenue', adminDashboardController.getRevenueAnalytics);
 router.get('/analytics/calls', adminDashboardController.getCallAnalytics);
 router.get('/analytics/subscriptions', adminDashboardController.getSubscriptionAnalytics);
 router.get('/activities', adminDashboardController.getRecentActivities);
+
+// Calls management (list all calls across tenants)
+router.get('/calls', adminDashboardController.getAllCalls);
+
+// Bookings management (list all bookings across tenants)
+router.get('/bookings', adminDashboardController.getAllBookings);
+
+// Subscriptions management (list, update, cancel)
+router.get('/subscriptions', adminDashboardController.getAllSubscriptions);
+router.put('/subscriptions/:subscriptionId', adminDashboardController.updateSubscription);
+router.post('/subscriptions/:subscriptionId/cancel', adminDashboardController.cancelSubscription);
 
 // Agents management
 router.get('/agents', adminDashboardController.getAllAgents);
