@@ -49,13 +49,24 @@ const subscriptionsService = {
   },
 
   // Update subscription (upgrade/downgrade)
-  async updateSubscription(tenantId: string, planId: string) {
+  async updateSubscription(tenantId: string, planId: string, billingCycle?: string) {
     const plan = await prisma.plan.findUnique({ where: { id: planId } });
     if (!plan) throw new AppError('Plan not found', 404);
 
+    const data: Record<string, any> = { planId };
+    if (billingCycle) {
+      data.billingCycle = billingCycle;
+      // Recalculate period end based on new billing cycle
+      const periodStart = new Date();
+      const periodEnd = new Date();
+      periodEnd.setMonth(periodEnd.getMonth() + (billingCycle === 'yearly' ? 12 : 1));
+      data.currentPeriodStart = periodStart;
+      data.currentPeriodEnd = periodEnd;
+    }
+
     return prisma.subscription.update({
       where: { tenantId },
-      data: { planId },
+      data,
       include: { plan: true },
     });
   },
@@ -202,6 +213,15 @@ const subscriptionsController = {
   async createSubscription(req: Request, res: Response, next: NextFunction) {
     try {
       const { tenantId, planId, billingCycle } = req.body;
+
+      if (billingCycle && !['monthly', 'yearly'].includes(billingCycle)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid billingCycle. Must be one of: monthly, yearly',
+          providedBillingCycle: billingCycle,
+        });
+      }
+
       const subscription = await subscriptionsService.createSubscription(tenantId, planId, billingCycle);
       res.status(201).json({ success: true, data: subscription });
     } catch (error) {
@@ -212,8 +232,17 @@ const subscriptionsController = {
   async updateSubscription(req: Request, res: Response, next: NextFunction) {
     try {
       const { tenantId } = req.params;
-      const { planId } = req.body;
-      const subscription = await subscriptionsService.updateSubscription(tenantId, planId);
+      const { planId, billingCycle } = req.body;
+
+      if (billingCycle && !['monthly', 'yearly'].includes(billingCycle)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid billingCycle. Must be one of: monthly, yearly',
+          providedBillingCycle: billingCycle,
+        });
+      }
+
+      const subscription = await subscriptionsService.updateSubscription(tenantId, planId, billingCycle);
       res.json({ success: true, data: subscription });
     } catch (error) {
       next(error);

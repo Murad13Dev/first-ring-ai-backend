@@ -399,17 +399,17 @@ export class PaymentsController {
 
         // Create or update Subscription record
         if (plan) {
-          // Get current date and add 30 days for period end (default)
+          const billingCycle = session.metadata?.billingPeriod || 'monthly';
           const periodStart = new Date();
           const periodEnd = new Date();
-          periodEnd.setDate(periodEnd.getDate() + 30);
+          periodEnd.setMonth(periodEnd.getMonth() + (billingCycle === 'yearly' ? 12 : 1));
 
           await prisma.subscription.upsert({
             where: { tenantId },
             update: {
               planId: plan.id,
               status: 'active',
-              billingCycle: 'monthly',
+              billingCycle,
               currentPeriodStart: periodStart,
               currentPeriodEnd: periodEnd,
               cancelAtPeriodEnd: false,
@@ -419,7 +419,7 @@ export class PaymentsController {
               tenantId,
               planId: plan.id,
               status: 'active',
-              billingCycle: 'monthly',
+              billingCycle,
               currentPeriodStart: periodStart,
               currentPeriodEnd: periodEnd,
               cancelAtPeriodEnd: false,
