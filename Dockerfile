@@ -7,7 +7,8 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-RUN npm ci --only=production
+# Install all dependencies (including devDependencies for TypeScript compilation)
+RUN npm ci
 
 # Copy source code
 COPY . .
@@ -17,6 +18,9 @@ RUN npx prisma generate
 
 # Build TypeScript
 RUN npm run build
+
+# Remove devDependencies after build to reduce image size
+RUN npm prune --omit=dev
 
 # Expose port
 EXPOSE 5000

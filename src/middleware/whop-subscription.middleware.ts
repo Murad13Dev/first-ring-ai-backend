@@ -61,7 +61,7 @@ export const checkWhopSubscription = async (
     });
 
     if (!user) {
-      throw new AppError('User not found', 404);
+      throw new AppError('User account not found. Please log in again.', 401);
     }
 
     // CASE 1: No Whop membership linked (new user or not required)
