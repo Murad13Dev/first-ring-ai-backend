@@ -43,6 +43,11 @@ export const checkWhopSubscription = async (
       return next();
     }
 
+    // Skip subscription check for admin users (they use AdminUser table, not User)
+    if (req.user.role === 'admin') {
+      return next();
+    }
+
     const userId = req.user.id;
 
     // Get user with subscription details
