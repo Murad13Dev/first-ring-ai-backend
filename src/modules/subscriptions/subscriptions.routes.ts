@@ -35,17 +35,29 @@ const subscriptionsService = {
     const periodEnd = new Date(now);
     periodEnd.setMonth(periodEnd.getMonth() + (billingCycle === 'yearly' ? 12 : 1));
 
-    return prisma.subscription.create({
-      data: {
-        tenantId,
-        planId,
-        billingCycle,
-        currentPeriodStart: now,
-        currentPeriodEnd: periodEnd,
-        status: 'active',
-      },
-      include: { plan: true },
-    });
+    const [subscription] = await prisma.$transaction([
+      prisma.subscription.create({
+        data: {
+          tenantId,
+          planId,
+          billingCycle,
+          currentPeriodStart: now,
+          currentPeriodEnd: periodEnd,
+          status: 'active',
+        },
+        include: { plan: true },
+      }),
+      prisma.tenant.update({
+        where: { id: tenantId },
+        data: {
+          plan: plan.slug,
+          subscriptionStatus: 'active',
+          currentPeriodEnd: periodEnd,
+        },
+      }),
+    ]);
+
+    return subscription;
   },
 
   // Update subscription (upgrade/downgrade)
@@ -65,19 +77,31 @@ const subscriptionsService = {
       data.currentPeriodEnd = periodEnd;
     }
 
-    return prisma.subscription.upsert({
-      where: { tenantId },
-      update: data,
-      create: {
-        tenantId,
-        planId,
-        billingCycle: cycle,
-        currentPeriodStart: now,
-        currentPeriodEnd: periodEnd,
-        status: 'active',
-      },
-      include: { plan: true },
-    });
+    const [subscription] = await prisma.$transaction([
+      prisma.subscription.upsert({
+        where: { tenantId },
+        update: data,
+        create: {
+          tenantId,
+          planId,
+          billingCycle: cycle,
+          currentPeriodStart: now,
+          currentPeriodEnd: periodEnd,
+          status: 'active',
+        },
+        include: { plan: true },
+      }),
+      prisma.tenant.update({
+        where: { id: tenantId },
+        data: {
+          plan: plan.slug,
+          subscriptionStatus: 'active',
+          currentPeriodEnd: periodEnd,
+        },
+      }),
+    ]);
+
+    return subscription;
   },
 
   // Cancel subscription
@@ -85,13 +109,25 @@ const subscriptionsService = {
     const subscription = await prisma.subscription.findUnique({ where: { tenantId } });
     if (!subscription) throw new AppError('Subscription not found', 404);
 
-    return prisma.subscription.update({
-      where: { tenantId },
-      data: {
-        cancelAtPeriodEnd,
-        status: cancelAtPeriodEnd ? 'active' : 'cancelled',
-      },
-    });
+    const newStatus = cancelAtPeriodEnd ? 'active' : 'cancelled';
+
+    const [updated] = await prisma.$transaction([
+      prisma.subscription.update({
+        where: { tenantId },
+        data: {
+          cancelAtPeriodEnd,
+          status: newStatus,
+        },
+      }),
+      prisma.tenant.update({
+        where: { id: tenantId },
+        data: {
+          subscriptionStatus: newStatus,
+        },
+      }),
+    ]);
+
+    return updated;
   },
 
   // Seed default plans
