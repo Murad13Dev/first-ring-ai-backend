@@ -53,26 +53,38 @@ const subscriptionsService = {
     const plan = await prisma.plan.findUnique({ where: { id: planId } });
     if (!plan) throw new AppError('Plan not found', 404);
 
+    const now = new Date();
+    const cycle = billingCycle || 'monthly';
+    const periodEnd = new Date(now);
+    periodEnd.setMonth(periodEnd.getMonth() + (cycle === 'yearly' ? 12 : 1));
+
     const data: Record<string, any> = { planId };
     if (billingCycle) {
       data.billingCycle = billingCycle;
-      // Recalculate period end based on new billing cycle
-      const periodStart = new Date();
-      const periodEnd = new Date();
-      periodEnd.setMonth(periodEnd.getMonth() + (billingCycle === 'yearly' ? 12 : 1));
-      data.currentPeriodStart = periodStart;
+      data.currentPeriodStart = now;
       data.currentPeriodEnd = periodEnd;
     }
 
-    return prisma.subscription.update({
+    return prisma.subscription.upsert({
       where: { tenantId },
-      data,
+      update: data,
+      create: {
+        tenantId,
+        planId,
+        billingCycle: cycle,
+        currentPeriodStart: now,
+        currentPeriodEnd: periodEnd,
+        status: 'active',
+      },
       include: { plan: true },
     });
   },
 
   // Cancel subscription
   async cancelSubscription(tenantId: string, cancelAtPeriodEnd: boolean = true) {
+    const subscription = await prisma.subscription.findUnique({ where: { tenantId } });
+    if (!subscription) throw new AppError('Subscription not found', 404);
+
     return prisma.subscription.update({
       where: { tenantId },
       data: {
